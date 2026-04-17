@@ -1,0 +1,44 @@
+name: 버그 제보
+description: 오류나 문제 상황을 작성합니다
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ❗ 어떤 문제가 발생했나요?
+      description: 발생한 문제를 적어주세요
+      placeholder: 예) PDF 업로드 후 분석 시작 버튼이 동작하지 않음
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 🔁 어떻게 재현할 수 있나요?
+      description: 문제를 다시 발생시키는 방법을 적어주세요
+      placeholder: |
+        1. 로그인
+        2. PDF 업로드
+        3. 분석 시작 버튼 클릭
+        4. 아무 반응 없음
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ 원래 기대한 동작
+      description: 원래 어떻게 동작해야 하는지 적어주세요
+      placeholder: 예) 분석이 시작되고 로딩 화면으로 넘어가야 함
+    validations:
+      required: false
+
+  - type: textarea
+    id: note
+    attributes:
+      label: 🙏 참고할 내용
+      description: 에러 로그, 스크린샷, 특이사항 등이 있으면 적어주세요
+      placeholder: 예) 콘솔에 500 에러 발생
+    validations:
+      required: false
