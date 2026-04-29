@@ -1,4 +1,4 @@
-# 진단 서비스 — 진단 세션 생성, 답변 저장 및 진행 상태 계산
+# 수준 진단 서비스 — 진단 세션 생성, 답변 저장 및 진행 상태 계산
 
 import json
 from sqlalchemy.orm import Session
@@ -33,7 +33,7 @@ def submit_answer(diagnosis_id: str, selected_index: int, db: Session) -> dict |
     db.refresh(session)
 
     is_correct = selected_index == session.correct_index
-    node_status = "KNOWN" if is_correct else "NEEDS_REVIEW"
+    node_status = "KNOWN" if is_correct else "UNKNOWN"
     return {"session": session, "is_correct": is_correct, "node_status": node_status}
 
 

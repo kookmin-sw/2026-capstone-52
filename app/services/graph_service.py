@@ -27,14 +27,11 @@ def get_node_by_id(node_id: str, db: Session) -> ConceptNode | None:
     return db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
 
 
-def update_node_status(node_id: str, status: str | None, score: float | None, db: Session) -> ConceptNode | None:
-    """노드 이해도 상태(status)와 점수(score) 업데이트 — None 전달 시 해당 필드 변경 안 함"""
+def update_node_status(node_id: str, status: str, db: Session) -> ConceptNode | None:
+    """노드 이해도 상태 업데이트 — UNKNOWN / KNOWN"""
     node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
     if node:
-        if status is not None:
-            node.status = status
-        if score is not None:
-            node.score = score
+        node.status = status
         db.commit()
         db.refresh(node)
     return node

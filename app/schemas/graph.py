@@ -11,7 +11,6 @@ class NodeResponse(BaseModel):
     description: Optional[str]
     group: Optional[str]
     status: str
-    score: float
     updated_at: datetime
 
     class Config:

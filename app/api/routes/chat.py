@@ -20,7 +20,7 @@ def chat(project_id: str, body: ChatRequest, db: Session = Depends(get_db)):
     result = process_chat(body.message, node_list)
 
     for node_id in result.get("understood_nodes", []):
-        graph_service.update_node_status(node_id, "KNOWN", 1.0, db)
+        graph_service.update_node_status(node_id, "KNOWN", db)
 
     return {
         "success": True,

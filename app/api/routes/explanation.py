@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("")
 def create_explanation(body: ExplanationRequest, db: Session = Depends(get_db)):
-    """사용자 질문 + 개념 정보를 기반으로 맞춤 설명 생성 후 반환 — 기록 저장은 백엔드1 담당"""
+    """사용자 질문 + 개념 정보를 기반으로 맞춤 설명 생성 후 반환"""
     node_name, description = "", ""
     if body.node_id:
         node = graph_service.get_node_by_id(body.node_id, db)

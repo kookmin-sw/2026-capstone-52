@@ -17,7 +17,7 @@ class DiagnosisAnswerRequest(BaseModel):
 class DiagnosisAnswerResponse(BaseModel):
     is_correct: bool
     correct_index: int
-    node_status: str   # 업데이트된 노드 상태
+    node_status: str  # KNOWN / UNKNOWN
 
 
 class DiagnosisStatusResponse(BaseModel):

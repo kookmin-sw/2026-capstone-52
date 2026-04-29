@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/me")
 def get_my_graph(user_id: str, subject: str | None = None, db: Session = Depends(get_db)):
     """사용자의 전체 프로젝트 지식 그래프 반환 (subject 파라미터로 과목 필터 가능)"""
-    # TODO: user_id를 JWT에서 추출하도록 변경, 백엔드1과 역할 조율 필요
+    # TODO: 백엔드1과 JWT 시크릿 키 공유 후 헤더에서 user_id 파싱하도록 변경 (구글 로그인 연동)
     return {"success": True, "data": None, "message": "미구현"}
 
 

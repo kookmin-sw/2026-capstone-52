@@ -17,9 +17,7 @@ class ConceptNode(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)         # 개념명 (예: "극한")
     description: Mapped[str] = mapped_column(String, nullable=True)   # 개념 설명
     group: Mapped[str] = mapped_column(String, nullable=True)         # 상위 주제 (예: "미적분")
-    status: Mapped[str] = mapped_column(String, default="UNKNOWN")
-    # 사용자 이해도 상태: UNKNOWN / PARTIAL / KNOWN / NEEDS_REVIEW
-    score: Mapped[float] = mapped_column(Float, default=0.0)          # 이해도 점수 0.0 ~ 1.0
+    status: Mapped[str] = mapped_column(String, default="UNKNOWN")  # UNKNOWN / KNOWN
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

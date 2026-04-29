@@ -48,8 +48,7 @@ def submit_answer(project_id: str, body: DiagnosisAnswerRequest, db: Session = D
 
     session = result["session"]
     if session.node_id:
-        score = 1.0 if result["is_correct"] else 0.0
-        graph_service.update_node_status(session.node_id, result["node_status"], score, db)
+        graph_service.update_node_status(session.node_id, result["node_status"], db)
 
     return {
         "success": True,
