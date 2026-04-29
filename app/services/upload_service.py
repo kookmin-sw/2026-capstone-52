@@ -1,21 +1,23 @@
+# 업로드 서비스 — S3 파일 저장 및 DB 메타데이터 관리
+
 import uuid
 import boto3
-from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from app.models.file import File
 from app.core.config import settings
+from app.db.session import SessionLocal
+from app.services.graph_service import save_graph_from_ai
+from app.ai.graph_extractor import extract_graph
 
 
-def upload_pdf_to_s3(project_id: str, file: UploadFile, db: Session) -> File:
-    s3 = boto3.client(
-        "s3",
-        region_name=settings.aws_region,
-        aws_access_key_id=settings.aws_access_key_id,
-        aws_secret_access_key=settings.aws_secret_access_key,
-    )
+def upload_pdf_to_s3(project_id: str, file, db: Session) -> File:
+    """PDF를 S3에 업로드하고 files 테이블에 메타데이터 저장"""
     file_id = str(uuid.uuid4())
     s3_key = f"{project_id}/{file_id}/{file.filename}"
-    s3.upload_fileobj(file.file, settings.s3_bucket_name, s3_key)
+    if settings.use_s3:
+        # EC2 IAM Role 환경에서는 boto3가 자동으로 인증 처리 (키 불필요)
+        s3 = boto3.client("s3", region_name=settings.aws_region)
+        s3.upload_fileobj(file.file, settings.s3_bucket_name, s3_key)
 
     db_file = File(
         file_id=file_id,
@@ -29,6 +31,25 @@ def upload_pdf_to_s3(project_id: str, file: UploadFile, db: Session) -> File:
     db.commit()
     db.refresh(db_file)
     return db_file
+
+
+def run_analysis(file_id: str, project_id: str, s3_key: str):
+    """백그라운드 분석 태스크 — S3에서 파일 읽어 AI 분석 후 그래프 저장"""
+    db = SessionLocal()
+    try:
+        file_bytes = b""
+        if settings.use_s3:
+            s3 = boto3.client("s3", region_name=settings.aws_region)
+            obj = s3.get_object(Bucket=settings.s3_bucket_name, Key=s3_key)
+            file_bytes = obj["Body"].read()
+
+        ai_result = extract_graph(file_bytes)
+        save_graph_from_ai(project_id, file_id, ai_result, db)
+        update_analysis_status(file_id, "DONE", db)
+    except Exception:
+        update_analysis_status(file_id, "FAILED", db)
+    finally:
+        db.close()
 
 
 def get_files_by_project(project_id: str, db: Session) -> list[File]:

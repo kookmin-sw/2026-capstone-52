@@ -1,24 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException
+# 맞춤 설명 라우터 — LLM 기반 설명 생성
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.explanation import ExplanationRequest, ExplanationResponse
+from app.services import graph_service
+from app.schemas.explanation import ExplanationRequest
+from app.ai.explanation_ai import generate_explanation
 
 router = APIRouter()
 
 
 @router.post("")
 def create_explanation(body: ExplanationRequest, db: Session = Depends(get_db)):
-    # TODO: Bedrock(Claude) 호출 로직 구현
-    return {"success": True, "data": None, "message": "미구현"}
+    """사용자 질문 + 개념 정보를 기반으로 맞춤 설명 생성 후 반환 — 기록 저장은 백엔드1 담당"""
+    node_name, description = "", ""
+    if body.node_id:
+        node = graph_service.get_node_by_id(body.node_id, db)
+        if node:
+            node_name = node.name
+            description = node.description or ""
 
-
-@router.get("/{project_id}")
-def get_explanation_list(project_id: str, db: Session = Depends(get_db)):
-    # TODO: explanation_logs 조회 구현
-    return {"success": True, "data": [], "message": "미구현"}
-
-
-@router.patch("/{explanation_id}")
-def end_explanation_session(explanation_id: str, db: Session = Depends(get_db)):
-    # TODO: ended_at 기록 구현
-    return {"success": True, "data": None, "message": "미구현"}
+    response_text = generate_explanation(node_name, description, body.question)
+    return {"success": True, "data": {"response": response_text}, "message": ""}

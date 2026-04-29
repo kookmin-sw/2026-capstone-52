@@ -18,11 +18,6 @@ class NodeResponse(BaseModel):
         from_attributes = True
 
 
-class NodeUpdate(BaseModel):
-    status: Optional[str] = None
-    score: Optional[float] = None
-
-
 class EdgeResponse(BaseModel):
     edge_id: str
     project_id: str
