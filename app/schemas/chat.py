@@ -10,4 +10,4 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
-    updated_nodes: list[int] = []
+    updated_nodes: list = []
