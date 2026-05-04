@@ -1,6 +1,7 @@
 # FastAPI 앱 진입점 — 라우터 등록 및 DB 초기화
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.base import Base
 from app.db.session import engine
@@ -15,6 +16,14 @@ from app.api.routes import users, projects, learning_logs, mypage, chat as chat_
 from app.api.routes import upload, graph as graph_router, explanation, diagnosis as diagnosis_router
 
 app = FastAPI(title="EEUM Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 서버 시작 시 DB 테이블 자동 생성
 Base.metadata.create_all(bind=engine)
