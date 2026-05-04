@@ -5,4 +5,4 @@ venv/
 .venv/
 *.db
 .DS_Store
-BACKEND2.md
+.vscode/
