@@ -2374,6 +2374,12 @@ a {
   max-height: calc(100vh - 8rem);
   overflow: auto;
   padding: 0.35rem 0 0.25rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.workspace-chat-log::-webkit-scrollbar {
+  display: none;
 }
 
 .workspace-message {
@@ -2424,6 +2430,32 @@ a {
   color: rgba(255, 255, 255, 0.78);
   font-size: 0.92rem;
   line-height: 1.75;
+}
+
+.workspace-message-loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.68rem;
+  min-height: 1.75rem;
+}
+
+.workspace-message-loading-dots span {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: #f4f4f6;
+  box-shadow: 0 0 1.1rem rgba(142, 114, 255, 0.34);
+  opacity: 0.24;
+  transform: scale(0.58);
+  animation: diagnosis-dot-loading 1.05s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.workspace-message-loading-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.workspace-message-loading-dots span:nth-child(3) {
+  animation-delay: 0.32s;
 }
 
 .workspace-message-tags {
@@ -3109,6 +3141,13 @@ a {
   padding: 0 0.9rem;
   background: rgba(255, 255, 255, 0.09);
   color: #f5f4f8;
+}
+
+.workspace-modal-error {
+  margin: 0.75rem 0 0;
+  color: #fecaca;
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .workspace-modal-actions {

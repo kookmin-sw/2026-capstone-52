@@ -25,10 +25,17 @@ import {
 import { getProjectData } from "../../features/project/model";
 import WorkspaceProfileCard from "./WorkspaceProfileCard";
 
-function CreateProjectModal({ draftName, onDraftChange, onClose, onCreate }) {
+function CreateProjectModal({ draftName, onDraftChange, onClose, onCreate, isCreating, errorMessage }) {
   return (
     <div className="workspace-modal-backdrop" onClick={onClose}>
-      <div className="workspace-modal-panel" onClick={(event) => event.stopPropagation()}>
+      <form
+        className="workspace-modal-panel"
+        onClick={(event) => event.stopPropagation()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          onCreate();
+        }}
+      >
         <p className="workspace-modal-eyebrow">New Project</p>
         <h2 className="workspace-modal-title">새 학습을 시작합니다</h2>
         <p className="workspace-modal-copy">프로젝트명을 먼저 만들고, 자료 업로드와 대화는 다음 단계에서 이어집니다.</p>
@@ -44,15 +51,17 @@ function CreateProjectModal({ draftName, onDraftChange, onClose, onCreate }) {
           />
         </label>
 
+        {errorMessage ? <p className="workspace-modal-error">{errorMessage}</p> : null}
+
         <div className="workspace-modal-actions">
-          <button type="button" className="workspace-secondary-button" onClick={onClose}>
+          <button type="button" className="workspace-secondary-button" onClick={onClose} disabled={isCreating}>
             취소
           </button>
-          <button type="button" className="workspace-primary-button" onClick={onCreate}>
-            생성
+          <button type="submit" className="workspace-primary-button" disabled={!draftName.trim() || isCreating}>
+            {isCreating ? "생성 중..." : "생성"}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -259,6 +268,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [selectedUpdatedConceptLabel, setSelectedUpdatedConceptLabel] = useState(null);
   const [draftName, setDraftName] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [selectedGraphNodeId, setSelectedGraphNodeId] = useState(null);
   const [graphDetailNodeId, setGraphDetailNodeId] = useState(null);
@@ -434,6 +444,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   );
 
   const activeChatMessages = activeChat?.messages || [];
+  const activeChatLastMessage = activeChatMessages[activeChatMessages.length - 1] || null;
+  const activeChatScrollKey = `${activeChatMessages.length}:${activeChatLastMessage?.id || ""}:${
+    activeChatLastMessage?.text || ""
+  }`;
   const projectGraph = useMemo(
     () => {
       const projectInput = activeProjectData
@@ -509,8 +523,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       return;
     }
 
-    chatLogRef.current.scrollTop = 0;
-  }, [activeTab, selectedChatId, selectedProjectId]);
+    const frameId = window.requestAnimationFrame(() => {
+      if (!chatLogRef.current) {
+        return;
+      }
+
+      chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeChatScrollKey, activeTab, selectedChatId, selectedProjectId]);
 
   useEffect(() => {
     if (!updatedConcepts.length) {
@@ -657,11 +679,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   async function handleCreateProject() {
     const nextName = draftName.trim();
 
-    if (!nextName) {
+    if (!nextName || isCreatingProject) {
       return;
     }
 
     try {
+      setIsCreatingProject(true);
+      setProjectError(null);
       const nextProject = await createProject(nextName);
       const nextProjects = await getProjects();
 
@@ -674,6 +698,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setIsProjectListExpanded(false);
     } catch (error) {
       setProjectError(error instanceof Error ? error.message : "프로젝트를 생성하지 못했습니다.");
+    } finally {
+      setIsCreatingProject(false);
     }
   }
 
@@ -706,8 +732,46 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       return;
     }
 
+    const now = new Date().toISOString();
+    const pendingChatId = selectedChatId || recentChats[0]?.id || `${selectedProjectId}-api-thread`;
+    const pendingUserMessage = {
+      id: `${pendingChatId}-pending-user-${Date.now()}`,
+      role: "user",
+      text: nextMessage,
+    };
+    const pendingAssistantMessage = {
+      id: `${pendingChatId}-pending-assistant-${Date.now()}`,
+      role: "assistant",
+      text: "...",
+      isPending: true,
+    };
+
     setIsSendingMessage(true);
     setChatError(null);
+    setComposerText("");
+    setSelectedChatId(pendingChatId);
+    setRecentChats((currentChats) => {
+      const existingChat =
+        currentChats.find((chat) => chat.id === pendingChatId) ||
+        activeChat ||
+        currentChats[0] ||
+        null;
+      const nextChat = existingChat
+        ? {
+            ...existingChat,
+            updatedAt: now,
+            messages: [...existingChat.messages, pendingUserMessage, pendingAssistantMessage],
+          }
+        : {
+            id: pendingChatId,
+            projectId: selectedProjectId,
+            title: nextMessage,
+            updatedAt: now,
+            messages: [pendingUserMessage, pendingAssistantMessage],
+          };
+
+      return [nextChat, ...currentChats.filter((chat) => chat.id !== nextChat.id)];
+    });
 
     try {
       await sendChatMessage(selectedProjectId, nextMessage);
@@ -720,10 +784,31 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setProjects(nextProjects);
       setRecentChats(nextChats);
       setBackendGraph(nextGraph);
-      setSelectedChatId(nextChats[0]?.id || null);
-      setComposerText("");
+      setSelectedChatId((currentChatId) =>
+        currentChatId && nextChats.some((chat) => chat.id === currentChatId) ? currentChatId : nextChats[0]?.id || null
+      );
     } catch (error) {
-      setChatError(error instanceof Error ? error.message : "채팅 메시지를 전송하지 못했습니다.");
+      const errorMessage = error instanceof Error ? error.message : "채팅 메시지를 전송하지 못했습니다.";
+
+      setChatError(errorMessage);
+      setRecentChats((currentChats) =>
+        currentChats.map((chat) =>
+          chat.id === pendingChatId
+            ? {
+                ...chat,
+                messages: chat.messages.map((message) =>
+                  message.id === pendingAssistantMessage.id
+                    ? {
+                        ...message,
+                        text: errorMessage,
+                        isPending: false,
+                      }
+                    : message
+                ),
+              }
+            : chat
+        )
+      );
     } finally {
       setIsSendingMessage(false);
     }
@@ -799,7 +884,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
       <aside className="workspace-sidebar workspace-panel">
         <div className="workspace-sidebar-top">
-          <button type="button" className="workspace-create-button" onClick={() => setIsCreateOpen(true)}>
+          <button
+            type="button"
+            className="workspace-create-button"
+            onClick={() => {
+              setProjectError(null);
+              setIsCreateOpen(true);
+            }}
+          >
             + 새 프로젝트 생성
           </button>
         </div>
@@ -855,16 +947,26 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                 <article
                   key={message.id}
                   data-message-id={message.id}
-                  className={`workspace-message workspace-message-${message.role}`}
+                  className={`workspace-message workspace-message-${message.role}${
+                    message.isPending ? " workspace-message-pending" : ""
+                  }`}
                 >
                   <div className="workspace-message-head">
                     <span className="workspace-message-badge">
                       {message.role === "assistant" ? "이음 AI" : "사용자"}
                     </span>
                   </div>
-                  <p>{message.text}</p>
+                  {message.isPending ? (
+                    <div className="workspace-message-loading-dots" aria-label="AI 응답 생성 중">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  ) : (
+                    <p>{message.text}</p>
+                  )}
 
-                  {message.role === "assistant" ? (
+                  {message.role === "assistant" && !message.isPending ? (
                     <div className="workspace-message-tags">
                       <span className="workspace-message-tag workspace-message-tag-blue">핵심 수준: 중급</span>
                       <span className="workspace-message-tag workspace-message-tag-amber">부족 개념: 기아 현상</span>
@@ -1164,10 +1266,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           draftName={draftName}
           onDraftChange={setDraftName}
           onClose={() => {
+            if (isCreatingProject) {
+              return;
+            }
+
             setDraftName("");
             setIsCreateOpen(false);
           }}
           onCreate={handleCreateProject}
+          isCreating={isCreatingProject}
+          errorMessage={projectError}
         />
       ) : null}
 
