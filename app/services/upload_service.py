@@ -1,6 +1,8 @@
 # 업로드 서비스 — S3 파일 저장 및 DB 메타데이터 관리
 
 import uuid
+from pathlib import Path
+
 import boto3
 from sqlalchemy.orm import Session
 from app.models.file import File
@@ -8,6 +10,12 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.services.graph_service import save_graph_from_ai
 from app.ai.graph_extractor import extract_graph
+
+LOCAL_UPLOAD_ROOT = Path(".local_uploads")
+
+
+def _get_local_file_path(s3_key: str) -> Path:
+    return LOCAL_UPLOAD_ROOT / s3_key
 
 
 def upload_pdf_to_s3(project_id: str, file, db: Session) -> File:
@@ -18,6 +26,12 @@ def upload_pdf_to_s3(project_id: str, file, db: Session) -> File:
         # EC2 IAM Role 환경에서는 boto3가 자동으로 인증 처리 (키 불필요)
         s3 = boto3.client("s3", region_name=settings.aws_region)
         s3.upload_fileobj(file.file, settings.s3_bucket_name, s3_key)
+    else:
+        local_path = _get_local_file_path(s3_key)
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        with local_path.open("wb") as local_file:
+            local_file.write(file.file.read())
+        file.file.seek(0)
 
     db_file = File(
         file_id=file_id,
@@ -42,6 +56,9 @@ def run_analysis(file_id: str, project_id: str, s3_key: str):
             s3 = boto3.client("s3", region_name=settings.aws_region)
             obj = s3.get_object(Bucket=settings.s3_bucket_name, Key=s3_key)
             file_bytes = obj["Body"].read()
+        else:
+            local_path = _get_local_file_path(s3_key)
+            file_bytes = local_path.read_bytes()
 
         ai_result = extract_graph(file_bytes)
         save_graph_from_ai(project_id, file_id, ai_result, db)
