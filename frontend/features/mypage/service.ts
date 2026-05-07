@@ -1,0 +1,114 @@
+import type { MyPageStats, ProfileInfo, RecentLearningRecord } from "@/types/profile";
+import { apiRequest } from "@/features/api/client";
+import { ensureCurrentUser, getCurrentUserId, mapApiUserToProfile, updateCurrentUserProfile } from "@/features/api/session";
+
+const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
+const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
+
+type ApiProject = {
+  project_id: number | string;
+  project_name: string;
+  project_domain?: string | null;
+};
+
+type ApiLearningLog = {
+  activity_id: number | string;
+  project_id?: number | string | null;
+  activity_type: string;
+  activity_summary: string;
+  created_at?: string | null;
+};
+
+type ApiGraphNode = {
+  node_id: string;
+  project_id: number | string;
+  name: string;
+  group?: string | null;
+  updated_at?: string | null;
+};
+
+function normalizeDate(value?: string | null) {
+  if (!value) {
+    return new Date().toISOString();
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function buildRecentRecords(logs: ApiLearningLog[], graphNodes: ApiGraphNode[]): RecentLearningRecord[] {
+  const graphRecords = graphNodes.map((node, index) => ({
+    id: node.node_id,
+    projectId: String(node.project_id),
+    subject: node.group || "지식 그래프",
+    nodeName: node.name,
+    updatedAt: normalizeDate(node.updated_at),
+    accentColor: activityColors[index % activityColors.length],
+  }));
+  const logRecords = logs.map((log, index) => ({
+    id: String(log.activity_id),
+    projectId: String(log.project_id || "activity"),
+    subject: log.activity_type,
+    nodeName: log.activity_summary,
+    updatedAt: normalizeDate(log.created_at),
+    accentColor: activityColors[(index + graphRecords.length) % activityColors.length],
+  }));
+
+  return [...graphRecords, ...logRecords]
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+    .slice(0, 6);
+}
+
+export async function getApiMyPageViewData(): Promise<{
+  profile: ProfileInfo;
+  profileImage: string | null;
+  stats: MyPageStats;
+  recentRecords: RecentLearningRecord[];
+} | null> {
+  if (!isBackendApiEnabled) {
+    return null;
+  }
+
+  const user = await ensureCurrentUser();
+  const userId = await getCurrentUserId();
+  const [mypage, projects, logs] = await Promise.all([
+    apiRequest(`/mypage/${encodeURIComponent(userId)}`, { method: "GET" }).catch(() => null),
+    apiRequest(`/projects/user/${encodeURIComponent(userId)}`, { method: "GET" }),
+    apiRequest(`/learning-logs/user/${encodeURIComponent(userId)}`, { method: "GET" }).catch(() => []),
+  ]);
+  const safeProjects = Array.isArray(projects) ? (projects as ApiProject[]) : [];
+  const safeLogs = Array.isArray(logs) ? (logs as ApiLearningLog[]) : [];
+  const graphs = await Promise.all(
+    safeProjects.map((project) =>
+      apiRequest(`/graph/${encodeURIComponent(project.project_id)}`, { method: "GET" }).catch(() => null)
+    )
+  );
+  const graphNodes = graphs.flatMap((graph) => (Array.isArray(graph?.nodes) ? (graph.nodes as ApiGraphNode[]) : []));
+  const chatCounts = await Promise.all(
+    safeProjects.map((project) =>
+      apiRequest(`/chat/project/${encodeURIComponent(project.project_id)}`, { method: "GET" })
+        .then((chats) => (Array.isArray(chats) ? chats.length : 0))
+        .catch(() => 0)
+    )
+  );
+
+  return {
+    profile: mapApiUserToProfile(mypage?.user || user),
+    profileImage: (mypage?.user || user)?.profile_image || null,
+    stats: {
+      projectCount: mypage?.summary?.project_count ?? safeProjects.length,
+      totalChats: chatCounts.reduce((sum, count) => sum + count, 0),
+      diagnosisCount: safeLogs.filter((log) => log.activity_type === "diagnosis_completed").length,
+      conceptCount: graphNodes.length,
+    },
+    recentRecords: buildRecentRecords(safeLogs, graphNodes),
+  };
+}
+
+export async function saveApiProfile(profile: ProfileInfo, profileImage: string | null) {
+  if (!isBackendApiEnabled) {
+    return profile;
+  }
+
+  return updateCurrentUserProfile(profile, profileImage);
+}
