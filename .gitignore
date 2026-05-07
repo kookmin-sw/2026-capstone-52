@@ -1,3 +1,12 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.db
+.DS_Store
+.vscode/
+
 
 # dependencies
 node_modules/
