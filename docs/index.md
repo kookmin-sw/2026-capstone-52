@@ -309,7 +309,7 @@ permalink: /
     </p>
     <div class="eeum-actions">
       <a href="#project-intro">프로젝트 소개</a>
-      <a href="#usage">실행 방법</a>
+      <a href="{{ '/documents/greeting/' | relative_url }}">문서 보기</a>
     </div>
   </div>
   <div class="eeum-summary" aria-label="프로젝트 요약">
@@ -317,7 +317,7 @@ permalink: /
     <a href="#project-intro"><span>01</span>프로젝트 소개</a>
     <a href="#features"><span>02</span>주요 기능</a>
     <a href="#architecture"><span>03</span>시스템 구조</a>
-    <a href="#tech-stack"><span>04</span>기술 스택</a>
+    <a href="{{ '/documents/development/setup/' | relative_url }}"><span>04</span>실행 방법</a>
   </div>
 </div>
 
@@ -345,6 +345,28 @@ permalink: /
   <div class="eeum-card">
     <strong>기대 효과</strong>
     <p>사용자는 자신의 이해 수준에 맞는 설명을 받고, 누적된 지식 그래프를 통해 복습 경로를 확인할 수 있습니다.</p>
+  </div>
+</div>
+
+---
+
+## 상세 문서 {#documents}
+
+<div class="eeum-grid three">
+  <div class="eeum-card">
+    <strong>문서 안내</strong>
+    <p>문서 사이트의 구조, 화면 내비게이션, 본문 링크 흐름을 확인합니다.</p>
+    <p><a href="{{ '/documents/greeting/' | relative_url }}">문서 안내로 이동</a></p>
+  </div>
+  <div class="eeum-card">
+    <strong>서비스 가이드</strong>
+    <p>사용자 흐름과 주요 기능을 서비스 관점에서 정리합니다.</p>
+    <p><a href="{{ '/documents/service/' | relative_url }}">서비스 가이드로 이동</a></p>
+  </div>
+  <div class="eeum-card">
+    <strong>개발 가이드</strong>
+    <p>시스템 구조, 실행 방법, 기술 스택을 개발 관점에서 정리합니다.</p>
+    <p><a href="{{ '/documents/development/' | relative_url }}">개발 가이드로 이동</a></p>
   </div>
 </div>
 
@@ -422,12 +444,12 @@ permalink: /
 프론트엔드는 학습 프로젝트, 자료 업로드, 진단, 채팅, 지식 그래프 화면을 제공합니다. 백엔드는 인증과 데이터 저장, 파일 업로드 URL 발급, AI 호출을 조율하며, 업로드된 자료는 스토리지와 분석 파이프라인을 거쳐 요약, 개념, 관계 데이터로 변환됩니다.
 
 <div class="eeum-figure">
-  <img src="./이음_아키텍처.png" alt="이음 시스템 아키텍처">
+  <img src="./assets/images/architecture-overview.png" alt="이음 시스템 아키텍처">
   <p class="eeum-note">이음 서비스의 전체 시스템 흐름</p>
 </div>
 
 <div class="eeum-figure">
-  <img src="./이음_아키텍처2.png" alt="이음 상세 아키텍처">
+  <img src="./assets/images/architecture-detail.png" alt="이음 상세 아키텍처">
   <p class="eeum-note">자료 분석 및 AI 튜터링 처리 흐름</p>
 </div>
 
@@ -492,8 +514,23 @@ uvicorn app.main:app --reload --port 8000</code></pre>
 ├── docs/
 │   ├── _config.yml              # GitHub Pages 설정
 │   ├── index.md                 # 프로젝트 소개 페이지
-│   ├── 이음_아키텍처.png
-│   └── 이음_아키텍처2.png
+│   ├── assets/
+│   │   └── images/
+│   │       ├── architecture-overview.png
+│   │       └── architecture-detail.png
+│   └── documents/
+│       ├── greeting.md
+│       ├── greeting/
+│       │   └── site-map.md
+│       ├── service.md
+│       ├── service/
+│       │   ├── user-flow.md
+│       │   └── features.md
+│       ├── development.md
+│       └── development/
+│           ├── architecture.md
+│           ├── setup.md
+│           └── tech-stack.md
 ├── README.md
 └── .github/
 ```

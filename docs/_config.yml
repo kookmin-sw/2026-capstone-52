@@ -1,1 +1,26 @@
-theme: jekyll-theme-slate
+title: "이음"
+description: "캡스톤디자인 2026 52조 프로젝트 문서"
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
+
+url: "https://kookmin-sw.github.io"
+baseurl: "/2026-capstone-52"
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub Repository":
+    - "https://github.com/kookmin-sw/2026-capstone-52"
+
+collections:
+  documents:
+    output: true
+    permalink: "/:collection/:path/"
+
+just_the_docs:
+  collections:
+    documents:
+      name: "문서"
