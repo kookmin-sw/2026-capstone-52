@@ -1,77 +1,92 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/Lvs6kcL8)
-# Welcome to GitHub
+# EEUM : PDF 기반 개인화 학습 및 수준 진단 AI 서비스
 
-캡스톤 팀 생성을 축하합니다.
+> 포스터 추후 추가 예정
 
-## 팀소개 및 페이지를 꾸며주세요.
+## 목차
 
-- 프로젝트 소개
-  - 프로젝트 설치방법 및 데모, 사용방법, 프리뷰등을 readme.md에 작성.
-  - Api나 사용방법등 내용이 많을경우 wiki에 꾸미고 링크 추가.
+1. [프로젝트 소개](#프로젝트-소개)
+2. [주요 기능](#주요-기능)
+3. [소개 영상](#소개-영상)
+4. [시스템 구조](#시스템-구조)
+5. [팀원 소개](#팀원-소개)
+6. [기술 스택](#기술-스택)
+7. [폴더 구조](#폴더-구조)
+8. [실행 방법](#실행-방법)
+9. [참고 자료](#참고-자료)
 
-- 팀페이지 꾸미기
-  - 프로젝트 소개 및 팀원 소개
-  - index.md 예시보고 수정.
+---
 
-- GitHub Pages 리파지토리 Settings > Options > GitHub Pages 
-  - Source를 marster branch
-  - Theme Chooser에서 태마선택
-  - 수정후 팀페이지 확인하여 점검.
+## 프로젝트 소개
 
-**팀페이지 주소** -> https://kookmin-sw.github.io/ '{{자신의 리파지토리 아이디}}'
+### 프로젝트 배경
+>서비스 소개 이미지 추가 예정
 
-**예시)** 2023년 0조  https://kookmin-sw.github.io/capstone-2023-00/
+기존 LLM 기반 학습 서비스는 사용자의 현재 이해 수준을 충분히 반영하지 못하고,
+단순 질의응답 중심으로 동작하는 경우가 많습니다.
 
+EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
+개인의 이해 상태를 분석하고 맞춤형 학습 경험을 제공하는 것을 목표로 합니다.
 
-## 내용에 아래와 같은 내용들을 추가하세요.
+### 핵심 차별점
 
-### 1. 프로잭트 소개
+- 단순 챗봇이 아닌 수준 진단 기반 개인화 학습
+- 선수 개념 기반 진단 흐름
+- PDF + Knowledge Graph + RAG 결합 구조
+- 프로젝트 단위 학습 상태 추적
+- 학습 로그 및 메모 기반 학습 관리
 
-프로젝트
+---
 
-### 2. 소개 영상
+## 주요 기능
 
-프로젝트 소개하는 영상을 추가하세요
+### 1. PDF 업로드 및 분석
 
-### 3. 팀 소개
+- PDF 학습 자료 업로드
+- 핵심 개념 추출
+- 개념 간 관계 분석
 
-팀을 소개하세요.
+- 선수 개념 기반 질문 생성
+- 사용자 이해도 분석
+- 개념별 상태 추적
 
-팀원정보 및 담당이나 사진 및 SNS를 이용하여 소개하세요.
+### 3. AI 질의응답
 
-### 4. 사용법
+- PDF 기반 답변 생성
+- 개인 수준 반영 설명
+- 학습 흐름 기반 응답
 
-소스코드제출시 설치법이나 사용법을 작성하세요.
+### 4. Knowledge Graph
 
-### 5. 기타
+- 개념 간 관계 시각화
+- 학습 상태 변화 추적
+- 프로젝트별 그래프 관리
 
-추가적인 내용은 자유롭게 작성하세요.
+### 5. 학습 기록 관리
 
+- 프로젝트별 채팅 기록 저장
+- 학습 로그 저장
+- 프로젝트 메모장 기능
 
-## Markdown을 사용하여 내용꾸미기
+---
+## 소개 영상
+>시연 영상 추가예정
+---
 
-Markdown은 작문을 스타일링하기위한 가볍고 사용하기 쉬운 구문입니다. 여기에는 다음을위한 규칙이 포함됩니다.
+## 시스템 구조
 
-```markdown
-Syntax highlighted code block
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/9e837668-4a6c-41bd-9f4d-a213d1e4e405" />
+<img width="1456" height="1212" alt="image" src="https://github.com/user-attachments/assets/33e28f94-5039-479a-9608-da2cf74f15be" />
 
-# Header 1
-## Header 2
-### Header 3
+---
+## 팀원 소개
+> 이미지 추가 예정
+---
 
-- Bulleted
-- List
+## 기술 스택
+> 이미지 추가 예정
 
-1. Numbered
-2. List
+## 폴더 구조
 
-**Bold** and _Italic_ and `Code` text
+## 실행 방법
 
-[Link](url) and ![Image](src)
-```
-
-자세한 내용은 [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Support or Contact
-
-readme 파일 생성에 추가적인 도움이 필요하면 [도움말](https://help.github.com/articles/about-readmes/) 이나 [contact support](https://github.com/contact) 을 이용하세요.
+## 참고 자료
