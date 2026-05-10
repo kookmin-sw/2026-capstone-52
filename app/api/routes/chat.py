@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.services import graph_service
 from app.schemas.chat import ChatRequest
 from app.models.graph import ConceptNode
+from app.models.user import UserProfile
 from app.ai.chat_ai import process_chat
 from app.services.chat_service import save_chat, get_chats_by_project
 from app.utils.response import success_response
@@ -29,8 +30,11 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
         for n in nodes
     ]
 
+    profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
+    explanation_style = profile.preferred_explanation_style if profile else None
+
     try:
-        result = process_chat(body.message, node_list)
+        result = process_chat(body.message, node_list, explanation_style)
         ai_reply = result["reply"]
         updated_nodes = result.get("updated_nodes", [])
     except NotImplementedError:
