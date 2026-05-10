@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.services import graph_service
 from app.schemas.explanation import ExplanationRequest
 from app.ai.explanation_ai import generate_explanation
+from app.models.user import UserProfile
 
 router = APIRouter()
 
@@ -20,5 +21,8 @@ def create_explanation(body: ExplanationRequest, db: Session = Depends(get_db)):
             node_name = node.name
             description = node.description or ""
 
-    response_text = generate_explanation(node_name, description, body.question)
+    profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
+    explanation_style = profile.preferred_explanation_style if profile else None
+
+    response_text = generate_explanation(node_name, description, body.question, explanation_style)
     return {"success": True, "data": {"response": response_text}, "message": ""}
