@@ -2,12 +2,36 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserProfileUpdate
-from app.services.user_service import create_user, get_user_by_id, get_user_profile, update_user_profile
+from app.schemas.user import UserCreate, UserProfileUpdate, GoogleLoginRequest
+from app.services.user_service import create_user, get_user_by_id, get_user_profile, update_user_profile, get_or_create_google_user
 from app.utils.response import success_response, error_response
 
 router = APIRouter()
 
+@router.post("/google")
+def google_login_api(login_data: GoogleLoginRequest, db: Session = Depends(get_db)):
+    user_data = UserCreate(
+        email=login_data.email,
+        nickname=login_data.nickname,
+        profile_image=login_data.profile_image,
+    )
+
+    user = get_or_create_google_user(db, user_data)
+    profile = get_user_profile(db, user.user_id)
+
+    data = {
+        "user_id": user.user_id,
+        "email": user.email,
+        "nickname": user.nickname,
+        "profile_image": user.profile_image,
+        "major": profile.major if profile else None,
+        "learning_fields": profile.learning_fields if profile else None,
+        "current_level": profile.current_level if profile else None,
+        "preferred_explanation_style": profile.preferred_explanation_style if profile else None,
+        "learning_goal": profile.learning_goal if profile else None,
+    }
+
+    return success_response(data, "구글 로그인 성공")
 
 @router.post("/")
 def create_user_api(user_data: UserCreate, db: Session = Depends(get_db)):

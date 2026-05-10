@@ -54,3 +54,20 @@ def update_user_profile(db: Session, user_id: int, update_data: UserProfileUpdat
     db.refresh(profile)
 
     return user, profile
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def get_or_create_google_user(db: Session, user_data: UserCreate):
+    user = get_user_by_email(db, user_data.email)
+
+    if user:
+        profile = get_user_profile(db, user.user_id)
+        if not profile:
+            profile = UserProfile(user_id=user.user_id)
+            db.add(profile)
+            db.commit()
+        return user
+
+    return create_user(db, user_data)
