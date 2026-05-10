@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 from app.models.graph import ConceptNode, ConceptEdge
+from app.models.chat import Chat
 
 
 def get_graph_by_project(project_id: str, db: Session):
@@ -27,14 +28,53 @@ def get_node_by_id(node_id: str, db: Session) -> ConceptNode | None:
     return db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
 
 
-def update_node_status(node_id: str, status: str, db: Session) -> ConceptNode | None:
-    """노드 이해도 상태 업데이트 — UNKNOWN / KNOWN"""
+def update_node_score(node_id: str, understanding_score: float, status: str, db: Session) -> ConceptNode | None:
+    """노드 score와 status 동시 업데이트 — score는 서비스 레이어에서 계산된 값을 받음"""
     node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
     if node:
+        node.understanding_score = understanding_score
         node.status = status
         db.commit()
         db.refresh(node)
     return node
+
+
+def get_related_nodes(node_id: str, db: Session) -> list[str]:
+    """해당 노드와 엣지로 연결된 인접 노드 이름 목록 반환"""
+    edges = db.query(ConceptEdge).filter(
+        (ConceptEdge.source_node_id == node_id) | (ConceptEdge.target_node_id == node_id)
+    ).all()
+
+    related_ids = set()
+    for edge in edges:
+        if edge.source_node_id == node_id:
+            related_ids.add(edge.target_node_id)
+        else:
+            related_ids.add(edge.source_node_id)
+
+    nodes = db.query(ConceptNode).filter(ConceptNode.node_id.in_(related_ids)).all()
+    return [n.name for n in nodes]
+
+
+def get_related_chats(node: ConceptNode, db: Session) -> list[dict]:
+    """노드 이름이 포함된 채팅 기록 반환 (user_message 텍스트 검색)"""
+    chats = (
+        db.query(Chat)
+        .filter(
+            Chat.project_id == node.project_id,
+            Chat.user_message.ilike(f"%{node.name}%"),
+        )
+        .order_by(Chat.created_at.asc())
+        .all()
+    )
+    return [
+        {
+            "chat_id": c.chat_id,
+            "date": c.created_at.strftime("%Y.%m.%d"),
+            "message": c.user_message,
+        }
+        for c in chats
+    ]
 
 
 def save_graph_from_ai(project_id: str, file_id: str, ai_result: dict, db: Session):
