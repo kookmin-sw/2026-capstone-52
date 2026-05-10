@@ -33,6 +33,10 @@ function setStoredUserId(userId) {
   window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, String(userId));
 }
 
+export function setCurrentUserId(userId) {
+  setStoredUserId(userId);
+}
+
 function buildLocalEmail() {
   const suffix =
     canUseStorage() && typeof crypto !== "undefined" && crypto.randomUUID
@@ -112,6 +116,23 @@ export async function ensureCurrentUser() {
   } catch {
     return user;
   }
+}
+
+/**
+ * @param {{ email: string, nickname?: string | null, profile_image?: string | null }} profile
+ */
+export async function loginWithGoogleProfile({ email, nickname = null, profile_image = null }) {
+  const user = await apiRequest("/users/google", {
+    method: "POST",
+    body: {
+      email,
+      nickname,
+      profile_image,
+    },
+  });
+
+  setStoredUserId(user.user_id);
+  return user;
 }
 
 export async function getCurrentUserId() {

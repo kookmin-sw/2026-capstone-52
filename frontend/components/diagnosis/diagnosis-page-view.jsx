@@ -12,9 +12,11 @@ import {
 } from "../../features/diagnosis/model";
 import {
   createApiDiagnosisQuestion,
+  getApiDiagnosisStatus,
   isDiagnosisBackendApiEnabled,
   submitApiDiagnosisAnswer,
 } from "../../features/diagnosis/api-service";
+import { createLearningLog } from "../../features/learning-log/service";
 import { getProjectData } from "../../features/project/model";
 import { loadWorkspaceState, saveProjectDiagnosis, saveWorkspaceState } from "../../features/workspace/storage";
 
@@ -57,6 +59,7 @@ export default function DiagnosisPageView({ projectId }) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [assessment, setAssessment] = useState(null);
   const [apiSession, setApiSession] = useState(null);
+  const [apiDiagnosisStatus, setApiDiagnosisStatus] = useState(null);
   const [diagnosisError, setDiagnosisError] = useState(null);
 
   useEffect(() => {
@@ -81,6 +84,7 @@ export default function DiagnosisPageView({ projectId }) {
 
       try {
         const question = await createApiDiagnosisQuestion(projectId);
+        const status = await getApiDiagnosisStatus(projectId).catch(() => null);
 
         if (cancelled) {
           return;
@@ -116,10 +120,12 @@ export default function DiagnosisPageView({ projectId }) {
             },
           ],
         });
+        setApiDiagnosisStatus(status);
       } catch (error) {
         if (!cancelled) {
           setDiagnosisError(error instanceof Error ? error.message : "진단 질문을 불러오지 못했습니다.");
           setApiSession(null);
+          setApiDiagnosisStatus(null);
         }
       }
     }
@@ -200,6 +206,11 @@ export default function DiagnosisPageView({ projectId }) {
   const currentLevelBadge = buildCurrentLevelBadge(conceptStatuses);
   const answeredCount = Object.values(answers).filter((answer) => typeof answer === "string" && answer.trim()).length;
   const progressRatio = session.totalQuestions ? answeredCount / session.totalQuestions : 0;
+  const apiProgressRatio =
+    apiDiagnosisStatus && typeof apiDiagnosisStatus.progress_percent === "number"
+      ? Math.min(Math.max(apiDiagnosisStatus.progress_percent / 100, 0), 1)
+      : null;
+  const displayedProgressRatio = apiProgressRatio ?? progressRatio;
 
   function updateCurrentAnswer(value) {
     if (!currentQuestion) {
@@ -237,6 +248,7 @@ export default function DiagnosisPageView({ projectId }) {
 
       try {
         const result = await submitApiDiagnosisAnswer(projectId, currentQuestion.diagnosisId, Math.max(selectedIndex, 0));
+        const status = await getApiDiagnosisStatus(projectId).catch(() => null);
         const nextStatus = result.is_correct ? diagnosisStatusMap.understood : diagnosisStatusMap.needsReview;
         const conceptStatuses = session.concepts.map((concept) => ({
           ...concept,
@@ -267,8 +279,14 @@ export default function DiagnosisPageView({ projectId }) {
         });
 
         saveWorkspaceState(nextWorkspaceState);
+        setApiDiagnosisStatus(status);
         setAssessment(nextAssessment);
         setStep("ready");
+        createLearningLog({
+          projectId,
+          activityType: "diagnosis_completed",
+          activitySummary: `${session.projectTitle} 수준 진단을 완료했습니다.`,
+        }).catch(console.error);
       } catch (error) {
         setDiagnosisError(error instanceof Error ? error.message : "진단 답변을 제출하지 못했습니다.");
         setStep("quiz");
@@ -322,7 +340,7 @@ export default function DiagnosisPageView({ projectId }) {
           </div>
 
           <div className="diagnosis-flow-step-track" aria-hidden="true">
-            <div className="diagnosis-flow-step-fill" style={{ width: `${progressRatio * 100}%` }} />
+            <div className="diagnosis-flow-step-fill" style={{ width: `${displayedProgressRatio * 100}%` }} />
             <div className="diagnosis-flow-step-nodes">
               {Array.from({ length: session.totalQuestions + 1 }).map((_, index) => (
                 <span
@@ -345,8 +363,13 @@ export default function DiagnosisPageView({ projectId }) {
                   {currentQuestion.order} / {session.totalQuestions} 문항
                 </strong>
                 <div className="diagnosis-flow-progress-bar">
-                  <div style={{ width: `${progressRatio * 100}%` }} />
+                  <div style={{ width: `${displayedProgressRatio * 100}%` }} />
                 </div>
+                {apiDiagnosisStatus ? (
+                  <small>
+                    {apiDiagnosisStatus.diagnosed_nodes} / {apiDiagnosisStatus.total_nodes} 개념 진단 완료
+                  </small>
+                ) : null}
               </div>
 
               <div className="diagnosis-flow-sideblock">

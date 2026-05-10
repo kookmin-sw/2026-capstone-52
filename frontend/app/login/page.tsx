@@ -1,7 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LandingGraphLayer } from "@/components/landing/landing-graph-layer";
+import { loginWithGoogleProfile } from "@/features/api/session";
+
+const GOOGLE_IDENTITY_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+type GoogleTokenClient = {
+  requestAccessToken: (options?: { prompt?: string }) => void;
+};
+
+type GoogleUserInfo = {
+  email?: string;
+  name?: string;
+  picture?: string;
+};
+
+type GoogleTokenResponse = {
+  access_token?: string;
+  error?: string;
+};
 
 function BrandMark() {
   return (
@@ -37,8 +58,114 @@ function GoogleMark() {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+  const tokenClientRef = useRef<GoogleTokenClient | null>(null);
+  const [isGoogleReady, setIsGoogleReady] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      setLoginError("Google Client ID가 설정되지 않았습니다.");
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    function initializeGoogleLogin() {
+      const google = (window as any).google;
+
+      if (!google?.accounts?.oauth2 || cancelled) {
+        return;
+      }
+
+      tokenClientRef.current = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        callback: async (response: GoogleTokenResponse) => {
+          if (response.error || !response.access_token) {
+            setIsSigningIn(false);
+            setLoginError("Google 로그인에 실패했습니다.");
+            return;
+          }
+
+          try {
+            const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+              headers: {
+                Authorization: `Bearer ${response.access_token}`,
+              },
+            });
+
+            if (!profileResponse.ok) {
+              throw new Error("Google 사용자 정보를 불러오지 못했습니다.");
+            }
+
+            const profile = (await profileResponse.json()) as GoogleUserInfo;
+
+            if (!profile.email) {
+              throw new Error("Google 계정 이메일을 확인하지 못했습니다.");
+            }
+
+            await loginWithGoogleProfile({
+              email: profile.email,
+              nickname: profile.name || profile.email.split("@")[0],
+              profile_image: profile.picture || null,
+            });
+
+            router.push("/dashboard");
+          } catch (error) {
+            setLoginError(error instanceof Error ? error.message : "로그인 처리 중 오류가 발생했습니다.");
+          } finally {
+            setIsSigningIn(false);
+          }
+        },
+      });
+
+      setIsGoogleReady(true);
+      setLoginError(null);
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_IDENTITY_SCRIPT_SRC}"]`);
+
+    if (existingScript) {
+      initializeGoogleLogin();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = GOOGLE_IDENTITY_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogleLogin;
+    script.onerror = () => {
+      if (!cancelled) {
+        setLoginError("Google 로그인 스크립트를 불러오지 못했습니다.");
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   const handleGoogleSignIn = () => {
-    console.log("Google sign-in clicked");
+    setLoginError(null);
+
+    if (!GOOGLE_CLIENT_ID) {
+      setLoginError("Google Client ID가 설정되지 않았습니다.");
+      return;
+    }
+
+    if (!tokenClientRef.current) {
+      setLoginError("Google 로그인을 아직 준비 중입니다.");
+      return;
+    }
+
+    setIsSigningIn(true);
+    tokenClientRef.current.requestAccessToken({ prompt: "select_account" });
   };
 
   return (
@@ -82,11 +209,16 @@ export default function LoginPage() {
                 type="button"
                 aria-label="Google 계정으로 로그인"
                 onClick={handleGoogleSignIn}
-                className="mt-8 inline-flex h-14 w-auto items-center justify-center gap-3 self-center rounded-full border border-white/12 bg-[#16181c] px-8 text-[1rem] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition hover:bg-[#1b1e23] active:translate-y-[1px] active:bg-[#121418] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f86ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#26282d]"
+                disabled={!isGoogleReady || isSigningIn}
+                className="mt-8 inline-flex h-14 w-auto items-center justify-center gap-3 self-center rounded-full border border-white/12 bg-[#16181c] px-8 text-[1rem] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition hover:bg-[#1b1e23] active:translate-y-[1px] active:bg-[#121418] disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f86ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#26282d]"
               >
                 <GoogleMark />
-                <span>Sign in with Google</span>
+                <span>{isSigningIn ? "Signing in..." : "Sign in with Google"}</span>
               </button>
+
+              {loginError ? (
+                <p className="mt-4 text-center text-[0.92rem] leading-6 text-[#ff9f9f]">{loginError}</p>
+              ) : null}
 
               <div className="mt-8 rounded-[18px] bg-[#43454c] px-6 py-4 text-center text-[0.98rem] leading-7 text-white/60">
                 <p>

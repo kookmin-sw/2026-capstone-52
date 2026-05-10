@@ -9,15 +9,18 @@ import {
   hasCompletedAnalysis,
   isBackendApiEnabled,
   listProjectFiles,
+  refreshAnalysisStatuses,
   startAnalysis,
   uploadProjectFiles,
 } from "../../features/upload/service";
+import { createLearningLog } from "../../features/learning-log/service";
 import { loadWorkspaceState } from "../../features/workspace/storage";
 
 export default function UploadPageView({ initialProjectId = null }) {
   const router = useRouter();
   const fileInputRef = useRef(null);
   const fileTableRef = useRef(null);
+  const loggedGraphUpdateFileIdsRef = useRef(new Set());
   const [projectId, setProjectId] = useState(initialProjectId);
   const [projectTitle, setProjectTitle] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -118,11 +121,21 @@ export default function UploadPageView({ initialProjectId = null }) {
 
     const timer = window.setInterval(async () => {
       try {
-        const files = await listProjectFiles(projectId);
-        const hasCompleted = await hasCompletedAnalysis(projectId);
+        const files = await refreshAnalysisStatuses(projectId, uploadedFiles);
+        const completedFiles = files.filter((file) => file.rawStatus === "DONE" || file.statusTone === "done");
+        const newlyCompletedFiles = completedFiles.filter((file) => !loggedGraphUpdateFileIdsRef.current.has(file.id));
+
+        if (newlyCompletedFiles.length) {
+          newlyCompletedFiles.forEach((file) => loggedGraphUpdateFileIdsRef.current.add(file.id));
+          createLearningLog({
+            projectId,
+            activityType: "graph_updated",
+            activitySummary: `${newlyCompletedFiles.length}개 자료 분석 결과가 지식 그래프에 반영되었습니다.`,
+          }).catch(console.error);
+        }
 
         setUploadedFiles(files);
-        setCanStartDiagnosis(hasCompleted);
+        setCanStartDiagnosis(completedFiles.length > 0);
       } catch (error) {
         console.error(error);
       }
@@ -184,6 +197,13 @@ export default function UploadPageView({ initialProjectId = null }) {
 
     try {
       const uploaded = await uploadProjectFiles(projectId, projectTitle || "새 프로젝트", pendingFiles);
+      if (uploaded.length) {
+        createLearningLog({
+          projectId,
+          activityType: "file_uploaded",
+          activitySummary: `${uploaded.length}개 학습 자료를 업로드했습니다.`,
+        }).catch(console.error);
+      }
       const nextFiles = await startAnalysis(
         projectId,
         uploaded.map((file) => file.id)
