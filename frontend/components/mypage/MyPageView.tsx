@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import GalaxyGraphPanel from "@/components/mypage/GalaxyGraphPanel";
+import AllKnowledgeGraphModal from "@/components/mypage/AllKnowledgeGraphModal";
 import MyPageHeader from "@/components/mypage/MyPageHeader";
 import ProfileEditModal from "@/components/mypage/ProfileEditModal";
 import ProfileSummaryCard from "@/components/mypage/ProfileSummaryCard";
@@ -21,6 +21,7 @@ export default function MyPageView() {
   const updateProfileImage = useProfileStore((state) => state.updateProfileImage);
   const hydrated = useProfileStore((state) => state.hydrated);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAllGraphOpen, setIsAllGraphOpen] = useState(false);
   const [apiStats, setApiStats] = useState<MyPageStats | null>(null);
   const [apiRecentRecords, setApiRecentRecords] = useState<RecentLearningRecord[] | null>(null);
 
@@ -70,21 +71,21 @@ export default function MyPageView() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#303035] text-white">
+    <div className="min-h-screen overflow-hidden bg-[#faf9ff] text-[#24213d]">
       <MyPageHeader onOpenEdit={() => setIsEditOpen(true)} />
 
-      <main className="mx-auto grid h-[calc(100vh-3.5rem)] w-full max-w-[100vw] grid-rows-[auto_minmax(0,1fr)] gap-[clamp(14px,2.6vh,24px)] px-[clamp(16px,2vw,29px)] py-[clamp(14px,2.6vh,24px)]">
+      <main className="mx-auto grid h-[calc(100vh-76px)] w-full max-w-[min(86vw,2000px)] grid-rows-[auto_minmax(0,1fr)] gap-7 px-[clamp(28px,3vw,52px)] py-[clamp(38px,5vh,58px)]">
         <ProfileSummaryCard
           profile={profile}
           profileImage={hydrated ? profileImage : null}
           badges={badges}
           stats={stats}
           onImageChange={handleImageChange}
+          onOpenGraph={() => setIsAllGraphOpen(true)}
         />
 
-        <section className="grid min-h-0 gap-[clamp(14px,1.8vw,24px)] xl:grid-cols-[minmax(300px,31vw)_minmax(0,1fr)]">
+        <section className="min-h-0">
           <RecentLearningPanel records={recentRecords} />
-          <GalaxyGraphPanel />
         </section>
       </main>
 
@@ -98,6 +99,8 @@ export default function MyPageView() {
           setIsEditOpen(false);
         }}
       />
+
+      <AllKnowledgeGraphModal open={isAllGraphOpen} onClose={() => setIsAllGraphOpen(false)} />
     </div>
   );
 }

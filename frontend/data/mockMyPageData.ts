@@ -66,10 +66,11 @@ export const languageOptions = ["한국어", "English", "日本語"] as const;
 export const defaultProfile: ProfileInfo = {
   name: "이지안",
   language: "한국어",
-  job: "Frontend Engineer",
-  major: "컴퓨터공학과",
+  job: "대학생",
+  major: "소프트웨어전공",
   explanationStyle: "example",
   learningType: "project",
+  learningGoal: "컴퓨터공학",
 };
 
 export const mockProjects: MyPageProject[] = [
@@ -140,8 +141,8 @@ export function getMyPageStats(): MyPageStats {
   return {
     projectCount: mockProjects.length,
     totalChats: mockProjectChats.reduce((sum, project) => sum + project.totalChats, 0),
-    diagnosisCount: "??",
-    conceptCount: mockGraphNodes.length,
+    diagnosisCount: mockDiagnosisSessions.length,
+    conceptCount: 47,
   };
 }
 

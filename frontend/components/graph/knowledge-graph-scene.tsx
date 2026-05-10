@@ -38,6 +38,7 @@ type KnowledgeGraphSceneProps = {
   focusNodeId?: string | null;
   resetViewKey?: string | number;
   dimmedNodeIds?: string[];
+  labelVariant?: "dark" | "light";
 };
 
 type MotionNode = KnowledgeGraphNode & {
@@ -102,6 +103,7 @@ export default function KnowledgeGraphScene({
   focusNodeId = null,
   resetViewKey,
   dimmedNodeIds = [],
+  labelVariant = "dark",
 }: KnowledgeGraphSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -122,6 +124,7 @@ export default function KnowledgeGraphScene({
 
   const shouldAnimate = animated && !interactive;
   const sizeScale = compact ? 0.46 : 1;
+  const isLightLabelVariant = labelVariant === "light";
   const dimmedNodeIdSet = useMemo(() => new Set(dimmedNodeIds), [dimmedNodeIds]);
 
   const motionNodes = useMemo<MotionNode[]>(
@@ -639,7 +642,9 @@ export default function KnowledgeGraphScene({
     >
       <div
         className={`absolute inset-0 ${
-          compact
+          isLightLabelVariant
+            ? "bg-[radial-gradient(circle_at_50%_48%,rgba(129,124,242,0.08),rgba(250,249,255,0.9)_60%,rgba(255,255,255,1)_100%)]"
+            : compact
             ? "bg-[radial-gradient(circle_at_50%_50%,rgba(42,43,46,0.02),rgba(42,43,46,0.12)_60%,rgba(42,43,46,0.18)_100%)]"
             : "bg-[radial-gradient(circle_at_50%_50%,rgba(42,43,46,0.04),rgba(42,43,46,0.26)_62%,rgba(42,43,46,0.46)_100%)]"
         }`}
@@ -660,7 +665,15 @@ export default function KnowledgeGraphScene({
                 key={node.id}
                 className={[
                   "absolute max-w-[11rem] -translate-x-1/2 rounded-full border px-2.5 py-1 text-center leading-tight shadow-[0_10px_24px_rgba(4,6,12,0.26)] transition-all duration-150",
-                  isSelected
+                  isLightLabelVariant && isSelected
+                    ? "border-[#817cf2]/35 bg-white text-[#817cf2] shadow-[0_10px_24px_rgba(129,124,242,0.16)]"
+                    : isLightLabelVariant && isHovered
+                      ? "border-[#817cf2]/28 bg-white text-[#24213d] shadow-[0_10px_24px_rgba(42,38,73,0.12)]"
+                      : isLightLabelVariant && isDimmed
+                        ? "border-[#ddd9f4] bg-white/45 text-[#aaa6c0]"
+                        : isLightLabelVariant
+                          ? "border-[#ddd9f4] bg-white/92 text-[#74708b] shadow-[0_10px_24px_rgba(42,38,73,0.08)]"
+                          : isSelected
                     ? "border-[#f5d38a]/70 bg-[#2d2f35]/96 text-white"
                     : isHovered
                       ? "border-white/25 bg-[#282a31]/94 text-white/90"

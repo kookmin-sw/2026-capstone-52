@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface MyPageHeaderProps {
@@ -11,36 +10,34 @@ export default function MyPageHeader({ onOpenEdit }: MyPageHeaderProps) {
   const router = useRouter();
 
   return (
-    <header className="h-14 border-b border-black/10 bg-[#292a2e]">
-      <div className="flex h-full w-full items-center justify-between px-4">
-        <div className="flex items-center gap-7">
-          <Link href="/" className="workspace-brand-link" aria-label="eeum 홈">
-            <span className="workspace-brand-ring" />
-            <span className="workspace-brand-node" />
-          </Link>
-
+    <header className="h-[76px] border-b border-[#ebe9f5] bg-white">
+      <div className="flex h-full w-full items-center justify-between px-10">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="text-sm font-medium text-[#b9b9bd] transition hover:text-white"
+            className="inline-flex items-center gap-2 text-[0.9rem] font-bold text-[#62607c] transition hover:text-[#817cf2]"
           >
             ← 돌아가기
           </button>
+          <span className="text-[#aaa6c0]">·</span>
+          <h1 className="text-[1.02rem] font-black text-[#24213d]">마이페이지</h1>
         </div>
 
-        <div className="flex items-center gap-12 pr-8">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onOpenEdit}
-            className="text-sm font-semibold text-white transition hover:text-[#bca7ff]"
+            className="inline-flex h-10 items-center justify-center rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
           >
             프로필 수정
           </button>
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="text-sm font-medium text-[#7f7f84] transition hover:text-white"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
           >
+            ↪
             로그아웃
           </button>
         </div>

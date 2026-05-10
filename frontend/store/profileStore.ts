@@ -26,7 +26,7 @@ export const useProfileStore = create<ProfileStoreState>()(
     }),
     {
       name: "eeum-profile-store",
-      version: 3,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<ProfileStoreState>;
@@ -35,6 +35,34 @@ export const useProfileStore = create<ProfileStoreState>()(
           return {
             ...state,
             profile: defaultProfile,
+          };
+        }
+
+        if (version < 4 && state.profile) {
+          return {
+            ...state,
+            profile: {
+              ...defaultProfile,
+              ...state.profile,
+              job: state.profile.job === "Frontend Engineer" ? defaultProfile.job : state.profile.job,
+              major: state.profile.major === "컴퓨터공학과" ? defaultProfile.major : state.profile.major,
+              learningGoal:
+                "learningGoal" in state.profile && typeof state.profile.learningGoal === "string"
+                  ? state.profile.learningGoal
+                  : defaultProfile.learningGoal,
+            },
+          };
+        }
+
+        if (version < 5 && state.profile) {
+          return {
+            ...state,
+            profile: {
+              ...defaultProfile,
+              ...state.profile,
+              job: state.profile.job === "Frontend Engineer" ? defaultProfile.job : state.profile.job,
+              major: state.profile.major === "컴퓨터공학과" ? defaultProfile.major : state.profile.major,
+            },
           };
         }
 
@@ -62,8 +90,8 @@ export function getProfileBadges(profile: ProfileInfo): ProfileBadge[] {
       value: getLearningTypeLabel(profile.learningType),
     },
     {
-      label: "언어",
-      value: profile.language,
+      label: "관심 분야",
+      value: profile.learningGoal,
     },
   ];
 }

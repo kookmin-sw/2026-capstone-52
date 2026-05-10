@@ -1,17 +1,28 @@
 "use client";
 
+import EeumIcon from "@/components/common/EeumIcon";
 import Link from "next/link";
-import { LandingGraphLayer } from "@/components/landing/landing-graph-layer";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { loginWithGoogleProfile } from "@/features/api/session";
 
-function BrandMark() {
-  return (
-    <span className="relative inline-flex h-8 w-12 items-center" aria-hidden="true">
-      <span className="absolute left-0 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full border-[5px] border-[#6c63ff]" />
-      <span className="absolute left-[25px] top-1/2 h-[4px] w-[10px] -translate-y-1/2 rounded-full bg-[#6c63ff]" />
-      <span className="absolute left-[33px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-[#6c63ff]" />
-    </span>
-  );
-}
+const GOOGLE_IDENTITY_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+type GoogleTokenClient = {
+  requestAccessToken: (options?: { prompt?: string }) => void;
+};
+
+type GoogleUserInfo = {
+  email?: string;
+  name?: string;
+  picture?: string;
+};
+
+type GoogleTokenResponse = {
+  access_token?: string;
+  error?: string;
+};
 
 function GoogleMark() {
   return (
@@ -37,66 +48,202 @@ function GoogleMark() {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+  const tokenClientRef = useRef<GoogleTokenClient | null>(null);
+  const [isGoogleReady, setIsGoogleReady] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      setLoginError("Google Client ID가 설정되지 않았습니다.");
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    function initializeGoogleLogin() {
+      const google = (window as any).google;
+
+      if (!google?.accounts?.oauth2 || cancelled) {
+        return;
+      }
+
+      tokenClientRef.current = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        callback: async (response: GoogleTokenResponse) => {
+          if (response.error || !response.access_token) {
+            setIsSigningIn(false);
+            setLoginError("Google 로그인에 실패했습니다.");
+            return;
+          }
+
+          try {
+            const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+              headers: {
+                Authorization: `Bearer ${response.access_token}`,
+              },
+            });
+
+            if (!profileResponse.ok) {
+              throw new Error("Google 사용자 정보를 불러오지 못했습니다.");
+            }
+
+            const profile = (await profileResponse.json()) as GoogleUserInfo;
+
+            if (!profile.email) {
+              throw new Error("Google 계정 이메일을 확인하지 못했습니다.");
+            }
+
+            await loginWithGoogleProfile({
+              email: profile.email,
+              nickname: profile.name || profile.email.split("@")[0],
+              profile_image: profile.picture || null,
+            });
+
+            router.push("/dashboard");
+          } catch (error) {
+            setLoginError(error instanceof Error ? error.message : "로그인 처리 중 오류가 발생했습니다.");
+          } finally {
+            setIsSigningIn(false);
+          }
+        },
+      });
+
+      setIsGoogleReady(true);
+      setLoginError(null);
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_IDENTITY_SCRIPT_SRC}"]`);
+
+    if (existingScript) {
+      initializeGoogleLogin();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = GOOGLE_IDENTITY_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogleLogin;
+    script.onerror = () => {
+      if (!cancelled) {
+        setLoginError("Google 로그인 스크립트를 불러오지 못했습니다.");
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   const handleGoogleSignIn = () => {
-    console.log("Google sign-in clicked");
+    setLoginError(null);
+
+    if (!GOOGLE_CLIENT_ID) {
+      setLoginError("Google Client ID가 설정되지 않았습니다.");
+      return;
+    }
+
+    if (!tokenClientRef.current) {
+      setLoginError("Google 로그인을 아직 준비 중입니다.");
+      return;
+    }
+
+    setIsSigningIn(true);
+    tokenClientRef.current.requestAccessToken({ prompt: "select_account" });
   };
 
   return (
-    <main className="min-h-screen bg-[#2f3136] text-white">
-      <section className="grid min-h-screen lg:grid-cols-[38fr_62fr]">
-        <div className="relative overflow-hidden bg-[#202226] px-8 py-8 sm:px-10 sm:py-10 lg:px-16 lg:py-14">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f86ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#202226]"
-          >
-            <BrandMark />
-            <span className="text-[1.7rem] font-semibold tracking-[-0.05em] text-[#6c63ff]">이음</span>
-          </Link>
+    <main className="relative min-h-screen overflow-hidden bg-[#fbfbff] text-[#24213d]">
+      <div
+        className="absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            "radial-gradient(circle 42rem at 13% 14%, rgba(129, 124, 242, 0.17), transparent 62%), radial-gradient(circle 46rem at 84% 80%, rgba(255, 187, 152, 0.31), transparent 62%), radial-gradient(circle 42rem at 55% 104%, rgba(183, 244, 226, 0.46), transparent 60%), linear-gradient(180deg, #fbfbff 0%, #ffffff 100%)",
+        }}
+      />
 
-          <div className="relative z-10 mt-20 w-full max-w-[640px] lg:mt-[20vh]">
-            <h1 className="text-[2.5rem] font-medium leading-[1.22] tracking-[-0.065em] text-[#f6f6f7] sm:text-[3.2rem] lg:text-[3.8rem]">
-              <span className="block whitespace-nowrap">나에게 맞게 설명하고</span>
-              <span className="block whitespace-nowrap">배움을 그래프로 잇는</span>
-              <span className="block whitespace-nowrap">AI 튜터</span>
-            </h1>
-          </div>
+      <Link
+        href="/"
+        className="absolute left-8 top-7 z-20 inline-flex items-center gap-3 transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#817cf2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fbfbff] md:left-14"
+      >
+        <EeumIcon className="h-9 w-9 shrink-0" />
+        <span className="text-[1.45rem] font-black tracking-normal text-[#24213d]">이음</span>
+      </Link>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[36%] hidden overflow-hidden lg:block">
-            <LandingGraphLayer staticMode reduced className="opacity-[0.96]" />
-          </div>
+      <section className="relative z-10 mx-auto grid min-h-screen max-w-[1320px] items-center gap-20 px-6 py-24 md:px-10 lg:grid-cols-[1.02fr_0.98fr] xl:gap-28">
+        <div className="mx-auto w-full max-w-[620px] text-center lg:mx-0 lg:text-left">
+          <h1 className="text-[3.2rem] font-[950] leading-[1.18] tracking-normal text-[#24213d] md:text-[4rem]">
+            나에게 맞게 설명하고
+            <br />
+            배움을{" "}
+            <span className="bg-gradient-to-r from-[#817cf2] to-[#8f8af7] bg-clip-text text-transparent">
+              그래프로 잇는
+            </span>
+            <br />
+            AI 튜터
+          </h1>
+          <p className="mt-8 text-[1.18rem] font-medium leading-9 text-[#74708b]">
+            이음과 함께 맞춤 학습을 시작하세요.
+            <br />
+            지식이 그래프로 연결되는 새로운 학습 경험.
+          </p>
         </div>
 
-        <div className="flex items-center justify-center bg-[#2f3136] px-6 py-10 sm:px-8 lg:px-16">
-          <div className="w-full max-w-[500px] rounded-[30px] bg-[#26282d] px-10 py-11 shadow-[0_18px_42px_rgba(8,9,11,0.14)] sm:px-12 sm:py-12">
-            <div className="mx-auto flex max-w-[410px] flex-col">
-              <header>
-                <h2 className="text-[2.5rem] font-bold tracking-[-0.05em] text-white sm:text-[2.7rem]">로그인</h2>
-                <p className="mt-3 text-[1.04rem] leading-7 text-[#d2d3d8]/50">
-                  이음과 함께 맞춤 학습을 시작하세요
-                </p>
-              </header>
+        <div className="mx-auto w-full max-w-[520px] rounded-[1.65rem] border border-[#e8e5f2] bg-white px-12 py-12 shadow-[0_30px_90px_rgba(42,38,73,0.1)]">
+          <header>
+            <p className="inline-flex items-center gap-2.5 text-[0.9rem] font-black text-[#817cf2]">
+              <span className="h-2 w-2 rounded-full bg-[#817cf2]" />
+              SIGN IN
+            </p>
+            <h2 className="mt-4 text-[2rem] font-black tracking-normal text-[#24213d]">로그인</h2>
+            <p className="mt-5 text-[1.05rem] font-medium leading-7 text-[#74708b]">
+              이음과 함께 맞춤 학습을 시작하세요.
+              <br />
+              별도의 아이디·비밀번호 없이 구글로 간편하게.
+            </p>
+          </header>
 
-              <div className="mt-7 h-[1px] w-full bg-[#4a4b50]" />
+          <button
+            type="button"
+            aria-label="Google 계정으로 로그인"
+            onClick={handleGoogleSignIn}
+            disabled={!isGoogleReady || isSigningIn}
+            className="mt-10 inline-flex h-14 w-full items-center justify-center gap-3.5 rounded-[1rem] border border-[#e8e5f2] bg-white px-6 text-[1.05rem] font-black text-[#24213d] shadow-[0_12px_30px_rgba(42,38,73,0.04)] transition hover:border-[#d5d0f3] hover:bg-[#fbfbff] active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#817cf2] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            <GoogleMark />
+            <span>{isSigningIn ? "로그인 중..." : "Google로 계속하기"}</span>
+          </button>
 
-              <button
-                type="button"
-                aria-label="Google 계정으로 로그인"
-                onClick={handleGoogleSignIn}
-                className="mt-8 inline-flex h-14 w-auto items-center justify-center gap-3 self-center rounded-full border border-white/12 bg-[#16181c] px-8 text-[1rem] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition hover:bg-[#1b1e23] active:translate-y-[1px] active:bg-[#121418] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f86ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#26282d]"
-              >
-                <GoogleMark />
-                <span>Sign in with Google</span>
-              </button>
+          {loginError ? (
+            <p className="mt-5 text-center text-[0.95rem] leading-7 text-[#e35d5d]">{loginError}</p>
+          ) : null}
 
-              <div className="mt-8 rounded-[18px] bg-[#43454c] px-6 py-4 text-center text-[0.98rem] leading-7 text-white/60">
-                <p>
-                  별도의 아이디, 비밀번호 없이
-                  <br />
-                  구글 아이디로 간편하게 로그인할 수 있어요
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="mt-8 text-center text-[0.88rem] font-medium leading-7 text-[#aaa6c0]">
+            로그인하면 이음의{" "}
+            <a href="#" className="font-bold text-[#817cf2] hover:text-[#716be8]">
+              이용약관
+            </a>
+            과
+            <br />
+            <a href="#" className="font-bold text-[#817cf2] hover:text-[#716be8]">
+              개인정보 처리방침
+            </a>
+            에 동의하게 됩니다.
+          </p>
+
+          <Link
+            href="/"
+            className="mt-8 flex justify-center text-[0.98rem] font-bold text-[#74708b] transition hover:text-[#817cf2]"
+          >
+            ← 돌아가기
+          </Link>
         </div>
       </section>
     </main>

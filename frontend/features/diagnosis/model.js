@@ -24,11 +24,16 @@ const diagnosisTemplates = {
       },
       {
         id: "calculus-q2",
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: ["접선", "미분계수"],
-        prompt: "접선의 기울기와 미분계수가 왜 연결되는지 한두 문장으로 설명해보세요.",
-        placeholder: "예: 특정 점에서의 순간 변화율을 나타내기 때문에...",
-        expectedKeywords: ["순간", "변화율", "특정 점"],
+        prompt: "접선의 기울기와 미분계수가 연결되는 이유로 가장 적절한 것은?",
+        choices: [
+          { id: "a", label: "특정 점에서의 순간 변화율을 나타내기 때문이다." },
+          { id: "b", label: "곡선 아래 넓이를 직접 계산하기 때문이다." },
+          { id: "c", label: "항상 두 점 사이 평균 변화율만 사용하기 때문이다." },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: "calculus-q3",
@@ -64,11 +69,16 @@ const diagnosisTemplates = {
       },
       {
         id: "os-q2",
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: ["기아 현상", "에이징 기법"],
-        prompt: "기아 현상을 줄이기 위해 에이징 기법을 왜 사용하는지 설명해보세요.",
-        placeholder: "예: 오래 기다린 프로세스의 우선순위를 점진적으로 높여서...",
-        expectedKeywords: ["오래", "우선순위", "높", "기다"],
+        prompt: "기아 현상을 줄이기 위해 에이징 기법을 사용하는 이유는 무엇인가요?",
+        choices: [
+          { id: "a", label: "오래 기다린 프로세스의 우선순위를 점진적으로 높이기 위해서" },
+          { id: "b", label: "모든 프로세스를 도착 순서대로만 실행하기 위해서" },
+          { id: "c", label: "우선순위가 낮은 프로세스를 즉시 제거하기 위해서" },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: "os-q3",
@@ -103,11 +113,16 @@ const diagnosisTemplates = {
       },
       {
         id: "ml-q2",
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: ["미분", "경사하강법"],
-        prompt: "경사하강법에서 미분값을 보는 이유를 짧게 설명해보세요.",
-        placeholder: "예: 어느 방향으로 가면 손실이 줄어드는지 알 수 있어서...",
-        expectedKeywords: ["방향", "줄", "기울기", "손실"],
+        prompt: "경사하강법에서 미분값을 보는 이유로 가장 적절한 것은?",
+        choices: [
+          { id: "a", label: "손실이 줄어드는 방향과 변화 정도를 알 수 있어서" },
+          { id: "b", label: "데이터 개수를 자동으로 늘릴 수 있어서" },
+          { id: "c", label: "모델의 출력값을 항상 0으로 만들 수 있어서" },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: "ml-q3",
@@ -142,11 +157,16 @@ const diagnosisTemplates = {
       },
       {
         id: "db-q2",
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: ["트랜잭션", "격리 수준"],
-        prompt: "트랜잭션에서 격리 수준이 필요한 이유를 설명해보세요.",
-        placeholder: "예: 여러 요청이 동시에 데이터를 바꿀 때 충돌이나 이상 현상을 줄이기 위해...",
-        expectedKeywords: ["동시", "충돌", "이상", "일관성"],
+        prompt: "트랜잭션에서 격리 수준이 필요한 이유는 무엇인가요?",
+        choices: [
+          { id: "a", label: "동시 실행 중 발생할 수 있는 충돌과 이상 현상을 제어하기 위해" },
+          { id: "b", label: "모든 테이블의 컬럼 수를 동일하게 만들기 위해" },
+          { id: "c", label: "데이터베이스 접속 속도를 항상 일정하게 만들기 위해" },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: "db-q3",
@@ -181,11 +201,16 @@ const diagnosisTemplates = {
       },
       {
         id: "network-q2",
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: ["OSI 7계층", "라우팅"],
-        prompt: "라우팅이 네트워크 계층에서 다뤄지는 이유를 짧게 설명해보세요.",
-        placeholder: "예: 목적지까지 패킷 경로를 결정해야 해서...",
-        expectedKeywords: ["경로", "패킷", "목적지"],
+        prompt: "라우팅이 네트워크 계층에서 다뤄지는 이유로 가장 적절한 것은?",
+        choices: [
+          { id: "a", label: "목적지까지 패킷이 이동할 경로를 결정해야 하기 때문이다." },
+          { id: "b", label: "사용자 화면의 글꼴과 색상을 결정해야 하기 때문이다." },
+          { id: "c", label: "응용 프로그램의 로그인 상태만 관리하기 때문이다." },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: "network-q3",
@@ -212,6 +237,201 @@ function slugifyConcept(label) {
     .replace(/\s+/g, "-");
 }
 
+function uniqueStrings(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function getConceptLabel(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return value.label || value.name || value.node_name || value.concept_name || value.title || "";
+}
+
+export function normalizeDiagnosisConceptId(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const explicitId = value.node_id || value.nodeId || value.concept_id || value.conceptId || value.id;
+
+    if (explicitId) {
+      return String(explicitId);
+    }
+
+    return slugifyConcept(getConceptLabel(value));
+  }
+
+  return slugifyConcept(String(value));
+}
+
+export function createDiagnosisConcept(value) {
+  const label = getConceptLabel(value);
+  const id = normalizeDiagnosisConceptId(value || label);
+
+  if (!id || !label) {
+    return null;
+  }
+
+  return {
+    id,
+    label,
+    sourceStatus: typeof value === "object" ? value.status : undefined,
+  };
+}
+
+function normalizeConceptReferences(values) {
+  const references = Array.isArray(values) ? values : values ? [values] : [];
+
+  return uniqueStrings(references.map((reference) => normalizeDiagnosisConceptId(reference)));
+}
+
+function getChoiceConceptReferences(choice) {
+  if (!choice || typeof choice !== "object") {
+    return [];
+  }
+
+  return (
+    choice.conceptIds ||
+    choice.concept_ids ||
+    choice.nodeIds ||
+    choice.node_ids ||
+    choice.concepts ||
+    choice.nodes ||
+    choice.conceptId ||
+    choice.concept_id ||
+    choice.nodeId ||
+    choice.node_id ||
+    []
+  );
+}
+
+function getQuestionCoreConceptReferences(question) {
+  return (
+    question.coreConceptIds ||
+    question.core_concept_ids ||
+    question.centralConceptIds ||
+    question.central_concept_ids ||
+    question.mainConceptIds ||
+    question.main_concept_ids ||
+    question.coreConceptId ||
+    question.core_concept_id ||
+    question.centralConceptId ||
+    question.central_concept_id ||
+    (question.node_id
+      ? {
+          node_id: question.node_id,
+          name: question.node_name || question.concept_name || question.name,
+        }
+      : null) ||
+    []
+  );
+}
+
+function getQuestionChoiceConceptIds(question) {
+  return uniqueStrings(
+    (question.choices || []).flatMap((choice) => normalizeConceptReferences(getChoiceConceptReferences(choice)))
+  );
+}
+
+function getCorrectChoiceIds(question) {
+  const correctChoiceIds = question.correctChoiceIds || question.correct_choice_ids || (question.correctChoiceId ? [question.correctChoiceId] : []);
+
+  return correctChoiceIds.map((choiceId) => String(choiceId));
+}
+
+function getQuestionInvolvedConceptIds(question) {
+  return uniqueStrings([
+    ...(question.conceptIds || []),
+    ...(question.coreConceptIds || []),
+    ...getQuestionChoiceConceptIds(question),
+  ]);
+}
+
+function buildDiagnosisConcepts(projectData, template) {
+  const concepts = [
+    ...(projectData.graphNodes || []),
+    ...(template.concepts || []),
+    ...(template.questions || []).flatMap((question) => [
+      ...(question.conceptIds || []),
+      ...(question.coreConceptIds || []),
+      ...((question.choices || []).flatMap((choice) => getChoiceConceptReferences(choice))),
+    ]),
+  ];
+
+  const conceptMap = new Map();
+
+  concepts.forEach((conceptLike) => {
+    const concept = createDiagnosisConcept(conceptLike);
+
+    if (concept && !conceptMap.has(concept.id)) {
+      conceptMap.set(concept.id, concept);
+    }
+  });
+
+  return [...conceptMap.values()];
+}
+
+export function buildApiDiagnosisConcepts(projectData, graphNodes = [], question = null) {
+  const conceptMap = new Map();
+
+  [...(graphNodes || []), ...(projectData.graphNodes || [])].forEach((conceptLike) => {
+    const concept = createDiagnosisConcept(conceptLike);
+
+    if (concept && !conceptMap.has(concept.id)) {
+      conceptMap.set(concept.id, concept);
+    }
+  });
+
+  if (question) {
+    const questionConcepts = [
+      {
+        node_id: question.node_id,
+        name: question.node_name || question.concept_name || question.name,
+      },
+      ...(question.concepts || []),
+      ...(question.nodes || []),
+      ...((question.choices || []).flatMap((choice) => getChoiceConceptReferences(choice))),
+    ];
+
+    questionConcepts.forEach((conceptLike) => {
+      const concept = createDiagnosisConcept(conceptLike);
+
+      if (concept && !conceptMap.has(concept.id)) {
+        conceptMap.set(concept.id, concept);
+      }
+    });
+  }
+
+  return [...conceptMap.values()];
+}
+
+export function normalizeDiagnosisQuestion(question) {
+  const coreConceptIds = normalizeConceptReferences(getQuestionCoreConceptReferences(question));
+  const choiceConceptIds = getQuestionChoiceConceptIds(question);
+  const conceptIds = uniqueStrings([
+    ...normalizeConceptReferences(question.conceptIds || question.concept_ids || []),
+    ...coreConceptIds,
+    ...choiceConceptIds,
+  ]);
+
+  return {
+    ...question,
+    coreConceptIds: coreConceptIds.length ? coreConceptIds : conceptIds.slice(0, 1),
+    conceptIds,
+    choices: (question.choices || []).map((choice) => ({
+      ...choice,
+      conceptIds: normalizeConceptReferences(getChoiceConceptReferences(choice)),
+    })),
+  };
+}
+
 function createFallbackTemplate(projectData) {
   const concepts = (projectData.graphNodes || []).slice(0, 5);
   const normalizedConcepts = concepts.length ? concepts : ["핵심 개념", "기초 개념", "응용 개념"];
@@ -234,11 +454,16 @@ function createFallbackTemplate(projectData) {
       },
       {
         id: `${projectData.projectId}-q2`,
-        type: "short-answer",
+        type: "multiple-choice",
         conceptIds: [normalizedConcepts[1] || normalizedConcepts[0], normalizedConcepts[2] || normalizedConcepts[0]],
-        prompt: `지금 가장 헷갈리는 개념이나 연결 관계를 자유롭게 설명해보세요.`,
-        placeholder: "예: 정의는 아는데 실제 문제에서 언제 써야 하는지 헷갈립니다.",
-        expectedKeywords: ["정의", "예시", "문제", "적용"],
+        prompt: `지금 ${projectData.title}에서 가장 필요한 학습 방식은 무엇인가요?`,
+        choices: [
+          { id: "a", label: "핵심 정의를 예시와 함께 다시 정리하고 싶어요." },
+          { id: "b", label: "개념 사이의 연결 관계만 빠르게 확인하고 싶어요." },
+          { id: "c", label: "이미 충분히 이해해서 바로 응용으로 넘어가고 싶어요." },
+          { id: "unknown", label: "잘 모르겠어요." },
+        ],
+        correctChoiceId: "a",
       },
       {
         id: `${projectData.projectId}-q3`,
@@ -263,29 +488,25 @@ function getTemplate(projectData) {
 
 export function createDiagnosisSession(projectData) {
   const template = getTemplate(projectData);
-  const concepts = template.concepts.map((label) => ({
-    id: slugifyConcept(label),
-    label,
-  }));
+  const concepts = buildDiagnosisConcepts(projectData, template);
 
   return {
     id: `${projectData.projectId}-diagnosis-session`,
     projectId: projectData.projectId,
     projectTitle: projectData.title,
     totalQuestions: template.questions.length,
-    estimatedMinutes: 2,
+    estimatedMinutes: 6,
     concepts,
     questions: template.questions.map((question, index) => ({
-      ...question,
+      ...normalizeDiagnosisQuestion(question),
       order: index + 1,
-      conceptIds: question.conceptIds.map((label) => slugifyConcept(label)),
     })),
   };
 }
 
 export function createEmptyAnswers(session) {
   return session.questions.reduce((result, question) => {
-    result[question.id] = "";
+    result[question.id] = question.type === "multiple-choice" ? [] : "";
     return result;
   }, {});
 }
@@ -294,23 +515,38 @@ function normalizeText(value) {
   return value.trim().toLowerCase();
 }
 
+function normalizeSelectedChoices(answer) {
+  if (Array.isArray(answer)) {
+    return answer.filter(Boolean).map((choiceId) => String(choiceId));
+  }
+
+  return answer ? [String(answer)] : [];
+}
+
 export function isAnswerReady(question, answer) {
   if (!question) {
     return false;
   }
 
   if (question.type === "short-answer") {
-    return answer.trim().length >= 2;
+    return typeof answer === "string" && answer.trim().length >= 2;
   }
 
-  return Boolean(answer);
+  return normalizeSelectedChoices(answer).length > 0;
 }
 
 export function evaluateQuestion(question, answer) {
   if (question.type === "multiple-choice") {
+    const selectedChoiceIds = normalizeSelectedChoices(answer);
+    const correctChoiceIds = getCorrectChoiceIds(question);
+    const selectedSet = new Set(selectedChoiceIds);
+    const correctSet = new Set(correctChoiceIds);
+    const isCorrect =
+      selectedSet.size === correctSet.size && [...selectedSet].every((choiceId) => correctSet.has(choiceId));
+
     return {
-      correct: answer === question.correctChoiceId,
-      confidence: answer === question.correctChoiceId ? 1 : 0,
+      correct: isCorrect,
+      confidence: isCorrect ? 1 : 0,
     };
   }
 
@@ -343,13 +579,14 @@ export function buildConceptStatuses(session, answers, currentQuestionIndex = 0,
 
   session.questions.forEach((question, index) => {
     const answer = answers[question.id];
-    const hasAnswer = typeof answer === "string" && answer.trim().length > 0;
+    const hasAnswer = isAnswerReady(question, answer);
+    const coreConceptIds = question.coreConceptIds?.length ? question.coreConceptIds : question.conceptIds || [];
 
     if (!hasAnswer && !isComplete && index === currentQuestionIndex) {
-      question.conceptIds.forEach((conceptId) => {
+      coreConceptIds.forEach((conceptId) => {
         const concept = statuses.get(conceptId);
 
-        if (concept && concept.tone === diagnosisStatusMap.unknown.tone) {
+        if (concept) {
           statuses.set(conceptId, {
             ...concept,
             status: diagnosisStatusMap.inProgress.label,
@@ -366,9 +603,21 @@ export function buildConceptStatuses(session, answers, currentQuestionIndex = 0,
     }
 
     const evaluation = evaluateQuestion(question, answer);
+    const selectedChoiceIds = normalizeSelectedChoices(answer);
+    const selectedChoiceIdSet = new Set(selectedChoiceIds);
+    const correctChoiceIds = getCorrectChoiceIds(question);
+    const correctChoiceIdSet = new Set(correctChoiceIds);
+    const conceptIdsToUpdate = evaluation.correct
+      ? getQuestionInvolvedConceptIds(question)
+      : uniqueStrings([
+          ...coreConceptIds,
+          ...(question.choices || [])
+            .filter((choice) => correctChoiceIdSet.has(choice.id) && !selectedChoiceIdSet.has(choice.id))
+            .flatMap((choice) => choice.conceptIds || []),
+        ]);
     const nextStatus = evaluation.correct ? diagnosisStatusMap.understood : diagnosisStatusMap.needsReview;
 
-    question.conceptIds.forEach((conceptId) => {
+    conceptIdsToUpdate.forEach((conceptId) => {
       const concept = statuses.get(conceptId);
 
       if (!concept) {

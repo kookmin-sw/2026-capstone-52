@@ -15,6 +15,7 @@ export interface ProfileInfo {
   major: string;
   explanationStyle: ExplanationStyleId;
   learningType: LearningTypeId;
+  learningGoal: string;
 }
 
 export interface StoredProfileState {
