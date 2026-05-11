@@ -15,3 +15,24 @@ def generate_question(node_list: list) -> dict:
     }
     """
     raise NotImplementedError
+
+
+def calculate_score(
+    node_id: str,
+    node_name: str,
+    current_score: float,
+    difficulty: str,
+    question_type: str,
+    is_correct: bool,
+    is_skipped: bool,
+    is_primary: bool,
+) -> dict:
+    """정답 여부에 따라 이해도 score와 status 계산
+
+    반환 형식:
+    {
+      "score": float,   # 0.0 ~ 1.0
+      "status": str     # MASTERED / WEAK / UNSEEN
+    }
+    """
+    raise NotImplementedError
