@@ -1,16 +1,18 @@
 import { apiRequest } from "./client";
 
 const CURRENT_USER_STORAGE_KEY = "eeum-current-api-user-id";
+const GOOGLE_LOGIN_STORAGE_KEY = "eeum-google-login-active";
 
 const DEFAULT_USER_PROFILE = {
   emailPrefix: "local-dev",
   nickname: "이지안",
   profile_image: null,
-  major: "컴퓨터공학과",
-  learning_fields: "Frontend Engineer",
+  major: "소프트웨어전공",
+  learning_fields: "대학생",
   current_level: "beginner",
   preferred_explanation_style: "example",
-  learning_goal: "project",
+  learning_goal: "컴퓨터공학",
+  learning_type: "project",
 };
 
 function canUseStorage() {
@@ -33,6 +35,26 @@ function setStoredUserId(userId) {
   window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, String(userId));
 }
 
+export function setCurrentUserId(userId) {
+  setStoredUserId(userId);
+}
+
+function setGoogleLoginActive() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.setItem(GOOGLE_LOGIN_STORAGE_KEY, "true");
+}
+
+export function hasGoogleLoginSession() {
+  if (!canUseStorage()) {
+    return false;
+  }
+
+  return window.localStorage.getItem(GOOGLE_LOGIN_STORAGE_KEY) === "true" && Boolean(getStoredUserId());
+}
+
 function buildLocalEmail() {
   const suffix =
     canUseStorage() && typeof crypto !== "undefined" && crypto.randomUUID
@@ -53,7 +75,8 @@ export function mapApiUserToProfile(user) {
       : DEFAULT_USER_PROFILE.preferred_explanation_style,
     learningType: ["exam", "concept", "project", "light"].includes(user?.learning_goal)
       ? user.learning_goal
-      : DEFAULT_USER_PROFILE.learning_goal,
+      : DEFAULT_USER_PROFILE.learning_type,
+    learningGoal: user?.interest_field || user?.learning_goal || DEFAULT_USER_PROFILE.learning_goal,
   };
 }
 
@@ -64,7 +87,8 @@ export function mapProfileToApiUpdate(profile, profileImage = null) {
     major: profile.major,
     learning_fields: profile.job,
     preferred_explanation_style: profile.explanationStyle,
-    learning_goal: profile.learningType,
+    interest_field: profile.learningGoal || profile.learningType,
+    learning_goal: profile.learningGoal || profile.learningType,
   };
 }
 
@@ -106,12 +130,31 @@ export async function ensureCurrentUser() {
         learning_fields: DEFAULT_USER_PROFILE.learning_fields,
         current_level: DEFAULT_USER_PROFILE.current_level,
         preferred_explanation_style: DEFAULT_USER_PROFILE.preferred_explanation_style,
+        interest_field: DEFAULT_USER_PROFILE.learning_goal,
         learning_goal: DEFAULT_USER_PROFILE.learning_goal,
       },
     });
   } catch {
     return user;
   }
+}
+
+/**
+ * @param {{ email: string, nickname?: string | null, profile_image?: string | null }} profile
+ */
+export async function loginWithGoogleProfile({ email, nickname = null, profile_image = null }) {
+  const user = await apiRequest("/users/google", {
+    method: "POST",
+    body: {
+      email,
+      nickname,
+      profile_image,
+    },
+  });
+
+  setStoredUserId(user.user_id);
+  setGoogleLoginActive();
+  return user;
 }
 
 export async function getCurrentUserId() {

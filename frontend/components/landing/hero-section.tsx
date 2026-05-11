@@ -1,14 +1,91 @@
+const featureCards = [
+  {
+    title: "간단한 질문",
+    description: "현재 수준 진단",
+  },
+  {
+    title: "맞춤 설명",
+    description: "개념별 난이도 조절",
+  },
+  {
+    title: "지식 그래프",
+    description: "학습 흐름 시각화",
+  },
+] as const;
+
 function TutorAppMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[860px]">
-      <div className="landing-ambient-orb absolute left-[40%] top-[46%] h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 bg-[#7f6dbe]/26 blur-3xl" />
-      <img
-        src="/images/hero-workspace-mock.png"
-        alt="eeum workspace mockup"
-        width={646}
-        height={396}
-        className="relative z-10 h-auto w-full"
-      />
+    <div className="relative mx-auto w-full max-w-[830px] lg:mx-0 lg:justify-self-end">
+      <div className="overflow-hidden rounded-[1.85rem] border border-[#e4e2f0] bg-white shadow-[0_34px_90px_rgba(71,76,129,0.14)]">
+        <div className="flex h-16 items-center justify-between border-b border-[#eceaf5] px-6">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-[#ff855f]" />
+            <span className="h-3 w-3 rounded-full bg-[#60cfa2]" />
+            <span className="h-3 w-3 rounded-full bg-[#7f82f0]" />
+          </div>
+          <span className="rounded-full bg-[#f0edff] px-5 py-2.5 text-[0.84rem] font-bold text-[#817cf2]">
+            운영체제 - 프로세스 스케줄링
+          </span>
+        </div>
+
+        <div className="grid min-h-[398px] grid-cols-[220px_minmax(0,1fr)_230px] bg-white max-md:grid-cols-1">
+          <aside className="bg-[#f4f2fb] px-6 py-6 max-md:hidden">
+            {["운영체제", "자료구조", "알고리즘", "컴퓨터 네트워크"].map((item, index) => (
+              <div
+                key={item}
+                className={`mb-4 rounded-xl px-5 py-4 text-[0.92rem] font-bold ${
+                  index === 0 ? "bg-white text-[#7c75ed]" : "text-[#6c6688]"
+                }`}
+              >
+                {item}
+              </div>
+            ))}
+          </aside>
+
+          <div className="space-y-5 border-x border-[#eceaf5] bg-white px-7 py-7 max-md:border-x-0">
+            <div className="rounded-[1.1rem] bg-[#f0eefb] px-6 py-5 text-[1.04rem] leading-7 text-[#26233f]">
+              <p>
+                FCFS와 Round Robin은 이해하고 계시지만,{" "}
+                <strong className="font-bold text-[#e46c3f]">기아 현상</strong>{" "}
+                개념이 부족해요.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-[#e8e4ff] px-4 py-2 text-[0.82rem] font-bold text-[#817cf2]">
+                  중급
+                </span>
+                <span className="rounded-full bg-[#ffe4d6] px-4 py-2 text-[0.82rem] font-bold text-[#d86a3f]">
+                  기아 현상
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <div className="max-w-[78%] rounded-[1rem] bg-[#817cf2] px-7 py-4 text-right text-[0.96rem] font-bold leading-6 text-white">
+                그러면 해결 방법은 뭔가요?
+              </div>
+            </div>
+            <div className="rounded-[1rem] bg-[#f0eefb] px-6 py-5 text-[0.96rem] font-semibold leading-7 text-[#565177]">
+              오래 기다린 프로세스의 우선순위를 높이는{" "}
+              <strong className="text-[#26233f]">에이징</strong>부터 이해하면 좋아요.
+            </div>
+          </div>
+
+          <aside className="bg-white px-6 py-7 max-md:hidden">
+            <p className="mb-5 text-[0.9rem] font-extrabold text-[#28243f]">최근 업데이트</p>
+            {["프로세스 스케줄링", "기아 현상", "에이징"].map((item, index) => (
+              <div
+                key={item}
+                className={`mb-4 rounded-xl px-5 py-4 text-[0.9rem] font-bold ${
+                  index === 1
+                    ? "bg-[#ffddcc] text-[#d86a3f]"
+                    : "bg-[#f1effb] text-[#28243f]"
+                }`}
+              >
+                {item}
+              </div>
+            ))}
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
@@ -17,41 +94,58 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative z-20 snap-start overflow-hidden scroll-mt-24 bg-[#2A2B2E]"
+      className="relative z-20 min-h-screen scroll-mt-24 overflow-hidden text-[#24213d]"
     >
-      <div className="mx-auto flex min-h-[calc(100vh-78px)] max-w-[1440px] flex-col justify-center px-3 pb-14 pt-10">
-        <div className="grid items-center gap-12 lg:grid-cols-[0.84fr_1.16fr]">
-          <div className="relative z-10 max-w-[700px]">
-            {/* 랜딩 페이지 1번째 슬라이드(Hero) 메인 제목 "나에게 맞는 설명으로, 배움을 그래프로 잇다" 입니다. 글씨 크기/굵기는 아래 className에서 수정하세요. */}
-            <h1 className="text-[3.2rem] font-semibold leading-[1.2] tracking-[-0.05em] text-white ㅣ:text-[4.2rem]">
-              나에게 맞는 설명으로,
+      <div className="relative mx-auto flex min-h-screen max-w-[1800px] flex-col justify-center px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
+        <div className="grid items-center gap-14 xl:grid-cols-[0.94fr_1.06fr] 2xl:gap-[4.5rem]">
+          <div className="max-w-[774px]">
+            <span className="inline-flex items-center rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.92rem] font-bold text-[#817cf2]">
+              ✦ AI 맞춤 학습 튜터
+            </span>
+
+            <h1 className="mt-7 text-[3.05rem] font-black leading-[1.08] tracking-normal text-[#24213d] md:text-[3.95rem] 2xl:text-[4.85rem]">
+              <span className="whitespace-nowrap">나에게 맞는 설명으로,</span>
               <br />
-              배움을 그래프로 잇다
+              <span className="bg-gradient-to-r from-[#817cf2] via-[#b989c8] to-[#ef8f79] bg-clip-text text-transparent">
+                배움을 그래프로 잇다
+              </span>
             </h1>
-            {/* 랜딩 페이지 1번째 슬라이드(Hero) 서브 설명 "AI가 내 학습 수준을 파악하고..." 문장입니다. 글씨 크기/줄간격은 아래 className에서 수정하세요. */}
-            <p className="mt-8 max-w-[620px] text-[1.1rem] leading-8 text-white/34">
-              AI가 내 학습 수준을 파악하고, 지식 그래프를 쌓아가며
-              <br />
-              나만의 맞춤 설명을 제공하는 AI 튜터 서비스
+
+            <p className="mt-7 max-w-[700px] text-[1.1rem] font-medium leading-9 text-[#74708b]">
+              AI가 내 이해도를 파악하고, 프로젝트별 지식 그래프를 쌓아가며 지금 나에게
+              <br className="hidden md:block" />
+              필요한 설명을 이어주는 AI 튜터 서비스입니다.
             </p>
-            <div className="mt-12 flex flex-wrap items-center gap-4">
+
+            <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
                 href="/dashboard"
-                /* 랜딩 페이지 1번째 슬라이드(Hero) CTA 버튼 "시작하기" 입니다. 버튼 크기/글씨 크기는 아래 className에서 수정하세요. */
-                className="inline-flex items-center rounded-full bg-[#7c67ff] px-7 py-4 text-[1.25rem] font-bold text-white transition hover:bg-[#8d7aff]"
+                className="inline-flex min-h-14 items-center justify-center rounded-full bg-[#817cf2] px-10 text-[1.06rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8]"
               >
-                시작하기 <span className="ml-2">→</span>
+                시작하기 <span className="ml-3 text-[1.3rem] leading-none">→</span>
               </a>
+              <a
+                href="#intro"
+                className="inline-flex min-h-14 items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-10 text-[1.06rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:border-[#cac5ef] hover:text-[#817cf2]"
+              >
+                이음 더 알아보기
+              </a>
+            </div>
+
+            <div className="mt-12 grid max-w-[684px] gap-4 sm:grid-cols-3">
+              {featureCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="rounded-xl border border-[#e6e4f0] bg-white/82 px-5 py-4 shadow-[0_14px_30px_rgba(42,38,73,0.06)] backdrop-blur"
+                >
+                  <p className="text-[1.06rem] font-black text-[#817cf2]">{card.title}</p>
+                  <p className="mt-1.5 text-[0.8rem] font-semibold text-[#77728d]">{card.description}</p>
+                </div>
+              ))}
             </div>
           </div>
 
           <TutorAppMockup />
-        </div>
-
-        {/* 랜딩 페이지 1번째 슬라이드(Hero) 하단 스크롤 안내 "↓ 스크롤하여 더 알아보기" 텍스트입니다. 크기는 아래 className에서 수정하세요. */}
-        <div className="mt-14 flex flex-col items-center gap-3 text-center text-[1rem] text-white/30">
-          <span>↓ 스크롤하여 더 알아보기</span>
-          <span className="landing-scroll-indicator" aria-hidden="true" />
         </div>
       </div>
     </section>

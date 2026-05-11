@@ -41,6 +41,17 @@ function normalizeApiFile(file) {
   };
 }
 
+function applyStatus(file, rawStatus) {
+  const statusInfo = STATUS_LABELS[rawStatus] || STATUS_LABELS.UPLOADED;
+
+  return {
+    ...file,
+    status: statusInfo.status,
+    statusTone: statusInfo.statusTone,
+    rawStatus,
+  };
+}
+
 export async function listApiProjectFiles(projectId) {
   const files = await apiRequest(`/upload/${encodeURIComponent(projectId)}`, {
     method: "GET",
@@ -75,6 +86,29 @@ export async function startApiAnalysis(fileIds) {
       })
     )
   );
+}
+
+export async function getApiAnalysisStatus(fileId) {
+  const result = await apiRequest(`/upload/${encodeURIComponent(fileId)}/status`, {
+    method: "GET",
+  });
+
+  return typeof result?.status === "string" ? result.status : "UPLOADED";
+}
+
+export async function refreshApiAnalysisStatuses(files) {
+  const statusEntries = await Promise.all(
+    files.map(async (file) => {
+      if (file.rawStatus === "DONE" || file.rawStatus === "FAILED") {
+        return [file.id, file.rawStatus];
+      }
+
+      return [file.id, await getApiAnalysisStatus(file.id)];
+    })
+  );
+  const statusByFileId = new Map(statusEntries);
+
+  return files.map((file) => applyStatus(file, statusByFileId.get(file.id) || file.rawStatus || "UPLOADED"));
 }
 
 export async function hasApiCompletedAnalysis(projectId) {

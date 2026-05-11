@@ -15,12 +15,12 @@ export default function WorkspaceProfileCard() {
       <ProfileAvatar
         name={summary.displayName}
         image={hydrated ? profileImage : null}
-        size={32}
+        size={44}
         className="workspace-profile-avatar !bg-transparent"
       />
       <div className="min-w-0">
         <strong className="block truncate">{summary.displayName}</strong>
-        <p className="truncate">{hydrated ? summary.subtitle : "마이페이지 ↘"}</p>
+        <p className="truncate">마이페이지 →</p>
       </div>
     </Link>
   );

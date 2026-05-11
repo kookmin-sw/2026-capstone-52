@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, useRef } from "react";
-import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import StatsRow from "@/components/mypage/StatsRow";
 import type { MyPageStats, ProfileBadge, ProfileInfo } from "@/types/profile";
 
@@ -11,6 +10,7 @@ interface ProfileSummaryCardProps {
   badges: ProfileBadge[];
   stats: MyPageStats;
   onImageChange: (file: File) => void;
+  onOpenGraph: () => void;
 }
 
 export default function ProfileSummaryCard({
@@ -19,6 +19,7 @@ export default function ProfileSummaryCard({
   badges,
   stats,
   onImageChange,
+  onOpenGraph,
 }: ProfileSummaryCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -34,49 +35,57 @@ export default function ProfileSummaryCard({
   }
 
   return (
-    <section className="min-h-[clamp(132px,17vh,168px)] rounded-[19px] bg-[#3f3f45] px-[clamp(18px,2vw,28px)] py-[clamp(16px,2.4vh,24px)]">
-      <div className="grid h-full items-center gap-6 xl:grid-cols-[minmax(280px,0.88fr)_minmax(560px,1fr)]">
+    <section className="rounded-[1.45rem] border border-[#ebe9f5] bg-white px-[clamp(32px,3vw,48px)] py-[clamp(28px,3vh,42px)] shadow-[0_24px_70px_rgba(42,38,73,0.06)]">
+      <div className="grid items-center gap-9 xl:grid-cols-[minmax(420px,1fr)_minmax(600px,auto)]">
         <div className="min-w-0">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="group relative w-fit shrink-0 rounded-full border-2 border-[#825cff] bg-[#564976] p-0 transition hover:border-[#a287ff]"
+              className="group relative w-fit shrink-0 rounded-[1.65rem] p-0 transition hover:scale-[1.01]"
               aria-label="프로필 이미지 변경"
             >
               {profileImage ? (
-                <ProfileAvatar
-                  name={profile.name}
-                  image={profileImage}
-                  size={96}
-                  className="border border-[#825cff]/40"
+                <img
+                  src={profileImage}
+                  alt={`${profile.name} 프로필 이미지`}
+                  className="h-[7rem] w-[7rem] rounded-[1.8rem] object-cover"
                 />
               ) : (
-                <span className="flex h-[clamp(76px,11vh,104px)] w-[clamp(76px,11vh,104px)] items-center justify-center rounded-full text-[clamp(24px,3vw,30px)]">
+                <span className="flex h-[7rem] w-[7rem] items-center justify-center rounded-[1.8rem] bg-gradient-to-br from-[#817cf2] to-[#ef8f79] text-[2.25rem] shadow-[0_16px_36px_rgba(129,124,242,0.18)]">
                   👨‍💻
                 </span>
               )}
-              <span className="pointer-events-none absolute inset-x-4 bottom-3 rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-zinc-100 opacity-0 transition group-hover:opacity-100">
+              <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full bg-black/45 px-3 py-1 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100">
                 사진 변경
               </span>
             </button>
 
             <div className="min-w-0">
-              <h2 className="text-[clamp(20px,1.8vw,23px)] font-bold leading-none text-white">{profile.name}</h2>
-              <p className="mt-3 text-[clamp(12px,1vw,13px)] text-[#adadb2]">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-[2rem] font-black leading-none text-[#24213d]">{profile.name}</h2>
+                <button
+                  type="button"
+                  onClick={onOpenGraph}
+                  className="inline-flex h-8 items-center gap-2 rounded-[0.65rem] border border-[#ebe9f5] bg-white px-3 text-[0.72rem] font-black text-[#817cf2]"
+                >
+                  ⌘ 전체 그래프
+                </button>
+              </div>
+              <p className="mt-3 text-[0.85rem] font-semibold text-[#74708b]">
                 {profile.major} · {profile.job}
               </p>
 
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-4 flex flex-wrap gap-2.5">
                 {badges.map((badge, index) => (
                   <span
                     key={badge.label}
-                    className={`rounded-full px-3 py-2 text-[11px] font-semibold ${
+                    className={`rounded-full px-3 py-2 text-[0.72rem] font-black ${
                       index === 0
-                        ? "bg-[#66549c] text-[#a987ff]"
+                        ? "bg-[#ebe8ff] text-[#817cf2]"
                         : index === 1
-                          ? "bg-[#435a72] text-[#75b7ff]"
-                          : "bg-[#3e704f] text-[#65e08b]"
+                          ? "bg-[#ffe3d3] text-[#d86a3f]"
+                          : "bg-[#d9f7ea] text-[#37a97a]"
                     }`}
                   >
                     {badge.value}
