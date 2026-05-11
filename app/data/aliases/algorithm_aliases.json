@@ -1,0 +1,85 @@
+{
+  "subject_id": "algorithm",
+  "concepts": [
+    {
+      "concept_id": "algo_time_complexity",
+      "canonical_name": "Time Complexity",
+      "korean_name": "시간 복잡도",
+      "aliases": ["time complexity", "시간 복잡도", "시간복잡도", "running time complexity"],
+      "group": "Algorithm Analysis",
+      "description": "A measure of how the running time of an algorithm grows with input size.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "algo_sorting",
+      "canonical_name": "Sorting",
+      "korean_name": "정렬",
+      "aliases": ["sorting", "정렬", "sort algorithm", "sorting algorithm"],
+      "group": "Fundamental Algorithms",
+      "description": "Algorithms that reorder elements according to a comparison or key rule.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "algo_binary_search",
+      "canonical_name": "Binary Search",
+      "korean_name": "이진 탐색",
+      "aliases": ["binary search", "binarysearch", "이진 탐색", "이진탐색"],
+      "group": "Search Algorithms",
+      "description": "A logarithmic-time search algorithm for sorted data.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "algo_dfs",
+      "canonical_name": "Depth-First Search",
+      "korean_name": "깊이 우선 탐색",
+      "aliases": ["dfs", "depth first search", "깊이 우선 탐색", "깊이우선탐색"],
+      "group": "Graph Algorithms",
+      "description": "A graph traversal strategy that explores as far as possible before backtracking.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "algo_bfs",
+      "canonical_name": "Breadth-First Search",
+      "korean_name": "너비 우선 탐색",
+      "aliases": ["bfs", "breadth first search", "너비 우선 탐색", "너비우선탐색"],
+      "group": "Graph Algorithms",
+      "description": "A graph traversal strategy that visits nodes level by level.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "algo_greedy",
+      "canonical_name": "Greedy Algorithm",
+      "korean_name": "그리디 알고리즘",
+      "aliases": ["greedy", "greedy algorithm", "그리디", "그리디 알고리즘"],
+      "group": "Design Paradigms",
+      "description": "A strategy that makes the locally optimal choice at each step.",
+      "importance": 4,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "algo_dynamic_programming",
+      "canonical_name": "Dynamic Programming",
+      "korean_name": "동적 계획법",
+      "aliases": ["dynamic programming", "동적 계획법", "동적계획법", "dp"],
+      "group": "Design Paradigms",
+      "description": "A technique that solves overlapping subproblems and stores intermediate results.",
+      "importance": 5,
+      "concept_difficulty": 4
+    },
+    {
+      "concept_id": "algo_dijkstra",
+      "canonical_name": "Dijkstra Algorithm",
+      "korean_name": "다익스트라 알고리즘",
+      "aliases": ["dijkstra", "dijkstra algorithm", "다익스트라", "다익스트라 알고리즘"],
+      "group": "Graph Algorithms",
+      "description": "A shortest-path algorithm for graphs with non-negative edge weights.",
+      "importance": 5,
+      "concept_difficulty": 4
+    }
+  ]
+}

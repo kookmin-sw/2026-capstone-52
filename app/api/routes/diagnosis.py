@@ -1,6 +1,5 @@
 # 수준 진단 라우터 — 세션 생성, 질문 생성, 답변 처리, 진행 상태 조회
 
-import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -13,8 +12,7 @@ from app.schemas.diagnosis import (
     DiagnosisStatusResponse,
     DiagnosisNodeItem,
 )
-from app.models.graph import ConceptNode
-from app.ai.diagnosis_ai import generate_question
+from app.ai.diagnosis_ai import DiagnosisAIError
 
 router = APIRouter()
 
@@ -35,45 +33,20 @@ def create_diagnosis_session(project_id: str):
 
 @router.post("/{project_id}/questions", response_model=None)
 def generate_diagnosis_question(project_id: str, db: Session = Depends(get_db)):
-    """현재 그래프 상태 기반으로 객관식 진단 질문 생성
+    """현재 그래프 상태 기반으로 다음 진단 질문 생성"""
+    try:
+        result = diagnosis_service.generate_next_question(project_id, db)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except DiagnosisAIError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
 
-    AI 모듈이 노드 중 적절한 개념을 선택해 질문 반환
-    """
-    nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
-    node_list = [
-        {
-            "node_id": n.node_id,
-            "name": n.name,
-            "status": n.status,
-            "understanding_score": n.understanding_score,
-        }
-        for n in nodes
-    ]
-
-    ai_result = generate_question(node_list)
-
-    q = diagnosis_service.create_diagnosis_question(
-        concept_id=ai_result["concept_id"],
-        difficulty=ai_result["difficulty"],
-        question_type=ai_result["question_type"],
-        affects=ai_result["affects"],
-        question=ai_result["question"],
-        choices=ai_result["choices"],
-        correct_index=ai_result["correct_index"],
-        db=db,
-    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="진단 가능한 개념이 없습니다.")
 
     return {
         "success": True,
-        "data": DiagnosisQuestionResponse(
-            question_id=q.question_id,
-            concept_id=q.concept_id,
-            difficulty=q.difficulty,
-            question_type=q.question_type,
-            affects=json.loads(q.affects) if q.affects else [],
-            question=q.question,
-            choices=json.loads(q.choices),
-        ),
+        "data": DiagnosisQuestionResponse(**result),
         "message": "",
     }
 
@@ -81,13 +54,17 @@ def generate_diagnosis_question(project_id: str, db: Session = Depends(get_db)):
 @router.post("/{project_id}/answers", response_model=None)
 def submit_answer(project_id: str, body: DiagnosisAnswerRequest, db: Session = Depends(get_db)):
     """사용자 답변 저장 → AI score 계산 → affects 노드 전체 상태 갱신"""
-    result = diagnosis_service.submit_answer(
-        question_id=body.question_id,
-        session_id=body.session_id,
-        selected_index=body.selected_index,
-        is_skipped=body.is_skipped,
-        db=db,
-    )
+    try:
+        result = diagnosis_service.submit_answer(
+            question_id=body.question_id,
+            session_id=body.session_id,
+            selected_index=body.selected_index,
+            selected_option_ids=body.selected_option_ids,
+            is_skipped=body.is_skipped,
+            db=db,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     if not result:
         raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
 
@@ -96,6 +73,15 @@ def submit_answer(project_id: str, body: DiagnosisAnswerRequest, db: Session = D
         "data": DiagnosisAnswerResponse(
             is_correct=result["is_correct"],
             correct_index=result["correct_index"],
+            is_fully_correct=result.get("is_fully_correct"),
+            partial_score=result.get("partial_score"),
+            answer_score=result.get("answer_score"),
+            answer_level=result.get("answer_level"),
+            correct_option_ids=result.get("correct_option_ids"),
+            selected_option_ids=result.get("selected_option_ids"),
+            missed_correct_option_ids=result.get("missed_correct_option_ids"),
+            wrong_selected_option_ids=result.get("wrong_selected_option_ids"),
+            invalid_selected_option_ids=result.get("invalid_selected_option_ids"),
             updated_nodes=result["updated_nodes"],
         ),
         "message": "",

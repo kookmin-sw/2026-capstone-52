@@ -11,15 +11,21 @@ class DiagnosisSessionCreateResponse(BaseModel):
 
 # ── 질문 ──────────────────────────────────────────────────────────────────────
 
+class DiagnosisChoiceResponse(BaseModel):
+    """학생 응답용 선택지 — 정답 여부나 해설은 포함하지 않음"""
+    option_id: str
+    text: str
+
 class DiagnosisQuestionResponse(BaseModel):
     """진단 질문 응답 — correct_index는 포함하지 않음"""
     question_id: str
     concept_id: str
-    difficulty: str           # easy / medium / hard — 프론트에서 난이도 표시용
-    question_type: str        # concept_check / prerequisite_check
+    difficulty: Optional[str] = None           # easy / medium / hard — 프론트에서 난이도 표시용
+    question_type: str                         # concept_check / prerequisite_check / multi_select
+    diagnosis_purpose: Optional[str] = None
     affects: list[str]        # 정답/오답 시 동시에 score가 바뀔 node_id 목록
     question: str
-    choices: list[str]        # 선택지 4개
+    choices: list[str] | list[DiagnosisChoiceResponse]  # legacy 문자열 또는 학생용 선택지 객체
 
 
 # ── 답변 ──────────────────────────────────────────────────────────────────────
@@ -28,17 +34,27 @@ class DiagnosisAnswerRequest(BaseModel):
     """진단 답변 요청"""
     question_id: str
     session_id: str           # 몇 번째 진단(PDF 업로드 차수)인지 구분
-    selected_index: int       # 사용자가 선택한 인덱스 (0~3), is_skipped=True면 무시
+    selected_index: Optional[int] = None       # legacy single-select 인덱스
+    selected_option_ids: Optional[list[str]] = None
     is_skipped: bool = False  # 스킵 시 score 계산 없이 WEAK 처리
 
 
 class DiagnosisAnswerResponse(BaseModel):
     """진단 답변 처리 결과 — affects 노드 전체의 업데이트 결과 포함"""
-    is_correct: bool
-    correct_index: int
+    is_correct: Optional[bool] = None
+    correct_index: Optional[int] = None
+    is_fully_correct: Optional[bool] = None
+    partial_score: Optional[float] = None
+    answer_score: Optional[float] = None
+    answer_level: Optional[int] = None
+    correct_option_ids: Optional[list[str]] = None
+    selected_option_ids: Optional[list[str]] = None
+    missed_correct_option_ids: Optional[list[str]] = None
+    wrong_selected_option_ids: Optional[list[str]] = None
+    invalid_selected_option_ids: Optional[list[str]] = None
 
     # affects 목록 각 노드의 갱신 결과 — 프론트에서 그래프 상태 즉시 반영에 사용
-    updated_nodes: list[dict]
+    updated_nodes: Optional[list[dict]] = None
     # 예: [{"node_id": "...", "status": "FAMILIAR", "understanding_score": 0.65}, ...]
 
 

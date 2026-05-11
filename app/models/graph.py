@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, DateTime, ForeignKey
+from sqlalchemy import String, Float, Integer, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -27,6 +27,8 @@ class ConceptNode(Base):
     node_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id: Mapped[str] = mapped_column(String, nullable=False)
     file_id: Mapped[str] = mapped_column(String, ForeignKey("files.file_id"), nullable=True)  # 어떤 파일에서 추출했는지
+    concept_id: Mapped[str] = mapped_column(String, nullable=True)   # 정규화된 stable concept ID (예: os_deadlock)
+    subject_id: Mapped[str] = mapped_column(String, nullable=True)   # 과목 ID (예: operating_system)
     name: Mapped[str] = mapped_column(String, nullable=False)         # 개념명 (예: "극한")
     description: Mapped[str] = mapped_column(String, nullable=True)   # 개념 설명
     group: Mapped[str] = mapped_column(String, nullable=True)         # 상위 주제 (예: "미적분")
@@ -37,6 +39,12 @@ class ConceptNode(Base):
     # 내부 점수 — 0.0 ~ 1.0, 서비스 레이어에서 계산 후 반영 (답변 저장 시점이 아님)
     # UNSEEN 상태에서는 None으로 두고 첫 진단 후 초기 점수로 채움
     understanding_score: Mapped[float] = mapped_column(Float, nullable=True, default=None)
+    understanding_level: Mapped[int] = mapped_column(Integer, nullable=True, default=3)
+    confidence: Mapped[float] = mapped_column(Float, nullable=True, default=0.0)
+    diagnosis_count: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
+    core_score: Mapped[float] = mapped_column(Float, nullable=True, default=None)
+    is_core: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+    node_source: Mapped[str] = mapped_column(String, nullable=True, default="uploaded_pdf")
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -50,5 +58,6 @@ class ConceptEdge(Base):
     source_node_id: Mapped[str] = mapped_column(String, ForeignKey("concept_nodes.node_id"), nullable=False)
     target_node_id: Mapped[str] = mapped_column(String, ForeignKey("concept_nodes.node_id"), nullable=False)
     relation_type: Mapped[str] = mapped_column(String, nullable=False)
+    edge_source_scope: Mapped[str] = mapped_column(String, nullable=True, default="uploaded_material")
     # MVP 관계 타입: prerequisite(선수 개념) / part_of(포함 관계)
     weight: Mapped[float] = mapped_column(Float, default=1.0)         # 관계 강도 0.0 ~ 1.0

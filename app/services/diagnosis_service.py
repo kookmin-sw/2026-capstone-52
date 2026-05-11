@@ -8,7 +8,7 @@ import uuid
 from sqlalchemy.orm import Session
 from app.models.graph import ConceptNode
 from app.models.diagnosis import DiagnosisQuestion, DiagnosisAnswer
-from app.ai.diagnosis_ai import calculate_score
+from app.ai.diagnosis_ai import calculate_score, evaluate_answer, generate_question, score_to_level
 
 
 # ── 세션 ──────────────────────────────────────────────────────────────────────
@@ -26,9 +26,14 @@ def create_diagnosis_question(
     question_type: str,
     affects: list[str],
     question: str,
-    choices: list[str],
+    choices: list,
     correct_index: int,
     db: Session,
+    correct_option_ids: list[str] | None = None,
+    diagnostic_tags: list[str] | None = None,
+    tag_group: str | None = None,
+    reuse_key: str | None = None,
+    diagnosis_purpose: str | None = None,
 ) -> DiagnosisQuestion:
     """AI 모듈 결과로 진단 질문 생성 및 저장"""
     q = DiagnosisQuestion(
@@ -39,6 +44,11 @@ def create_diagnosis_question(
         question=question,
         choices=json.dumps(choices, ensure_ascii=False),
         correct_index=correct_index,
+        correct_option_ids=json.dumps(correct_option_ids, ensure_ascii=False) if correct_option_ids is not None else None,
+        diagnostic_tags=json.dumps(diagnostic_tags, ensure_ascii=False) if diagnostic_tags is not None else None,
+        tag_group=tag_group,
+        reuse_key=reuse_key,
+        diagnosis_purpose=diagnosis_purpose,
     )
     db.add(q)
     db.commit()
@@ -46,12 +56,99 @@ def create_diagnosis_question(
     return q
 
 
+def generate_next_question(project_id: str, db: Session) -> dict | None:
+    """프로젝트 그래프에서 다음 진단 문항을 생성하고 teacher-side payload를 저장"""
+    nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+    if not nodes:
+        return None
+
+    target_node = _select_target_concept(nodes)
+    if not target_node:
+        return None
+
+    subject_id = (target_node.subject_id or "").strip()
+    if not subject_id:
+        raise ValueError(f"subject_id is missing for ConceptNode.node_id='{target_node.node_id}'.")
+
+    target_concept = {
+        "node_id": target_node.node_id,
+        "concept_id": target_node.concept_id or target_node.node_id,
+        "concept_name": target_node.name,
+        "name": target_node.name,
+        "description": target_node.description,
+        "group": target_node.group,
+        "understanding_score": target_node.understanding_score,
+        "understanding_level": target_node.understanding_level,
+        "is_core": target_node.is_core,
+        "core_score": target_node.core_score,
+    }
+    graph_context = {
+        "project_id": project_id,
+        "concepts": [
+            {
+                "concept_id": node.concept_id or node.node_id,
+                "concept_name": node.name,
+                "group": node.group,
+                "understanding_score": node.understanding_score,
+                "is_core": node.is_core,
+            }
+            for node in nodes
+        ],
+    }
+    previous_reuse_keys = _get_previous_reuse_keys(target_node.node_id, db)
+
+    teacher_question = generate_question(
+        target_concept=target_concept,
+        graph_context=graph_context,
+        subject_id=subject_id,
+        diagnosis_purpose="concept_check",
+        question_difficulty="medium",
+        previous_reuse_keys=previous_reuse_keys,
+    )
+
+    affects = [target_node.node_id]
+    teacher_choices = teacher_question["choices"]
+    q = create_diagnosis_question(
+        concept_id=target_node.node_id,
+        difficulty=teacher_question["question_difficulty"],
+        question_type=teacher_question["question_type"],
+        affects=affects,
+        question=teacher_question["question_text"],
+        choices=teacher_choices,
+        correct_index=0,  # legacy non-null column; multi-select grading uses correct_option_ids instead
+        db=db,
+        correct_option_ids=teacher_question["correct_option_ids"],
+        diagnostic_tags=teacher_question["diagnostic_tags"],
+        tag_group=teacher_question["tag_group"],
+        reuse_key=teacher_question["reuse_key"],
+        diagnosis_purpose=teacher_question["diagnosis_purpose"],
+    )
+
+    return {
+        "question_id": q.question_id,
+        "concept_id": q.concept_id,
+        "difficulty": q.difficulty,
+        "question_type": q.question_type,
+        "diagnosis_purpose": q.diagnosis_purpose,
+        "affects": json.loads(q.affects) if q.affects else [],
+        "question": q.question,
+        "choices": [
+            {
+                "option_id": choice["option_id"],
+                "text": choice["text"],
+            }
+            for choice in teacher_choices
+        ],
+    }
+
+
 # ── 답변 처리 ─────────────────────────────────────────────────────────────────
 
 def submit_answer(
     question_id: str,
     session_id: str,
-    selected_index: int,
+    selected_index: int | None,
+    selected_option_ids: list[str] | None,
     is_skipped: bool,
     db: Session,
 ) -> dict | None:
@@ -67,6 +164,100 @@ def submit_answer(
     q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == question_id).first()
     if not q:
         return None
+
+    if q.correct_option_ids or q.question_type == "multi_select":
+        primary_node = db.query(ConceptNode).filter(ConceptNode.node_id == q.concept_id).first()
+        if not primary_node:
+            raise ValueError(f"Primary ConceptNode not found for node_id='{q.concept_id}'.")
+
+        concept_name = (primary_node.name or "").strip()
+        subject_id = (primary_node.subject_id or "").strip()
+        if not concept_name:
+            raise ValueError(f"ConceptNode.name is missing for node_id='{q.concept_id}'.")
+        if not subject_id:
+            raise ValueError(f"ConceptNode.subject_id is missing for node_id='{q.concept_id}'.")
+
+        affects = _json_loads_list(q.affects)
+        if q.concept_id not in affects:
+            affects.append(q.concept_id)
+            affects = sorted(set(affects))
+
+        teacher_question = {
+            "concept_id": q.concept_id,
+            "concept_name": concept_name,
+            "subject_id": subject_id,
+            "question_type": "multi_select",
+            "diagnosis_purpose": q.diagnosis_purpose or "concept_check",
+            "question_difficulty": q.difficulty,
+            "question_text": q.question,
+            "choices": _json_loads_list(q.choices),
+            "correct_option_ids": _json_loads_list(q.correct_option_ids),
+            "diagnostic_tags": _json_loads_list(q.diagnostic_tags),
+            "tag_group": q.tag_group or "",
+            "reuse_key": q.reuse_key or "",
+            "affects": affects,
+        }
+
+        if is_skipped:
+            correct_option_ids = teacher_question["correct_option_ids"]
+            all_option_ids = [choice.get("option_id") for choice in teacher_question["choices"] if isinstance(choice, dict)]
+            evaluation = {
+                "selected_option_ids": [],
+                "valid_selected_option_ids": [],
+                "invalid_selected_option_ids": [],
+                "correct_option_ids": correct_option_ids,
+                "correct_selected_option_ids": [],
+                "missed_correct_option_ids": correct_option_ids,
+                "wrong_selected_option_ids": [],
+                "partial_score": 0.0,
+                "answer_score": 0.0,
+                "is_fully_correct": False,
+                "answer_level": score_to_level(0.0),
+                "selected_count": 0,
+                "correct_count": len(correct_option_ids),
+                "wrong_count": 0,
+                "feedback_tags": [],
+            }
+        else:
+            evaluation = evaluate_answer(teacher_question, selected_option_ids or [])
+
+        answer = DiagnosisAnswer(
+            question_id=question_id,
+            session_id=session_id,
+            is_correct=evaluation["is_fully_correct"],
+            is_skipped=is_skipped,
+            selected_option_ids=_json_dumps(evaluation["selected_option_ids"]),
+            partial_score=evaluation["partial_score"],
+            answer_score=evaluation["answer_score"],
+            is_fully_correct=evaluation["is_fully_correct"],
+            invalid_selected_option_ids=_json_dumps(evaluation["invalid_selected_option_ids"]),
+            missed_correct_option_ids=_json_dumps(evaluation["missed_correct_option_ids"]),
+            wrong_selected_option_ids=_json_dumps(evaluation["wrong_selected_option_ids"]),
+        )
+        db.add(answer)
+        db.flush()
+
+        updated_nodes = _apply_evaluation_to_nodes(
+            node_ids=affects,
+            answer_score=evaluation["answer_score"],
+            db=db,
+        )
+
+        db.commit()
+        return {
+            "is_correct": evaluation["is_fully_correct"],
+            "correct_index": q.correct_index,
+            "is_fully_correct": evaluation["is_fully_correct"],
+            "partial_score": evaluation["partial_score"],
+            "answer_score": evaluation["answer_score"],
+            "answer_level": evaluation["answer_level"],
+            "correct_option_ids": evaluation["correct_option_ids"],
+            "selected_option_ids": evaluation["selected_option_ids"],
+            "missed_correct_option_ids": evaluation["missed_correct_option_ids"],
+            "wrong_selected_option_ids": evaluation["wrong_selected_option_ids"],
+            "invalid_selected_option_ids": evaluation["invalid_selected_option_ids"],
+            "updated_nodes": updated_nodes,
+        }
 
     is_correct = (not is_skipped) and (selected_index == q.correct_index)
 
@@ -101,6 +292,38 @@ def submit_answer(
         "correct_index": q.correct_index,
         "updated_nodes": updated_nodes,
     }
+
+
+def _apply_evaluation_to_nodes(
+    node_ids: list[str],
+    answer_score: float,
+    db: Session,
+) -> list[dict]:
+    results = []
+
+    for node_id in sorted(set(node_ids)):
+        node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
+        if not node:
+            continue
+
+        previous_score = node.understanding_score if node.understanding_score is not None else 0.5
+        new_score = _clamp(0.7 * previous_score + 0.3 * answer_score, 0.0, 1.0)
+
+        node.understanding_score = new_score
+        node.understanding_level = score_to_level(new_score)
+        node.confidence = min((node.confidence or 0.0) + 0.1, 1.0)
+        node.diagnosis_count = (node.diagnosis_count or 0) + 1
+        node.status = _legacy_status_from_score(new_score)
+
+        results.append(
+            {
+                "node_id": node.node_id,
+                "status": node.status,
+                "understanding_score": node.understanding_score,
+            }
+        )
+
+    return results
 
 
 def _apply_score_to_nodes(
@@ -196,3 +419,58 @@ def get_diagnosis_status(project_id: str, session_id: str, db: Session) -> dict:
         "total_questions": TOTAL_QUESTIONS,
         "progress_percent": progress,
     }
+
+
+def _json_loads_list(value: str | None) -> list:
+    if not value:
+        return []
+
+    parsed = json.loads(value)
+    if isinstance(parsed, list):
+        return parsed
+    raise ValueError("Expected JSON list value.")
+
+
+def _json_dumps(value: list) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _legacy_status_from_score(score: float) -> str:
+    if score >= 0.8:
+        return "MASTERED"
+    if score >= 0.4:
+        return "FAMILIAR"
+    return "WEAK"
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(value, maximum))
+
+
+def _select_target_concept(nodes: list[ConceptNode]) -> ConceptNode | None:
+    if not nodes:
+        return None
+
+    sorted_nodes = sorted(
+        nodes,
+        key=lambda node: (
+            1 if node.is_core else 0,
+            node.core_score if node.core_score is not None else 0.0,
+            -(node.diagnosis_count if node.diagnosis_count is not None else 0),
+            -(node.understanding_score if node.understanding_score is not None else 0.5),
+        ),
+        reverse=True,
+    )
+    return sorted_nodes[0]
+
+
+def _get_previous_reuse_keys(target_node_id: str, db: Session) -> list[str]:
+    questions = (
+        db.query(DiagnosisQuestion)
+        .filter(
+            DiagnosisQuestion.concept_id == target_node_id,
+            DiagnosisQuestion.reuse_key.isnot(None),
+        )
+        .all()
+    )
+    return [question.reuse_key for question in questions if question.reuse_key]
