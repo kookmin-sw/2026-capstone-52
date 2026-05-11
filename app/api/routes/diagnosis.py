@@ -32,10 +32,10 @@ def create_diagnosis_session(project_id: str):
 
 
 @router.post("/{project_id}/questions", response_model=None)
-def generate_diagnosis_question(project_id: str, db: Session = Depends(get_db)):
+def generate_diagnosis_question(project_id: str, session_id: str | None = None, db: Session = Depends(get_db)):
     """현재 그래프 상태 기반으로 다음 진단 질문 생성"""
     try:
-        result = diagnosis_service.generate_next_question(project_id, db)
+        result = diagnosis_service.generate_next_question(project_id, db, session_id=session_id)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except DiagnosisAIError as error:

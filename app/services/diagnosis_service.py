@@ -6,9 +6,16 @@
 import json
 import uuid
 from sqlalchemy.orm import Session
-from app.models.graph import ConceptNode
+from app.models.graph import ConceptNode, ConceptEdge
 from app.models.diagnosis import DiagnosisQuestion, DiagnosisAnswer
-from app.ai.diagnosis_ai import calculate_score, evaluate_answer, generate_question, score_to_level
+from app.ai.diagnosis_ai import (
+    DiagnosisAIError,
+    QuestionValidationError,
+    calculate_score,
+    evaluate_answer,
+    generate_question,
+    score_to_level,
+)
 
 
 # ── 세션 ──────────────────────────────────────────────────────────────────────
@@ -56,32 +63,25 @@ def create_diagnosis_question(
     return q
 
 
-def generate_next_question(project_id: str, db: Session) -> dict | None:
+def generate_next_question(project_id: str, db: Session, session_id: str | None = None) -> dict | None:
     """프로젝트 그래프에서 다음 진단 문항을 생성하고 teacher-side payload를 저장"""
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     if not nodes:
         return None
 
-    target_node = _select_target_concept(nodes)
-    if not target_node:
-        return None
+    latest_answer_context = _get_latest_answer_context(session_id, db)
+    prerequisite_candidates: list[ConceptNode] = []
+    if (
+        latest_answer_context
+        and latest_answer_context.get("answer_score") is not None
+        and latest_answer_context["answer_score"] < LOW_SCORE_THRESHOLD
+    ):
+        prerequisite_candidates = _find_prerequisite_candidates(
+            project_id=project_id,
+            current_node_id=latest_answer_context["concept_node_id"],
+            db=db,
+        )
 
-    subject_id = (target_node.subject_id or "").strip()
-    if not subject_id:
-        raise ValueError(f"subject_id is missing for ConceptNode.node_id='{target_node.node_id}'.")
-
-    target_concept = {
-        "node_id": target_node.node_id,
-        "concept_id": target_node.concept_id or target_node.node_id,
-        "concept_name": target_node.name,
-        "name": target_node.name,
-        "description": target_node.description,
-        "group": target_node.group,
-        "understanding_score": target_node.understanding_score,
-        "understanding_level": target_node.understanding_level,
-        "is_core": target_node.is_core,
-        "core_score": target_node.core_score,
-    }
     graph_context = {
         "project_id": project_id,
         "concepts": [
@@ -95,51 +95,83 @@ def generate_next_question(project_id: str, db: Session) -> dict | None:
             for node in nodes
         ],
     }
-    previous_reuse_keys = _get_previous_reuse_keys(target_node.node_id, db)
+    candidate_nodes = _build_candidate_nodes(nodes, prerequisite_candidates=prerequisite_candidates)
+    if not candidate_nodes:
+        return None
 
-    teacher_question = generate_question(
-        target_concept=target_concept,
-        graph_context=graph_context,
-        subject_id=subject_id,
-        diagnosis_purpose="concept_check",
-        question_difficulty="medium",
-        previous_reuse_keys=previous_reuse_keys,
-    )
+    last_error: Exception | None = None
+    for target_node in candidate_nodes:
+        subject_id = (target_node.subject_id or "").strip()
+        if not subject_id:
+            raise ValueError(f"subject_id is missing for ConceptNode.node_id='{target_node.node_id}'.")
 
-    affects = [target_node.node_id]
-    teacher_choices = teacher_question["choices"]
-    q = create_diagnosis_question(
-        concept_id=target_node.node_id,
-        difficulty=teacher_question["question_difficulty"],
-        question_type=teacher_question["question_type"],
-        affects=affects,
-        question=teacher_question["question_text"],
-        choices=teacher_choices,
-        correct_index=0,  # legacy non-null column; multi-select grading uses correct_option_ids instead
-        db=db,
-        correct_option_ids=teacher_question["correct_option_ids"],
-        diagnostic_tags=teacher_question["diagnostic_tags"],
-        tag_group=teacher_question["tag_group"],
-        reuse_key=teacher_question["reuse_key"],
-        diagnosis_purpose=teacher_question["diagnosis_purpose"],
-    )
+        target_concept = {
+            "node_id": target_node.node_id,
+            "concept_id": target_node.concept_id or target_node.node_id,
+            "concept_name": target_node.name,
+            "name": target_node.name,
+            "description": target_node.description,
+            "group": target_node.group,
+            "understanding_score": target_node.understanding_score,
+            "understanding_level": target_node.understanding_level,
+            "is_core": target_node.is_core,
+            "core_score": target_node.core_score,
+        }
+        previous_reuse_keys = _get_previous_reuse_keys(target_node.node_id, db)
 
-    return {
-        "question_id": q.question_id,
-        "concept_id": q.concept_id,
-        "difficulty": q.difficulty,
-        "question_type": q.question_type,
-        "diagnosis_purpose": q.diagnosis_purpose,
-        "affects": json.loads(q.affects) if q.affects else [],
-        "question": q.question,
-        "choices": [
-            {
-                "option_id": choice["option_id"],
-                "text": choice["text"],
-            }
-            for choice in teacher_choices
-        ],
-    }
+        try:
+            teacher_question = generate_question(
+                target_concept=target_concept,
+                graph_context=graph_context,
+                subject_id=subject_id,
+                diagnosis_purpose="concept_check",
+                question_difficulty="medium",
+                previous_reuse_keys=previous_reuse_keys,
+            )
+        except QuestionValidationError as error:
+            last_error = error
+            continue
+        except DiagnosisAIError:
+            raise
+
+        affects = [target_node.node_id]
+        teacher_choices = teacher_question["choices"]
+        q = create_diagnosis_question(
+            concept_id=target_node.node_id,
+            difficulty=teacher_question["question_difficulty"],
+            question_type=teacher_question["question_type"],
+            affects=affects,
+            question=teacher_question["question_text"],
+            choices=teacher_choices,
+            correct_index=0,  # legacy non-null column; multi-select grading uses correct_option_ids instead
+            db=db,
+            correct_option_ids=teacher_question["correct_option_ids"],
+            diagnostic_tags=teacher_question["diagnostic_tags"],
+            tag_group=teacher_question["tag_group"],
+            reuse_key=teacher_question["reuse_key"],
+            diagnosis_purpose=teacher_question["diagnosis_purpose"],
+        )
+
+        return {
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "difficulty": q.difficulty,
+            "question_type": q.question_type,
+            "diagnosis_purpose": q.diagnosis_purpose,
+            "affects": json.loads(q.affects) if q.affects else [],
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": choice["option_id"],
+                    "text": choice["text"],
+                }
+                for choice in teacher_choices
+            ],
+        }
+
+    if last_error is not None:
+        raise ValueError(f"질문 중복으로 진단 문항을 생성할 수 없습니다: {last_error}")
+    return None
 
 
 # ── 답변 처리 ─────────────────────────────────────────────────────────────────
@@ -373,6 +405,7 @@ def _apply_score_to_nodes(
 TOTAL_QUESTIONS = 12
 NODE_STATUS_UNSEEN = "UNSEEN"
 NODE_STATUS_MASTERED = "MASTERED"
+LOW_SCORE_THRESHOLD = 0.4
 
 
 def get_diagnosis_node_list(project_id: str, question_id: str | None, db: Session) -> list[dict]:
@@ -448,20 +481,10 @@ def _clamp(value: float, minimum: float, maximum: float) -> float:
 
 
 def _select_target_concept(nodes: list[ConceptNode]) -> ConceptNode | None:
-    if not nodes:
+    candidate_nodes = _build_candidate_nodes(nodes)
+    if not candidate_nodes:
         return None
-
-    sorted_nodes = sorted(
-        nodes,
-        key=lambda node: (
-            1 if node.is_core else 0,
-            node.core_score if node.core_score is not None else 0.0,
-            -(node.diagnosis_count if node.diagnosis_count is not None else 0),
-            -(node.understanding_score if node.understanding_score is not None else 0.5),
-        ),
-        reverse=True,
-    )
-    return sorted_nodes[0]
+    return candidate_nodes[0]
 
 
 def _get_previous_reuse_keys(target_node_id: str, db: Session) -> list[str]:
@@ -474,3 +497,109 @@ def _get_previous_reuse_keys(target_node_id: str, db: Session) -> list[str]:
         .all()
     )
     return [question.reuse_key for question in questions if question.reuse_key]
+
+
+def _get_latest_answer_context(session_id: str | None, db: Session) -> dict | None:
+    if not session_id:
+        return None
+
+    latest_answer = (
+        db.query(DiagnosisAnswer)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .order_by(DiagnosisAnswer.created_at.desc())
+        .first()
+    )
+    if not latest_answer:
+        return None
+
+    question = (
+        db.query(DiagnosisQuestion)
+        .filter(DiagnosisQuestion.question_id == latest_answer.question_id)
+        .first()
+    )
+    if not question:
+        return None
+
+    answer_score = latest_answer.answer_score
+    if answer_score is None:
+        answer_score = latest_answer.partial_score
+
+    return {
+        "question": question,
+        "answer": latest_answer,
+        "answer_score": answer_score,
+        "concept_node_id": question.concept_id,
+    }
+
+
+def _find_prerequisite_candidates(
+    project_id: str,
+    current_node_id: str,
+    db: Session,
+) -> list[ConceptNode]:
+    edges = (
+        db.query(ConceptEdge)
+        .filter(
+            ConceptEdge.project_id == project_id,
+            ConceptEdge.relation_type == "prerequisite",
+            ConceptEdge.edge_source_scope == "uploaded_material",
+            ConceptEdge.target_node_id == current_node_id,
+        )
+        .all()
+    )
+    if not edges:
+        return []
+
+    prerequisite_node_ids = [edge.source_node_id for edge in edges]
+    nodes = (
+        db.query(ConceptNode)
+        .filter(ConceptNode.node_id.in_(prerequisite_node_ids))
+        .all()
+    )
+    node_map = {node.node_id: node for node in nodes}
+    return [node_map[node_id] for node_id in prerequisite_node_ids if node_id in node_map]
+
+
+def _build_candidate_nodes(
+    nodes: list[ConceptNode],
+    *,
+    prerequisite_candidates: list[ConceptNode] | None = None,
+) -> list[ConceptNode]:
+    if prerequisite_candidates:
+        unique_prerequisites = _dedupe_nodes(prerequisite_candidates)
+        return sorted(
+            unique_prerequisites,
+            key=lambda node: (
+                node.diagnosis_count if node.diagnosis_count is not None else 0,
+                node.understanding_score if node.understanding_score is not None else 0.5,
+                -(node.core_score if node.core_score is not None else 0.0),
+            ),
+        )
+
+    return sorted(
+        _dedupe_nodes(nodes),
+        key=lambda node: (
+            -(1 if node.is_core else 0),
+            -(node.core_score if node.core_score is not None else 0.0),
+            node.diagnosis_count if node.diagnosis_count is not None else 0,
+            node.understanding_score if node.understanding_score is not None else 0.5,
+        ),
+    )
+
+
+def _dedupe_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
+    unique_nodes: dict[str, ConceptNode] = {}
+    for node in nodes:
+        unique_nodes[node.node_id] = node
+    return list(unique_nodes.values())
+
+
+def _diagnostic_tag_overlap(tags_a: list[str], tags_b: list[str]) -> float:
+    set_a = {tag for tag in tags_a if tag}
+    set_b = {tag for tag in tags_b if tag}
+    if not set_a and not set_b:
+        return 0.0
+    union = set_a | set_b
+    if not union:
+        return 0.0
+    return len(set_a & set_b) / len(union)
