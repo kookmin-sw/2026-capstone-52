@@ -85,11 +85,7 @@ def update_user_api(user_id: int, update_data: UserProfileUpdate, db: Session = 
         "email": user.email,
         "nickname": user.nickname,
         "profile_image": user.profile_image,
-        "major": profile.major,
-        "learning_fields": profile.learning_fields,
-        "current_level": profile.current_level,
         "preferred_explanation_style": profile.preferred_explanation_style,
-        "learning_goal": profile.learning_goal,
     }
 
     return success_response(data, "사용자 정보가 수정되었습니다.")
