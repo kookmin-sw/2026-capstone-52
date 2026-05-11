@@ -4,10 +4,20 @@ from app.models.learning_log import LearningLog
 from app.schemas.project import ProjectCreate
 
 
+SUBJECT_NAME_MAP = {
+    "operating_system": "운영체제",
+    "data_structure": "자료구조",
+    "algorithm": "알고리즘",
+    "computer_network": "컴퓨터 네트워크",
+}
+
+
 def create_project(db: Session, project_data: ProjectCreate):
+    project_name = SUBJECT_NAME_MAP[project_data.project_domain]
+
     new_project = Project(
         user_id=project_data.user_id,
-        project_name=project_data.project_name,
+        project_name=project_name,
         project_description=project_data.project_description,
         project_domain=project_data.project_domain,
     )
@@ -16,7 +26,6 @@ def create_project(db: Session, project_data: ProjectCreate):
     db.commit()
     db.refresh(new_project)
 
-    # 프로젝트 생성 시 학습 기록 자동 저장
     log = LearningLog(
         user_id=project_data.user_id,
         project_id=new_project.project_id,
