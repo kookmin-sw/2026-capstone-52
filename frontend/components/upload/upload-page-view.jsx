@@ -3,24 +3,29 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getProjects } from "../../features/dashboard/service";
+import EeumIcon from "@/components/common/EeumIcon";
+import { getProjectChats, getProjects } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import {
   hasCompletedAnalysis,
   isBackendApiEnabled,
   listProjectFiles,
+  refreshAnalysisStatuses,
   startAnalysis,
   uploadProjectFiles,
 } from "../../features/upload/service";
+import { createLearningLog } from "../../features/learning-log/service";
 import { loadWorkspaceState } from "../../features/workspace/storage";
 
 export default function UploadPageView({ initialProjectId = null }) {
   const router = useRouter();
   const fileInputRef = useRef(null);
   const fileTableRef = useRef(null);
+  const loggedGraphUpdateFileIdsRef = useRef(new Set());
   const [projectId, setProjectId] = useState(initialProjectId);
   const [projectTitle, setProjectTitle] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [recentChats, setRecentChats] = useState([]);
   const [pendingFiles, setPendingFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +71,7 @@ export default function UploadPageView({ initialProjectId = null }) {
   useEffect(() => {
     if (!projectId) {
       setUploadedFiles([]);
+      setRecentChats([]);
       setPendingFiles([]);
       setIsDragging(false);
       setIsSubmitting(false);
@@ -79,17 +85,20 @@ export default function UploadPageView({ initialProjectId = null }) {
       try {
         const files = await listProjectFiles(projectId);
         const hasCompleted = await hasCompletedAnalysis(projectId);
+        const chats = await getProjectChats(projectId);
 
         if (!isMounted) {
           return;
         }
 
         setUploadedFiles(files);
+        setRecentChats(chats);
         setCanStartDiagnosis(hasCompleted);
       } catch (error) {
         console.error(error);
         if (isMounted) {
           setUploadedFiles([]);
+          setRecentChats([]);
           setCanStartDiagnosis(false);
         }
       }
@@ -118,11 +127,21 @@ export default function UploadPageView({ initialProjectId = null }) {
 
     const timer = window.setInterval(async () => {
       try {
-        const files = await listProjectFiles(projectId);
-        const hasCompleted = await hasCompletedAnalysis(projectId);
+        const files = await refreshAnalysisStatuses(projectId, uploadedFiles);
+        const completedFiles = files.filter((file) => file.rawStatus === "DONE" || file.statusTone === "done");
+        const newlyCompletedFiles = completedFiles.filter((file) => !loggedGraphUpdateFileIdsRef.current.has(file.id));
+
+        if (newlyCompletedFiles.length) {
+          newlyCompletedFiles.forEach((file) => loggedGraphUpdateFileIdsRef.current.add(file.id));
+          createLearningLog({
+            projectId,
+            activityType: "graph_updated",
+            activitySummary: `${newlyCompletedFiles.length}개 자료 분석 결과가 지식 그래프에 반영되었습니다.`,
+          }).catch(console.error);
+        }
 
         setUploadedFiles(files);
-        setCanStartDiagnosis(hasCompleted);
+        setCanStartDiagnosis(completedFiles.length > 0);
       } catch (error) {
         console.error(error);
       }
@@ -131,7 +150,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     return () => window.clearInterval(timer);
   }, [projectId, uploadedFiles]);
 
-  const sidebarFiles = useMemo(() => uploadedFiles.slice(0, 6), [uploadedFiles]);
+  const sidebarChats = useMemo(() => recentChats.slice(0, 6), [recentChats]);
   const hasPendingFiles = pendingFiles.length > 0;
   const canStartAnalysis = Boolean(projectId) && pendingFiles.length > 0 && !isSubmitting;
   const dashboardHref = projectId
@@ -184,6 +203,13 @@ export default function UploadPageView({ initialProjectId = null }) {
 
     try {
       const uploaded = await uploadProjectFiles(projectId, projectTitle || "새 프로젝트", pendingFiles);
+      if (uploaded.length) {
+        createLearningLog({
+          projectId,
+          activityType: "file_uploaded",
+          activitySummary: `${uploaded.length}개 학습 자료를 업로드했습니다.`,
+        }).catch(console.error);
+      }
       const nextFiles = await startAnalysis(
         projectId,
         uploaded.map((file) => file.id)
@@ -208,50 +234,56 @@ export default function UploadPageView({ initialProjectId = null }) {
     <div className="workspace-upload-page">
       <header className="workspace-upload-page-header">
         <div className="workspace-upload-page-header-copy">
-          <Link href="/" className="workspace-brand-link" aria-label="eeum 홈">
-            <span className="workspace-brand-ring" />
-            <span className="workspace-brand-node" />
+          <Link href={dashboardHref} className="workspace-upload-dashboard-link workspace-upload-page-back">
+            ← 돌아가기
           </Link>
-
           <div className="workspace-upload-page-title">
             <h1>자료 업로드</h1>
-            <p>학습 자료를 업로드하면 AI가 분석하여 나에게 맞는 학습을 시작합니다.</p>
           </div>
         </div>
-
-        <Link href="/mypage" className="workspace-upload-page-header-profile" aria-label="마이페이지">
-          <span className="workspace-upload-page-header-avatar workspace-upload-page-header-avatar-accent" />
-          <span className="workspace-upload-page-header-avatar" />
-        </Link>
       </header>
 
       <div className="workspace-upload-page-body">
         <aside className="workspace-upload-page-sidebar">
-          <Link href={dashboardHref} className="workspace-upload-dashboard-link workspace-upload-page-back">
-            ← 돌아가기
+          <Link href="/" className="workspace-upload-brand" aria-label="eeum 홈">
+            <EeumIcon className="workspace-upload-brand-icon" />
+            <strong>이음</strong>
+          </Link>
+
+          <Link href="/dashboard" className="workspace-upload-create-link">
+            + 새 프로젝트 생성
           </Link>
 
           {projectTitle ? (
             <section className="workspace-upload-sidebar-section">
-              <h2>현재 프로젝트</h2>
+              <h2>프로젝트</h2>
               <div className="workspace-upload-project-chip">
                 <strong>{projectTitle}</strong>
+              </div>
+              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
+                <strong>자료구조</strong>
+              </div>
+              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
+                <strong>알고리즘</strong>
+              </div>
+              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
+                <strong>컴퓨터 네트워크</strong>
               </div>
             </section>
           ) : null}
 
           <section className="workspace-upload-sidebar-section">
-            <h2>업로드된 자료</h2>
+            <h2>최근 채팅</h2>
             <div className="workspace-upload-recent-list">
-              {sidebarFiles.length ? (
-                sidebarFiles.map((file) => (
-                  <div key={file.id} className="workspace-upload-recent-item">
-                    <span>{file.name}</span>
+              {sidebarChats.length ? (
+                sidebarChats.map((chat) => (
+                  <div key={chat.id} className="workspace-upload-recent-item">
+                    <span>{chat.title}</span>
                     <em />
                   </div>
                 ))
               ) : (
-                <div className="workspace-empty-copy">아직 업로드된 자료가 없습니다.</div>
+                <div className="workspace-empty-copy">최근 채팅이 없습니다.</div>
               )}
             </div>
           </section>
@@ -278,6 +310,11 @@ export default function UploadPageView({ initialProjectId = null }) {
             </section>
           ) : (
             <section className="workspace-upload-page-main-inner">
+              <div className="workspace-upload-page-intro">
+                <h1>자료 업로드</h1>
+                <p>학습 자료를 업로드하면 AI가 분석하여 나에게 맞는 학습을 시작합니다.</p>
+              </div>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -304,7 +341,7 @@ export default function UploadPageView({ initialProjectId = null }) {
                   }}
                   onDrop={handleDrop}
                 >
-                  <div className="workspace-upload-dropzone-icon">📤</div>
+                  <div className="workspace-upload-dropzone-icon">↥</div>
                   <strong>파일을 드래그 앤 드롭</strong>
                   <span>또는</span>
                   <button type="button" onClick={() => fileInputRef.current?.click()}>

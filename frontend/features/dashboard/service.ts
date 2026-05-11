@@ -2,16 +2,59 @@ import { projectCatalog } from "../project/model";
 import { apiRequest } from "../api/client";
 import { getCurrentUserId } from "../api/session";
 import {
-  createProjectRecord,
   getDefaultWorkspaceState,
+  getProjectNote as getLocalProjectNote,
   loadWorkspaceState,
+  saveProjectNote as saveLocalProjectNote,
   saveWorkspaceState,
   upsertProjectState,
 } from "../workspace/storage";
-import type { Chat, DashboardChatStore, Project } from "./types";
+import type { Chat, DashboardChatStore, Project, ProjectCatalogOption } from "./types";
 
 const DASHBOARD_CHAT_STORAGE_KEY = "eeum-dashboard-chats-v1";
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
+const MOCK_CHAT_RESPONSE_DELAY_MS = 5000;
+
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+const MOCK_PROJECT_CATALOG: ProjectCatalogOption[] = [
+  {
+    id: "os",
+    title: "운영체제",
+    description: "프로세스, 스레드, CPU 스케줄링, 메모리 관리 흐름을 정리합니다.",
+    domain: "Computer Science",
+    level: "기초-중급",
+    estimatedTime: "4주",
+  },
+  {
+    id: "data-structures",
+    title: "자료구조",
+    description: "스택, 큐, 트리, 그래프, 해시 테이블을 구현 관점에서 학습합니다.",
+    domain: "Computer Science",
+    level: "기초",
+    estimatedTime: "3주",
+  },
+  {
+    id: "network",
+    title: "컴퓨터 네트워크",
+    description: "TCP/IP, HTTP, 라우팅, 흐름 제어와 혼잡 제어를 연결해서 봅니다.",
+    domain: "Computer Science",
+    level: "중급",
+    estimatedTime: "4주",
+  },
+  {
+    id: "algorithm",
+    title: "알고리즘",
+    description: "시간복잡도, 정렬, 탐색, 그래프 알고리즘, 동적계획법을 다룹니다.",
+    domain: "Computer Science",
+    level: "기초-중급",
+    estimatedTime: "5주",
+  },
+];
 
 type ApiProject = {
   project_id: number | string;
@@ -29,6 +72,17 @@ type ApiChatLog = {
   user_message: string;
   ai_response?: string | null;
   created_at?: string | null;
+};
+
+export type ApiGraphNode = {
+  node_id: string;
+  project_id: number | string;
+  file_id?: string | null;
+  name: string;
+  description?: string | null;
+  group?: string | null;
+  status?: string | null;
+  updated_at?: string | null;
 };
 
 function normalizeApiDate(value: string | null | undefined) {
@@ -235,6 +289,46 @@ const DEFAULT_CHATS_BY_PROJECT: Record<string, Chat[]> = {
       ],
     },
   ],
+  "data-structures": [
+    {
+      id: "data-structures-chat-1",
+      projectId: "data-structures",
+      title: "스택과 큐 사용 사례",
+      updatedAt: "2026-04-12T10:30:00.000Z",
+      messages: [
+        {
+          id: "data-structures-chat-1-assistant-1",
+          role: "assistant",
+          text: "스택은 되돌리기, 함수 호출처럼 최근 항목을 먼저 처리할 때 쓰고 큐는 작업 대기열처럼 먼저 온 항목을 먼저 처리할 때 씁니다.",
+        },
+        {
+          id: "data-structures-chat-1-user-1",
+          role: "user",
+          text: "스택과 큐는 언제 다르게 쓰는지 예시로 알려줘.",
+        },
+      ],
+    },
+  ],
+  algorithm: [
+    {
+      id: "algorithm-chat-1",
+      projectId: "algorithm",
+      title: "BFS와 DFS 비교",
+      updatedAt: "2026-04-13T13:00:00.000Z",
+      messages: [
+        {
+          id: "algorithm-chat-1-user-1",
+          role: "user",
+          text: "BFS와 DFS의 차이를 짧게 비교해줘.",
+        },
+        {
+          id: "algorithm-chat-1-assistant-1",
+          role: "assistant",
+          text: "BFS는 가까운 정점부터 넓게 탐색하고, DFS는 한 경로를 깊게 내려간 뒤 되돌아오는 방식입니다.",
+        },
+      ],
+    },
+  ],
 };
 
 function clone<T>(value: T): T {
@@ -252,6 +346,8 @@ function ensureWorkspaceProjectTimestamps(projects: Project[]) {
     "2026-04-08T14:15:00.000Z",
     "2026-04-11T08:30:00.000Z",
     "2026-04-07T07:45:00.000Z",
+    "2026-04-12T10:30:00.000Z",
+    "2026-04-13T13:00:00.000Z",
   ];
 
   return projects.map((project, index) => ({
@@ -386,6 +482,10 @@ export async function getProjects(): Promise<Project[]> {
   return sortProjectsByUpdatedAt(workspaceState.projects, chatStore.chatsByProject);
 }
 
+export async function getProjectCatalogOptions(): Promise<ProjectCatalogOption[]> {
+  return clone(MOCK_PROJECT_CATALOG);
+}
+
 export async function getProjectChats(projectId: string): Promise<Chat[]> {
   if (isBackendApiEnabled) {
     const projects = await getProjects();
@@ -401,16 +501,22 @@ export async function getProjectChats(projectId: string): Promise<Chat[]> {
   return sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
 }
 
-export async function createProject(title: string): Promise<Project> {
+export async function selectProjectFromCatalog(projectId: string): Promise<Project> {
+  const catalogProject = MOCK_PROJECT_CATALOG.find((project) => project.id === projectId);
+
+  if (!catalogProject) {
+    throw new Error("선택한 학습 프로젝트를 찾을 수 없습니다.");
+  }
+
   if (isBackendApiEnabled) {
     const userId = await getCurrentUserId();
     const project = await apiRequest("/projects/", {
       method: "POST",
       body: {
         user_id: userId,
-        project_name: title,
-        project_description: "",
-        project_domain: "general",
+        project_name: catalogProject.title,
+        project_description: catalogProject.description,
+        project_domain: catalogProject.id,
       },
     });
 
@@ -418,14 +524,23 @@ export async function createProject(title: string): Promise<Project> {
   }
 
   const now = new Date().toISOString();
+  const catalogEntry = (projectCatalog as Record<string, { materials?: unknown[] }>)[catalogProject.id];
   const nextProject = {
-    ...createProjectRecord(title),
+    id: catalogProject.id,
+    title: catalogProject.title,
     updatedAt: now,
   };
-  const nextWorkspaceState = upsertProjectState(loadWorkspaceState(), nextProject);
+  const currentWorkspaceState = loadWorkspaceState();
+  const nextWorkspaceState = upsertProjectState(currentWorkspaceState, nextProject);
 
   saveWorkspaceState({
     ...nextWorkspaceState,
+    materialsByProject: {
+      ...nextWorkspaceState.materialsByProject,
+      [nextProject.id]:
+        currentWorkspaceState.materialsByProject[nextProject.id] ||
+        clone(catalogEntry?.materials || []),
+    },
     projects: ensureWorkspaceProjectTimestamps(nextWorkspaceState.projects),
   });
 
@@ -471,6 +586,7 @@ export async function createChat(projectId: string): Promise<Chat> {
 
 export async function sendChatMessage(projectId: string, message: string, responseType = "default") {
   if (!isBackendApiEnabled) {
+    await delay(MOCK_CHAT_RESPONSE_DELAY_MS);
     throw new Error("백엔드 API 모드에서만 채팅 전송을 사용할 수 있습니다.");
   }
 
@@ -494,4 +610,83 @@ export async function getProjectGraphData(projectId: string) {
   return apiRequest(`/graph/${encodeURIComponent(projectId)}`, {
     method: "GET",
   });
+}
+
+export async function getRecentGraphNodes(projectId: string): Promise<ApiGraphNode[]> {
+  if (!isBackendApiEnabled) {
+    return [];
+  }
+
+  const nodes = await apiRequest(`/graph/${encodeURIComponent(projectId)}/recent`, {
+    method: "GET",
+  });
+
+  return Array.isArray(nodes) ? nodes : [];
+}
+
+export async function getGraphNodeDetail(nodeId: string): Promise<ApiGraphNode | null> {
+  if (!isBackendApiEnabled) {
+    return null;
+  }
+
+  return apiRequest(`/graph/nodes/${encodeURIComponent(nodeId)}`, {
+    method: "GET",
+  });
+}
+
+export async function createExplanation({
+  projectId,
+  nodeId = null,
+  question,
+}: {
+  projectId: string;
+  nodeId?: string | null;
+  question: string;
+}): Promise<string> {
+  if (!isBackendApiEnabled) {
+    return "";
+  }
+
+  const userId = await getCurrentUserId();
+  const result = await apiRequest("/explanation", {
+    method: "POST",
+    body: {
+      project_id: projectId,
+      user_id: String(userId),
+      node_id: nodeId,
+      question,
+    },
+  });
+
+  return typeof result?.response === "string" ? result.response : "";
+}
+
+export async function getProjectMemo(projectId: string): Promise<string> {
+  if (isBackendApiEnabled) {
+    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
+      method: "GET",
+    });
+
+    return typeof memo?.content === "string" ? memo.content : "";
+  }
+
+  return getLocalProjectNote(loadWorkspaceState(), projectId);
+}
+
+export async function saveProjectMemo(projectId: string, content: string): Promise<string> {
+  if (isBackendApiEnabled) {
+    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
+      method: "PATCH",
+      body: {
+        content,
+      },
+    });
+
+    return typeof memo?.content === "string" ? memo.content : content;
+  }
+
+  const nextWorkspaceState = saveLocalProjectNote(loadWorkspaceState(), projectId, content);
+  saveWorkspaceState(nextWorkspaceState);
+
+  return content;
 }

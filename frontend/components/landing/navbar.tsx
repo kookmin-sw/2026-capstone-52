@@ -1,26 +1,15 @@
 "use client";
 
+import EeumIcon from "@/components/common/EeumIcon";
 import { useEffect, useRef, useState } from "react";
 
 const navItems = [
   { label: "서비스 소개", href: "#intro" },
-  { label: "핵심 기능", href: "#features" },
-  { label: "이용 방법", href: "#how-it-works" },
-  { label: "이용권 안내", href: undefined }
+  { label: "이용 방법", href: "#how-it-works" }
 ] as const;
 
 const TOP_THRESHOLD = 8;
 const HIDE_THRESHOLD = 80;
-
-function BrandMark() {
-  return (
-    <span className="relative inline-flex h-7 w-10 items-center" aria-hidden="true">
-      <span className="absolute left-0 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-[4px] border-[#6c63ff]" />
-      <span className="absolute left-[21px] top-1/2 h-[4px] w-[8px] -translate-y-1/2 rounded-full bg-[#6c63ff]" />
-      <span className="absolute left-[27px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-[#6c63ff]" />
-    </span>
-  );
-}
 
 export function LandingNavbar() {
   const [scrollY, setScrollY] = useState(0);
@@ -62,50 +51,42 @@ export function LandingNavbar() {
         isVisible ? "translate-y-0" : "-translate-y-full"
       } ${
         isAtTop
-          ? "border-b border-transparent bg-transparent backdrop-blur-none"
-          : "border-b border-white/8 bg-[#2A2B2E]/92 backdrop-blur-md"
+          ? "border-b border-[#eceaf5] bg-white/72 backdrop-blur-xl"
+          : "border-b border-[#e3e0ee] bg-white/92 shadow-[0_10px_30px_rgba(42,38,73,0.06)] backdrop-blur-xl"
       }`}
     >
-      <div className="mx-auto flex h-[78px] w-full max-w-[1440px] items-center justify-between gap-6 px-6">
-        <a href="#hero" className="flex items-center gap-2">
-          <BrandMark />
+      <div className="mx-auto flex h-[84px] w-full max-w-[1800px] items-center gap-6 px-6 md:px-12 xl:px-[4.7rem]">
+        <a href="#hero" className="flex items-center gap-2.5">
+          <EeumIcon className="h-8 w-8 shrink-0" />
           {/* 랜딩 페이지 공통 Navbar 브랜드명 "이음" 텍스트입니다. 크기/굵기는 아래 className에서 수정하세요. */}
-          <span className="text-[1.6rem] font-semibold tracking-[-0.04em] text-[#6c63ff]">
+          <span className="text-[1.3rem] font-black tracking-normal text-[#24213d]">
             이음
           </span>
         </a>
 
-        <nav aria-label="주요 메뉴" className="hidden items-center gap-16 md:flex">
-          {navItems.map((item) =>
-            item.href ? (
+        <div className="ml-auto flex items-center gap-10">
+          <nav aria-label="주요 메뉴" className="hidden items-center gap-14 md:flex">
+            {navItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                /* 랜딩 페이지 상단 Navbar 메뉴 "서비스 소개/핵심 기능" 텍스트입니다. 크기/굵기는 아래 className에서 수정하세요. */
-                className="text-[1.05rem] font-normal tracking-[-0.01em] text-white/88 transition hover:text-white"
+                /* 랜딩 페이지 상단 Navbar 메뉴 "서비스 소개/핵심 기능/이용 방법" 텍스트입니다. 크기/굵기는 아래 className에서 수정하세요. */
+                className="text-[0.92rem] font-extrabold tracking-normal text-[#24213d] transition hover:text-[#817cf2]"
               >
                 {item.label}
               </a>
-            ) : (
-              <span
-                key={item.label}
-                /* 랜딩 페이지 상단 Navbar placeholder 메뉴 "이용 방법/이용권 안내" 텍스트입니다. 크기/굵기는 아래 className에서 수정하세요. */
-                className="text-[1.05rem] font-normal tracking-[-0.01em] text-white/78"
-              >
-                {item.label}
-              </span>
-            )
-          )}
-        </nav>
+            ))}
+          </nav>
 
-        <a
-          href="/login"
-          aria-label="로그인 페이지로 이동"
-          /* 랜딩 페이지 상단 Navbar 로그인 버튼 "로그인" 텍스트입니다. 버튼 높이/가로폭/글자 크기는 아래 className에서 수정하세요. */
-          className="inline-flex h-12 items-center justify-center rounded-full bg-[#7c67ff] px-4 text-[0.9rem] font-normal text-white transition hover:bg-[#8d7aff]"
-        >
-          <span>로그인</span>
-        </a>
+          <a
+            href="/login"
+            aria-label="로그인 페이지로 이동"
+            /* 랜딩 페이지 상단 Navbar 로그인 버튼 "로그인" 텍스트입니다. 버튼 높이/가로폭/글자 크기는 아래 className에서 수정하세요. */
+            className="inline-flex h-12 items-center justify-center rounded-full bg-[#817cf2] px-6 text-[0.84rem] font-bold text-white shadow-[0_12px_24px_rgba(129,124,242,0.24)] transition hover:bg-[#716be8]"
+          >
+            <span>로그인</span>
+          </a>
+        </div>
       </div>
     </header>
   );

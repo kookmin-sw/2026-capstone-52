@@ -18,6 +18,15 @@ export type Project = {
   updatedAt: string;
 };
 
+export type ProjectCatalogOption = {
+  id: string;
+  title: string;
+  description: string;
+  domain: string;
+  level: string;
+  estimatedTime: string;
+};
+
 export type DashboardChatStore = {
   chatsByProject: Record<string, Chat[]>;
 };

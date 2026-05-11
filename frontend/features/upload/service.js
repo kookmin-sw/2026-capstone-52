@@ -7,6 +7,7 @@ import {
 import {
   hasApiCompletedAnalysis,
   listApiProjectFiles,
+  refreshApiAnalysisStatuses,
   startApiAnalysis,
   uploadApiFiles,
 } from "./api-service";
@@ -36,6 +37,14 @@ export async function startAnalysis(projectId, fileIds) {
   }
 
   startMockAnalysis(projectId, fileIds);
+  return listMockProjectFiles(projectId);
+}
+
+export async function refreshAnalysisStatuses(projectId, files) {
+  if (isBackendApiEnabled) {
+    return refreshApiAnalysisStatuses(files);
+  }
+
   return listMockProjectFiles(projectId);
 }
 

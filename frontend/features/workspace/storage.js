@@ -2,27 +2,33 @@ const WORKSPACE_STORAGE_KEY = "eeum-workspace-v1";
 const PROJECT_DIAGNOSIS_KEY = "__project__";
 
 const defaultWorkspaceState = {
-  projects: [
-    { id: "calculus", title: "미적분 복습 프로젝트", updatedAt: "최근 질문 12개" },
-    { id: "os", title: "운영체제 개념 정리", updatedAt: "최근 질문 8개" },
-    { id: "ml", title: "머신러닝 수학 기초", updatedAt: "최근 질문 5개" },
-    { id: "db", title: "데이터베이스 SQL 학습", updatedAt: "최근 질문 9개" },
-    { id: "network", title: "네트워크 면접 대비", updatedAt: "최근 질문 3개" }
-  ],
+  projects: [],
   materialsByProject: {
     calculus: [
       { id: "doc-1", name: "미적분_1장_정리.pdf", status: "수준진단 대기" },
       { id: "doc-2", name: "접선과_미분계수.pdf", status: "그냥 진행 가능" },
       { id: "doc-3", name: "연습문제_풀이.pdf", status: "진단 완료" }
     ],
-    os: [],
-    ml: [],
-    db: [],
-    network: []
+    os: [
+      { id: "os-doc-1", name: "프로세스와_스레드.pdf", status: "수준진단 대기" },
+      { id: "os-doc-2", name: "CPU_스케줄링_정리.pdf", status: "그냥 진행 가능" }
+    ],
+    "data-structures": [
+      { id: "ds-doc-1", name: "스택_큐_트리_요약.pdf", status: "수준진단 대기" },
+      { id: "ds-doc-2", name: "그래프_탐색_개념.pdf", status: "그냥 진행 가능" }
+    ],
+    network: [
+      { id: "network-doc-1", name: "TCP_IP_핵심.pdf", status: "수준진단 대기" },
+      { id: "network-doc-2", name: "라우팅과_혼잡제어.pdf", status: "그냥 진행 가능" }
+    ],
+    algorithm: [
+      { id: "algo-doc-1", name: "정렬과_탐색_기초.pdf", status: "수준진단 대기" },
+      { id: "algo-doc-2", name: "동적계획법_입문.pdf", status: "그냥 진행 가능" }
+    ]
   },
   diagnosisByProject: {},
   notesByProject: {},
-  lastOpenedProjectId: "calculus"
+  lastOpenedProjectId: null
 };
 
 function clone(value) {
