@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.services import graph_service
 from app.schemas.chat import ChatRequest
 from app.models.graph import ConceptNode
+from app.models.user import UserProfile
 from app.ai.chat_ai import process_chat
 from app.services.chat_service import save_chat, get_chats_by_project
 from app.utils.response import success_response
@@ -25,20 +26,24 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
     """
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     node_list = [
-        {"node_id": n.node_id, "name": n.name, "status": n.status}
+        {"node_id": n.node_id, "name": n.name, "status": n.status, "understanding_score": n.understanding_score}
         for n in nodes
     ]
 
+    profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
+    explanation_style = profile.preferred_explanation_style if profile else None
+
     try:
-        result = process_chat(body.message, node_list)
+        result = process_chat(body.message, node_list, explanation_style)
         ai_reply = result["reply"]
-        updated_nodes = result.get("understood_nodes", [])
+        updated_nodes = result.get("updated_nodes", [])
     except NotImplementedError:
         ai_reply = "AI 응답 생성 로직 연결 전입니다."
         updated_nodes = []
 
-    for node_id in updated_nodes:
-        graph_service.update_node_status(node_id, "KNOWN", db)
+    # AI가 반환한 node_id, score, status를 그대로 DB에 반영
+    for node in updated_nodes:
+        graph_service.update_node_score(node["node_id"], node["score"], node["status"], db)
 
     chat_log = save_chat(
         db=db,
@@ -54,7 +59,7 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
         "user_message": chat_log.user_message,
         "ai_response": chat_log.ai_response,
         "response_type": chat_log.response_type,
-        "updated_nodes": updated_nodes,
+        "updated_nodes": updated_nodes,  # [{"node_id": str, "score": float, "status": str}, ...]
         "created_at": chat_log.created_at,
     }
 
