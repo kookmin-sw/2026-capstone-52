@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -13,19 +14,29 @@ SUPPORTED_SUBJECT_IDS = {
 }
 
 BACKBONE_DIR = Path(__file__).resolve().parent.parent / "data" / "backbone"
+STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "into",
+    "is", "it", "of", "on", "or", "that", "the", "to", "with", "this", "these",
+    "those", "their", "there", "then", "than", "if", "when", "while", "using",
+    "use", "used", "can", "could", "should", "would", "will", "may", "might",
+    "do", "does", "did", "done", "such", "also", "more", "most", "very", "not",
+    "we", "you", "they", "he", "she", "i", "our", "your", "its", "about", "why",
+    "what", "how",
+}
+
+logger = logging.getLogger(__name__)
 
 
 # 백본 chunk 서비스
 #
 # 역할:
 # - subject별로 미리 전처리된 backbone chunk JSON을 로드한다.
-# - 간단한 keyword overlap 기반으로 관련 chunk를 검색한다.
+# - concept, question, related concept를 이용해 deterministic keyword/phrase retrieval을 수행한다.
 # - explanation_service가 바로 넣을 수 있는 compact backbone_context 문자열을 만든다.
-# - backbone 데이터가 없거나 불완전해도 explanation 요청을 실패시키지 않는다.
+# - backbone 데이터가 없거나 일부 malformed여도 explanation 요청 자체는 실패시키지 않는다.
 def load_backbone_chunks(subject_id: str) -> list[dict]:
     if subject_id not in SUPPORTED_SUBJECT_IDS:
         return []
-
     return list(_load_backbone_chunks_cached(subject_id))
 
 
@@ -51,21 +62,31 @@ def retrieve_backbone_chunks(
         user_question=user_question,
         related_concepts=related_concepts,
     )
-    if not query_terms and not concept_id and not concept_name:
+    query_phrases = _extract_query_phrases(
+        concept_id=concept_id,
+        concept_name=concept_name,
+        user_question=user_question,
+        related_concepts=related_concepts,
+    )
+    if not query_terms and not query_phrases:
         return []
 
-    scored_chunks = []
+    scored_chunks: list[dict] = []
     for chunk in chunks:
-        score = _score_chunk(
+        score, matched_terms = _score_chunk(
             chunk,
             query_terms=query_terms,
+            query_phrases=query_phrases,
             concept_id=concept_id,
             concept_name=concept_name,
         )
-        if score > 0:
-            scored_chunk = dict(chunk)
-            scored_chunk["retrieval_score"] = round(score, 4)
-            scored_chunks.append(scored_chunk)
+        if score <= 0:
+            continue
+
+        scored_chunk = dict(chunk)
+        scored_chunk["retrieval_score"] = round(score, 4)
+        scored_chunk["matched_terms"] = matched_terms
+        scored_chunks.append(scored_chunk)
 
     scored_chunks.sort(
         key=lambda item: (
@@ -81,7 +102,7 @@ def build_backbone_context(chunks: list[dict], *, max_chars: int = 4000) -> str:
         return ""
 
     parts: list[str] = []
-    current_length = 0
+    total_length = 0
 
     for chunk in chunks:
         header_parts = []
@@ -91,24 +112,21 @@ def build_backbone_context(chunks: list[dict], *, max_chars: int = 4000) -> str:
             header_parts.append(f"chapter={chunk['chapter']}")
         if chunk.get("section"):
             header_parts.append(f"section={chunk['section']}")
-        if chunk.get("page_start") is not None or chunk.get("page_end") is not None:
-            page_start = chunk.get("page_start")
-            page_end = chunk.get("page_end")
+        page_start = chunk.get("page_start")
+        page_end = chunk.get("page_end")
+        if page_start is not None or page_end is not None:
             if page_start == page_end:
                 header_parts.append(f"pages={page_start}")
             else:
                 header_parts.append(f"pages={page_start}-{page_end}")
 
         header = " | ".join(header_parts)
-        text = _normalize_text(chunk.get("text"))
+        text = str(chunk.get("text") or "").strip()
         if not text:
             continue
 
         block = f"[Backbone Chunk]\n{header}\n{text}".strip() if header else f"[Backbone Chunk]\n{text}"
-        if not block:
-            continue
-
-        remaining = max_chars - current_length
+        remaining = max_chars - total_length
         if remaining <= 0:
             break
 
@@ -119,7 +137,7 @@ def build_backbone_context(chunks: list[dict], *, max_chars: int = 4000) -> str:
             break
 
         parts.append(block)
-        current_length += len(block) + 2
+        total_length += len(block) + 2
 
     return "\n\n".join(parts).strip()
 
@@ -137,17 +155,21 @@ def get_backbone_context(
     if not subject_id or subject_id not in SUPPORTED_SUBJECT_IDS:
         return ""
 
-    chunks = retrieve_backbone_chunks(
-        subject_id=subject_id,
-        concept_id=concept_id,
-        concept_name=concept_name,
-        user_question=user_question,
-        related_concepts=related_concepts,
-        top_k=top_k,
-    )
-    if not chunks:
+    try:
+        chunks = retrieve_backbone_chunks(
+            subject_id=subject_id,
+            concept_id=concept_id,
+            concept_name=concept_name,
+            user_question=user_question,
+            related_concepts=related_concepts,
+            top_k=top_k,
+        )
+        if not chunks:
+            return ""
+        return build_backbone_context(chunks, max_chars=max_chars)
+    except Exception as error:
+        logger.warning("backbone_context_retrieval_failed subject_id=%s error=%s", subject_id, error)
         return ""
-    return build_backbone_context(chunks, max_chars=max_chars)
 
 
 def _backbone_file_for_subject(subject_id: str) -> Path | None:
@@ -159,18 +181,30 @@ def _backbone_file_for_subject(subject_id: str) -> Path | None:
 def _normalize_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
-    lowered = value.strip().lower()
-    lowered = re.sub(r"[\s_/-]+", " ", lowered)
-    lowered = re.sub(r"[^\w\s가-힣.+]", " ", lowered)
-    lowered = re.sub(r"\s+", " ", lowered)
-    return lowered.strip()
+    normalized = value.strip().lower()
+    normalized = normalized.replace("o(", "bigo(")
+    normalized = re.sub(r"np[\s_-]*hard", "np-hard", normalized)
+    normalized = re.sub(r"np[\s_-]*complete", "np-complete", normalized)
+    normalized = re.sub(r"[\t\r\f\v]+", " ", normalized)
+    normalized = re.sub(r"[^\w\s가-힣\-\+\.\(\)]", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
 
 
 def _tokenize(value: str) -> set[str]:
     normalized = _normalize_text(value)
     if not normalized:
         return set()
-    return {token for token in normalized.split(" ") if token}
+
+    tokens = set(re.findall(r"[a-z0-9가-힣][a-z0-9가-힣\-\+\.\(\)]*", normalized))
+    filtered = set()
+    for token in tokens:
+        if token in STOPWORDS:
+            continue
+        if len(token) == 1 and token not in {"c", "r"}:
+            continue
+        filtered.add(token)
+    return filtered
 
 
 def _extract_query_terms(
@@ -191,17 +225,48 @@ def _extract_query_terms(
         for raw_value in [item.get("concept_id"), item.get("concept_name"), item.get("name")]:
             if isinstance(raw_value, str):
                 terms.update(_tokenize(raw_value))
-
     return terms
+
+
+def _extract_query_phrases(
+    *,
+    concept_id: str | None,
+    concept_name: str | None,
+    user_question: str | None,
+    related_concepts: list[dict] | None,
+) -> set[str]:
+    phrases: set[str] = set()
+    for raw_value in [concept_id, concept_name]:
+        normalized = _normalize_text(raw_value)
+        if normalized:
+            phrases.add(normalized)
+
+    normalized_question = _normalize_text(user_question)
+    if normalized_question:
+        for piece in re.split(r"[?.!,;:]", normalized_question):
+            piece = piece.strip()
+            if len(piece) >= 6:
+                phrases.add(piece)
+
+    for item in related_concepts or []:
+        if not isinstance(item, dict):
+            continue
+        for raw_value in [item.get("concept_name"), item.get("name")]:
+            normalized = _normalize_text(raw_value)
+            if normalized:
+                phrases.add(normalized)
+    return phrases
 
 
 def _score_chunk(
     chunk: dict,
     query_terms: set[str],
+    query_phrases: set[str],
     concept_id: str | None,
     concept_name: str | None,
-) -> float:
+) -> tuple[float, list[str]]:
     score = 0.0
+    matched_terms: set[str] = set()
 
     chunk_concept_ids = {
         _normalize_text(item)
@@ -211,60 +276,70 @@ def _score_chunk(
     normalized_concept_id = _normalize_text(concept_id)
     normalized_concept_name = _normalize_text(concept_name)
 
-    if normalized_concept_id and normalized_concept_id in chunk_concept_ids:
-        score += 5.0
+    source_title_text = _normalize_text(chunk.get("source_title"))
+    chapter_text = _normalize_text(chunk.get("chapter"))
+    section_text = _normalize_text(chunk.get("section"))
+    text = _normalize_text(chunk.get("text"))
 
-    title_terms = _tokenize(
-        " ".join(
-            [
-                str(chunk.get("source_title") or ""),
-                str(chunk.get("chapter") or ""),
-                str(chunk.get("section") or ""),
-            ]
-        )
-    )
+    title_terms = _tokenize(" ".join([source_title_text, chapter_text, section_text]))
     keyword_terms = set()
+    keyword_phrases = set()
     for keyword in chunk.get("keywords", []):
         if isinstance(keyword, str):
             keyword_terms.update(_tokenize(keyword))
-    text_terms = _tokenize(str(chunk.get("text") or ""))
-    metadata_terms = title_terms | keyword_terms
+            normalized_keyword = _normalize_text(keyword)
+            if normalized_keyword:
+                keyword_phrases.add(normalized_keyword)
 
-    if normalized_concept_name and normalized_concept_name in _normalize_text(
-        " ".join(
-            [
-                str(chunk.get("source_title") or ""),
-                str(chunk.get("chapter") or ""),
-                str(chunk.get("section") or ""),
-            ]
-        )
-    ):
+    text_terms = _tokenize(text)
+
+    if normalized_concept_id and normalized_concept_id in chunk_concept_ids:
+        score += 5.0
+        matched_terms.add(normalized_concept_id)
+
+    metadata_text = " ".join([source_title_text, chapter_text, section_text]).strip()
+    if normalized_concept_name and normalized_concept_name and normalized_concept_name in metadata_text:
         score += 3.0
+        matched_terms.add(normalized_concept_name)
 
-    keyword_overlap = len(query_terms & keyword_terms)
-    metadata_overlap = len(query_terms & title_terms)
-    text_overlap = len(query_terms & text_terms)
+    for phrase in query_phrases:
+        if not phrase:
+            continue
+        if phrase in metadata_text:
+            score += 2.5
+            matched_terms.add(phrase)
+        elif phrase in keyword_phrases:
+            score += 2.0
+            matched_terms.add(phrase)
+        elif phrase in text:
+            score += 1.2
+            matched_terms.add(phrase)
 
-    score += keyword_overlap * 2.0
-    score += metadata_overlap * 1.0
-    score += text_overlap * 0.2
+    keyword_overlap = query_terms & keyword_terms
+    metadata_overlap = query_terms & title_terms
+    text_overlap = query_terms & text_terms
 
-    return min(score, 20.0)
+    score += len(keyword_overlap) * 2.0
+    score += len(metadata_overlap) * 1.0
+    score += min(len(text_overlap), 20) * 0.2
+    matched_terms.update(keyword_overlap)
+    matched_terms.update(metadata_overlap)
+    matched_terms.update(set(list(text_overlap)[:10]))
+
+    return min(score, 25.0), sorted(matched_terms)
 
 
 def _coerce_chunk(raw: Any, fallback_subject_id: str) -> dict | None:
     if not isinstance(raw, dict):
         return None
 
-    chunk_id = raw.get("chunk_id")
-    text = raw.get("text")
-    if not isinstance(chunk_id, str) or not chunk_id.strip():
-        return None
-    if not isinstance(text, str) or not text.strip():
+    chunk_id = _coerce_optional_string(raw.get("chunk_id"))
+    text = _coerce_optional_string(raw.get("text"))
+    if not chunk_id or not text:
         return None
 
-    chunk = {
-        "chunk_id": chunk_id.strip(),
+    return {
+        "chunk_id": chunk_id,
         "subject_id": _coerce_optional_string(raw.get("subject_id")) or fallback_subject_id,
         "source_id": _coerce_optional_string(raw.get("source_id")) or "",
         "source_title": _coerce_optional_string(raw.get("source_title")) or "",
@@ -274,9 +349,8 @@ def _coerce_chunk(raw: Any, fallback_subject_id: str) -> dict | None:
         "page_end": raw.get("page_end"),
         "concept_ids": [item for item in raw.get("concept_ids", []) if isinstance(item, str)],
         "keywords": [item for item in raw.get("keywords", []) if isinstance(item, str)],
-        "text": text.strip(),
+        "text": text,
     }
-    return chunk
 
 
 def _safe_json_load(path: Path) -> Any:
