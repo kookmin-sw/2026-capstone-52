@@ -658,7 +658,7 @@ export async function createExplanation({
     },
   });
 
-  return typeof result?.response === "string" ? result.response : "";
+  return typeof result?.explanation === "string" ? result.explanation : "";
 }
 
 export async function getProjectMemo(projectId: string): Promise<string> {

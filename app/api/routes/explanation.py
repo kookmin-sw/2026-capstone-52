@@ -14,15 +14,25 @@ router = APIRouter()
 @router.post("")
 def create_explanation(body: ExplanationRequest, db: Session = Depends(get_db)):
     """사용자 질문 + 개념 정보를 기반으로 맞춤 설명 생성 후 반환"""
-    node_name, description = "", ""
+    # target_concept dict 구성
+    target_concept: dict = {}
     if body.node_id:
         node = graph_service.get_node_by_id(body.node_id, db)
         if node:
-            node_name = node.name
-            description = node.description or ""
+            target_concept = {
+                "concept_id": node.concept_id,
+                "concept_name": node.name,
+                "description": node.description or "",
+            }
 
     profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
-    explanation_style = profile.preferred_explanation_style if profile else None
+    explanation_style = profile.preferred_explanation_style if profile else "adaptive"
 
-    response_text = generate_explanation(node_name, description, body.question, explanation_style)
-    return {"success": True, "data": {"response": response_text}, "message": ""}
+    # body.question은 AI에 파라미터가 없어 backbone_context로 전달
+    result = generate_explanation(
+        target_concept,
+        backbone_context=body.question,
+        explanation_style=explanation_style,
+    )
+    # dict 반환 — 프론트엔드에 필요한 전체 payload를 data로 그대로 전달
+    return {"success": True, "data": result, "message": ""}

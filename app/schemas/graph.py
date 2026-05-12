@@ -7,7 +7,7 @@ class NodeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     node_id: str
-    project_id: str
+    project_id: int
     file_id: Optional[str]
     name: str
     description: Optional[str]
@@ -21,7 +21,7 @@ class EdgeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     edge_id: str
-    project_id: str
+    project_id: int
     source_node_id: str
     target_node_id: str
     relation_type: str

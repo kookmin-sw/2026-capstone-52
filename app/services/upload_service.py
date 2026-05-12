@@ -16,7 +16,7 @@ from app.ai.concept_normalizer import SUPPORTED_SUBJECT_IDS
 logger = logging.getLogger(__name__)
 
 
-def upload_pdf_to_s3(project_id: str, file, db: Session) -> File:
+def upload_pdf_to_s3(project_id: int, file, db: Session) -> File:
     """PDF를 S3에 업로드하고 files 테이블에 메타데이터 저장"""
     file_id = str(uuid.uuid4())
     s3_key = f"{project_id}/{file_id}/{file.filename}"
@@ -39,7 +39,7 @@ def upload_pdf_to_s3(project_id: str, file, db: Session) -> File:
     return db_file
 
 
-def run_analysis(file_id: str, project_id: str, s3_key: str):
+def run_analysis(file_id: str, project_id: int, s3_key: str):
     """백그라운드 분석 태스크 — S3에서 파일 읽어 AI 분석 후 그래프 저장"""
     db = SessionLocal()
     try:
@@ -70,7 +70,7 @@ def run_analysis(file_id: str, project_id: str, s3_key: str):
         db.close()
 
 
-def get_files_by_project(project_id: str, db: Session) -> list[File]:
+def get_files_by_project(project_id: int, db: Session) -> list[File]:
     return db.query(File).filter(File.project_id == project_id).all()
 
 
@@ -87,7 +87,7 @@ def update_analysis_status(file_id: str, status: str, db: Session) -> File | Non
     return db_file
 
 
-def _get_subject_id_for_project(project_id: str, db: Session) -> str:
+def _get_subject_id_for_project(project_id: int, db: Session) -> str:
     project = db.query(Project).filter(Project.project_id == project_id).first()
     if not project:
         raise ValueError(f"Project not found for project_id='{project_id}'.")

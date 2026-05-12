@@ -5,14 +5,14 @@ from app.models.graph import ConceptNode, ConceptEdge, NODE_STATUS_UNSEEN
 from app.models.chat import Chat
 
 
-def get_graph_by_project(project_id: str, db: Session):
+def get_graph_by_project(project_id: int, db: Session):
     """프로젝트의 전체 노드와 엣지 반환"""
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     edges = db.query(ConceptEdge).filter(ConceptEdge.project_id == project_id).all()
     return {"nodes": nodes, "edges": edges}
 
 
-def get_recent_nodes(project_id: str, db: Session, limit: int = 10):
+def get_recent_nodes(project_id: int, db: Session, limit: int = 10):
     """최근 갱신된 노드 반환 (updated_at 기준 내림차순)"""
     return (
         db.query(ConceptNode)
@@ -77,7 +77,7 @@ def get_related_chats(node: ConceptNode, db: Session) -> list[dict]:
     ]
 
 
-def save_graph_from_ai(project_id: str, file_id: str, ai_result: dict, db: Session):
+def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Session):
     """AI 모듈 결과를 받아 concept_nodes와 concept_edges에 저장
 
     ai_result 형식:
