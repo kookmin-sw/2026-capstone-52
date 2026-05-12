@@ -14,7 +14,7 @@ from app.ai.llm_client import LLMClientError, call_llm_json
 # - teacher/service layer가 재사용하기 쉬운 구조화된 explanation payload만 반환한다.
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXPLANATION_STYLES = {"adaptive", "summary", "deep_dive", "review"}
+SUPPORTED_EXPLANATION_STYLES = {"example", "concise", "step"}
 
 
 class ExplanationAIError(Exception):
@@ -43,7 +43,7 @@ def generate_explanation(
     recent_diagnosis: list[dict] | None = None,
     graph_context: dict | None = None,
     backbone_context: str | None = None,
-    explanation_style: str = "adaptive",
+    explanation_style: str = "step",
 ) -> dict[str, Any]:
     validated_target = _validate_target_concept(target_concept)
     user_level = _normalize_user_level(user_state)
@@ -68,6 +68,10 @@ def generate_explanation(
         "You are a personalized CS tutor for a learning support system. "
         "Generate an explanation for one target concept only. "
         "Adjust difficulty to the user's understanding level. "
+        "Interpret explanation_style as follows: "
+        "'example' means example and analogy centered explanation, "
+        "'concise' means short and key-point centered explanation, "
+        "'step' means step-by-step explanation. "
         "If prerequisite concepts are weak, explain why they matter and include prerequisite review. "
         "If recent diagnosis weak points exist, address them naturally without exposing internal tag names. "
         "If backbone context is provided, use it as supporting reference only. "

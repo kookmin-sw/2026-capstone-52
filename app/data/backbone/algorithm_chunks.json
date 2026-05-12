@@ -1,0 +1,41 @@
+[
+  {
+    "chunk_id": "algorithm_sample_mergesort",
+    "subject_id": "algorithm",
+    "source_id": "sample",
+    "source_title": "Sample Algorithm Backbone",
+    "chapter": "Recursion",
+    "section": "Mergesort",
+    "page_start": null,
+    "page_end": null,
+    "concept_ids": ["algo_sorting"],
+    "keywords": ["mergesort", "divide and conquer", "recurrence", "o(n log n)"],
+    "text": "Mergesort divides an array into two halves, recursively sorts each half, and merges the sorted halves. Its recurrence T(n)=2T(n/2)+O(n) leads to O(n log n)."
+  },
+  {
+    "chunk_id": "algorithm_sample_binary_search",
+    "subject_id": "algorithm",
+    "source_id": "sample",
+    "source_title": "Sample Algorithm Backbone",
+    "chapter": "Searching",
+    "section": "Binary Search",
+    "page_start": null,
+    "page_end": null,
+    "concept_ids": ["algo_binary_search"],
+    "keywords": ["binary search", "sorted array", "logarithmic time", "midpoint"],
+    "text": "Binary search repeatedly compares the target with the midpoint of a sorted array and discards half of the remaining search interval each step, giving O(log n) time."
+  },
+  {
+    "chunk_id": "algorithm_sample_dynamic_programming",
+    "subject_id": "algorithm",
+    "source_id": "sample",
+    "source_title": "Sample Algorithm Backbone",
+    "chapter": "Optimization",
+    "section": "Dynamic Programming",
+    "page_start": null,
+    "page_end": null,
+    "concept_ids": ["algo_dynamic_programming"],
+    "keywords": ["dynamic programming", "overlapping subproblems", "optimal substructure", "memoization"],
+    "text": "Dynamic programming solves optimization problems by storing results of overlapping subproblems and reusing them. Memoization and tabulation are common implementation styles."
+  }
+]
