@@ -2145,6 +2145,19 @@ a {
 }
 
 .workspace-project-list {
+  position: static;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  z-index: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.workspace-project-list-open {
   position: absolute;
   left: 0;
   right: 0;
@@ -2156,8 +2169,6 @@ a {
   background: #2d2e34;
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
   z-index: 6;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
 
 .workspace-project-list::-webkit-scrollbar {
@@ -2204,8 +2215,8 @@ a {
 .workspace-project-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   font-size: 0.74rem;
 }
 
@@ -2241,7 +2252,7 @@ a {
   width: 0.32rem;
   height: 0.32rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--workspace-project-dot-color, rgba(255, 255, 255, 0.18));
 }
 
 .workspace-project-item-active,
@@ -2251,7 +2262,7 @@ a {
 }
 
 .workspace-project-item-active em {
-  background: #8f5bff;
+  background: var(--workspace-project-dot-color, #8f5bff);
 }
 
 .workspace-chat-shortcut {
@@ -2939,7 +2950,7 @@ a {
   min-height: 0;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(180deg, #11121a 0%, #0d0e16 100%);
+  background: #fbfaff;
 }
 
 .workspace-graph-canvas::before {
@@ -2947,10 +2958,10 @@ a {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 100%),
-    radial-gradient(circle at 64% 36%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 100%),
-    radial-gradient(circle at 82% 14%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 100%);
-  opacity: 0.32;
+    linear-gradient(rgba(36, 33, 61, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 33, 61, 0.045) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -4589,7 +4600,7 @@ a {
   transform: rotate(180deg);
 }
 
-.workspace-project-list {
+.workspace-project-list-open {
   border-color: #ebe9f5;
   background: #fff;
   box-shadow: 0 18px 36px rgba(42, 38, 73, 0.12);
@@ -4624,7 +4635,7 @@ a {
 }
 
 .workspace-project-item em {
-  background: #817cf2;
+  background: var(--workspace-project-dot-color, #817cf2);
 }
 
 .workspace-chat-shortcut-active::after {
@@ -5030,7 +5041,7 @@ a {
 
 .workspace-graph-canvas {
   height: calc(100dvh - 80px);
-  background: radial-gradient(circle at center, rgba(129, 124, 242, 0.08), transparent 58%), #faf9ff;
+  background: #fbfaff;
 }
 
 .workspace-graph-canvas::before {

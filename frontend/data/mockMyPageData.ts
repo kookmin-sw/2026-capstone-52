@@ -18,23 +18,18 @@ function toIsoDate(dateString: string) {
 export const explanationStyleOptions: SelectOption<ExplanationStyleId>[] = [
   {
     value: "example",
-    label: "예시 중심 설명",
+    label: "예시 중심",
     description: "실생활 비유나 예시로 설명",
   },
   {
-    value: "step",
-    label: "단계별 설명",
-    description: "기초부터 차근차근 설명",
-  },
-  {
     value: "concise",
-    label: "핵심만 간결하게",
-    description: "중요한 것만 빠르게 설명",
+    label: "개념 중심",
+    description: "핵심 개념 위주로 간결하게 설명",
   },
   {
-    value: "deep",
-    label: "심화 개념 포함",
-    description: "배경 지식과 깊은 내용까지 설명",
+    value: "step",
+    label: "단계별 중심",
+    description: "기초부터 차근차근 설명",
   },
 ];
 

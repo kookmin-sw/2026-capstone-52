@@ -32,6 +32,8 @@ import WorkspaceProfileCard from "./WorkspaceProfileCard";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { getDashboardProfileSummary, useProfileStore } from "@/store/profileStore";
 
+const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
+
 function ProjectCatalogModal({
   options,
   selectedOptionId,
@@ -225,21 +227,29 @@ function ProjectSelector({
         <div className={`workspace-sidebar-section-scroll workspace-project-list ${
           isExpanded ? "workspace-project-list-open" : ""
         }`}>
-          {visibleProjects.map((project) => (
-            <button
-              key={project.id}
-              type="button"
-              className={`workspace-project-item workspace-project-item-${project.id} ${
-                selectedProjectId === project.id ? "workspace-project-item-active" : ""
-              }`}
-              onClick={() => onSelect(project.id)}
-            >
-              <em />
-              <span className="workspace-project-item-copy">
-                <strong>{project.title}</strong>
-              </span>
-            </button>
-          ))}
+          {visibleProjects.map((project) => {
+            const projectIndex = projects.findIndex((candidate) => candidate.id === project.id);
+            const dotColor = projectDotColors[(projectIndex >= 0 ? projectIndex : 0) % projectDotColors.length];
+
+            return (
+              <button
+                key={project.id}
+                type="button"
+                className={`workspace-project-item workspace-project-item-${project.id} ${
+                  selectedProjectId === project.id ? "workspace-project-item-active" : ""
+                }`}
+                style={{ "--workspace-project-dot-color": dotColor }}
+                onClick={() => onSelect(project.id)}
+              >
+                <em />
+                <span className="workspace-project-item-copy">
+                  <strong>
+                    {!isExpanded && selectedProjectId === project.id ? `프로젝트명: ${project.title}` : project.title}
+                  </strong>
+                </span>
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </section>

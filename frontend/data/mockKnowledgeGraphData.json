@@ -1,0 +1,467 @@
+{
+  "apiResponse": {
+    "success": true,
+    "data": {
+      "nodes": [
+        {
+          "node_id": "os-core-scheduling",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "CPU 스케줄링",
+          "description": "운영체제가 준비 상태의 프로세스 중 어떤 작업에 CPU를 배정할지 결정하는 핵심 개념입니다.",
+          "group": "운영체제",
+          "status": "MASTERED",
+          "understanding_score": 0.88,
+          "updated_at": "2026-05-12T09:20:00Z"
+        },
+        {
+          "node_id": "os-process",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "프로세스",
+          "description": "실행 중인 프로그램의 인스턴스로, 메모리 공간과 실행 상태를 가집니다.",
+          "group": "프로세스 관리",
+          "status": "FAMILIAR",
+          "understanding_score": 0.72,
+          "updated_at": "2026-05-12T09:17:00Z"
+        },
+        {
+          "node_id": "os-thread",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "스레드",
+          "description": "프로세스 안에서 실행 흐름을 담당하는 단위입니다.",
+          "group": "프로세스 관리",
+          "status": "PARTIAL",
+          "understanding_score": 0.46,
+          "updated_at": "2026-05-12T09:12:00Z"
+        },
+        {
+          "node_id": "os-context-switch",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "문맥 교환",
+          "description": "CPU가 실행 중인 프로세스나 스레드를 바꿀 때 상태 정보를 저장하고 복원하는 과정입니다.",
+          "group": "CPU 관리",
+          "status": "PARTIAL",
+          "understanding_score": 0.52,
+          "updated_at": "2026-05-12T09:08:00Z"
+        },
+        {
+          "node_id": "os-ready-queue",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "준비 큐",
+          "description": "CPU 할당을 기다리는 프로세스들이 대기하는 큐입니다.",
+          "group": "CPU 관리",
+          "status": "FAMILIAR",
+          "understanding_score": 0.66,
+          "updated_at": "2026-05-12T09:05:00Z"
+        },
+        {
+          "node_id": "os-fcfs",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "FCFS",
+          "description": "먼저 도착한 프로세스를 먼저 실행하는 비선점 스케줄링 방식입니다.",
+          "group": "스케줄링 알고리즘",
+          "status": "MASTERED",
+          "understanding_score": 0.82,
+          "updated_at": "2026-05-12T08:58:00Z"
+        },
+        {
+          "node_id": "os-round-robin",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "Round Robin",
+          "description": "정해진 time quantum마다 CPU를 순환 배정하는 선점형 스케줄링 방식입니다.",
+          "group": "스케줄링 알고리즘",
+          "status": "FAMILIAR",
+          "understanding_score": 0.76,
+          "updated_at": "2026-05-12T08:53:00Z"
+        },
+        {
+          "node_id": "os-priority",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "우선순위 스케줄링",
+          "description": "각 프로세스의 우선순위에 따라 CPU 할당 순서를 정하는 방식입니다.",
+          "group": "스케줄링 알고리즘",
+          "status": "PARTIAL",
+          "understanding_score": 0.39,
+          "updated_at": "2026-05-12T08:47:00Z"
+        },
+        {
+          "node_id": "os-starvation",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "기아 현상",
+          "description": "우선순위가 낮은 작업이 계속 CPU를 배정받지 못하는 문제입니다.",
+          "group": "스케줄링 문제",
+          "status": "WEAK",
+          "understanding_score": 0.21,
+          "updated_at": "2026-05-12T08:41:00Z"
+        },
+        {
+          "node_id": "os-aging",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "에이징",
+          "description": "오래 기다린 프로세스의 우선순위를 점진적으로 높여 기아 현상을 줄이는 기법입니다.",
+          "group": "스케줄링 문제",
+          "status": "UNSEEN",
+          "understanding_score": 0.5,
+          "updated_at": "2026-05-12T08:36:00Z"
+        },
+        {
+          "node_id": "os-turnaround-time",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "반환 시간",
+          "description": "프로세스가 제출된 시점부터 완료될 때까지 걸린 전체 시간입니다.",
+          "group": "성능 지표",
+          "status": "PARTIAL",
+          "understanding_score": 0.43,
+          "updated_at": "2026-05-12T08:30:00Z"
+        },
+        {
+          "node_id": "os-waiting-time",
+          "project_id": 101,
+          "file_id": "file-os-001",
+          "name": "대기 시간",
+          "description": "프로세스가 준비 큐에서 CPU 할당을 기다린 시간의 합입니다.",
+          "group": "성능 지표",
+          "status": "FAMILIAR",
+          "understanding_score": 0.61,
+          "updated_at": "2026-05-12T08:24:00Z"
+        }
+      ],
+      "edges": [
+        {
+          "edge_id": "edge-001",
+          "project_id": 101,
+          "source_node_id": "os-process",
+          "target_node_id": "os-thread",
+          "relation_type": "part_of",
+          "weight": 0.9
+        },
+        {
+          "edge_id": "edge-002",
+          "project_id": 101,
+          "source_node_id": "os-process",
+          "target_node_id": "os-context-switch",
+          "relation_type": "prerequisite",
+          "weight": 0.72
+        },
+        {
+          "edge_id": "edge-003",
+          "project_id": 101,
+          "source_node_id": "os-ready-queue",
+          "target_node_id": "os-core-scheduling",
+          "relation_type": "prerequisite",
+          "weight": 0.84
+        },
+        {
+          "edge_id": "edge-004",
+          "project_id": 101,
+          "source_node_id": "os-core-scheduling",
+          "target_node_id": "os-fcfs",
+          "relation_type": "part_of",
+          "weight": 0.93
+        },
+        {
+          "edge_id": "edge-005",
+          "project_id": 101,
+          "source_node_id": "os-core-scheduling",
+          "target_node_id": "os-round-robin",
+          "relation_type": "part_of",
+          "weight": 0.95
+        },
+        {
+          "edge_id": "edge-006",
+          "project_id": 101,
+          "source_node_id": "os-core-scheduling",
+          "target_node_id": "os-priority",
+          "relation_type": "part_of",
+          "weight": 0.88
+        },
+        {
+          "edge_id": "edge-007",
+          "project_id": 101,
+          "source_node_id": "os-priority",
+          "target_node_id": "os-starvation",
+          "relation_type": "causes",
+          "weight": 0.8
+        },
+        {
+          "edge_id": "edge-008",
+          "project_id": 101,
+          "source_node_id": "os-aging",
+          "target_node_id": "os-starvation",
+          "relation_type": "mitigates",
+          "weight": 0.86
+        },
+        {
+          "edge_id": "edge-009",
+          "project_id": 101,
+          "source_node_id": "os-fcfs",
+          "target_node_id": "os-turnaround-time",
+          "relation_type": "affects",
+          "weight": 0.69
+        },
+        {
+          "edge_id": "edge-010",
+          "project_id": 101,
+          "source_node_id": "os-round-robin",
+          "target_node_id": "os-waiting-time",
+          "relation_type": "affects",
+          "weight": 0.74
+        },
+        {
+          "edge_id": "edge-011",
+          "project_id": 101,
+          "source_node_id": "os-waiting-time",
+          "target_node_id": "os-turnaround-time",
+          "relation_type": "related",
+          "weight": 0.78
+        }
+      ]
+    },
+    "message": "프로젝트 그래프 조회 성공"
+  },
+  "uiGraph": {
+    "defaultSelectedNodeId": "os-core-scheduling",
+    "nodes": [
+      {
+        "id": "os-core-scheduling",
+        "label": "CPU 스케줄링",
+        "x": 0.5,
+        "y": 0.5,
+        "size": 7.6,
+        "color": "#f5d38a",
+        "isCore": true,
+        "kind": "concept",
+        "subtitle": "운영체제 · MASTERED",
+        "description": "운영체제가 준비 상태의 프로세스 중 어떤 작업에 CPU를 배정할지 결정하는 핵심 개념입니다.",
+        "relatedConceptIds": ["os-ready-queue", "os-fcfs", "os-round-robin", "os-priority"],
+        "relatedLearningEvents": [
+          {
+            "id": "event-chat-001-os-core-scheduling",
+            "chatId": "chat-001",
+            "messageId": "chat-001-user",
+            "preview": "Round Robin과 FCFS의 차이를 비교해줘.",
+            "updatedAt": "2026-05-12T09:24:00Z"
+          }
+        ],
+        "keywords": ["CPU 스케줄링", "스케줄링", "scheduler"],
+        "status": "MASTERED",
+        "understandingScore": 0.88
+      },
+      {
+        "id": "os-process",
+        "label": "프로세스",
+        "x": 0.29,
+        "y": 0.27,
+        "size": 5.1,
+        "color": "#7dd3fc",
+        "kind": "concept",
+        "subtitle": "프로세스 관리 · FAMILIAR",
+        "description": "실행 중인 프로그램의 인스턴스로, 메모리 공간과 실행 상태를 가집니다.",
+        "relatedConceptIds": ["os-thread", "os-context-switch"],
+        "relatedLearningEvents": [],
+        "keywords": ["프로세스", "process"],
+        "status": "FAMILIAR",
+        "understandingScore": 0.72
+      },
+      {
+        "id": "os-thread",
+        "label": "스레드",
+        "x": 0.18,
+        "y": 0.38,
+        "size": 4.2,
+        "color": "#93c5fd",
+        "kind": "concept",
+        "subtitle": "프로세스 관리 · PARTIAL",
+        "description": "프로세스 안에서 실행 흐름을 담당하는 단위입니다.",
+        "relatedConceptIds": ["os-process"],
+        "relatedLearningEvents": [],
+        "keywords": ["스레드", "thread"],
+        "status": "PARTIAL",
+        "understandingScore": 0.46
+      },
+      {
+        "id": "os-context-switch",
+        "label": "문맥 교환",
+        "x": 0.34,
+        "y": 0.64,
+        "size": 4.5,
+        "color": "#c4b5fd",
+        "kind": "concept",
+        "subtitle": "CPU 관리 · PARTIAL",
+        "description": "CPU가 실행 중인 프로세스나 스레드를 바꿀 때 상태 정보를 저장하고 복원하는 과정입니다.",
+        "relatedConceptIds": ["os-process"],
+        "relatedLearningEvents": [],
+        "keywords": ["문맥 교환", "context switch"],
+        "status": "PARTIAL",
+        "understandingScore": 0.52
+      },
+      {
+        "id": "os-ready-queue",
+        "label": "준비 큐",
+        "x": 0.48,
+        "y": 0.23,
+        "size": 4.8,
+        "color": "#f9a8d4",
+        "kind": "concept",
+        "subtitle": "CPU 관리 · FAMILIAR",
+        "description": "CPU 할당을 기다리는 프로세스들이 대기하는 큐입니다.",
+        "relatedConceptIds": ["os-core-scheduling"],
+        "relatedLearningEvents": [],
+        "keywords": ["준비 큐", "ready queue"],
+        "status": "FAMILIAR",
+        "understandingScore": 0.66
+      },
+      {
+        "id": "os-fcfs",
+        "label": "FCFS",
+        "x": 0.7,
+        "y": 0.26,
+        "size": 5.2,
+        "color": "#7dd3fc",
+        "kind": "concept",
+        "subtitle": "스케줄링 알고리즘 · MASTERED",
+        "description": "먼저 도착한 프로세스를 먼저 실행하는 비선점 스케줄링 방식입니다.",
+        "relatedConceptIds": ["os-core-scheduling", "os-turnaround-time"],
+        "relatedLearningEvents": [
+          {
+            "id": "event-chat-001-os-fcfs",
+            "chatId": "chat-001",
+            "messageId": "chat-001-user",
+            "preview": "Round Robin과 FCFS의 차이를 비교해줘.",
+            "updatedAt": "2026-05-12T09:24:00Z"
+          }
+        ],
+        "keywords": ["FCFS", "first come first served"],
+        "status": "MASTERED",
+        "understandingScore": 0.82
+      },
+      {
+        "id": "os-round-robin",
+        "label": "Round Robin",
+        "x": 0.78,
+        "y": 0.47,
+        "size": 5.4,
+        "color": "#60a5fa",
+        "kind": "concept",
+        "subtitle": "스케줄링 알고리즘 · FAMILIAR",
+        "description": "정해진 time quantum마다 CPU를 순환 배정하는 선점형 스케줄링 방식입니다.",
+        "relatedConceptIds": ["os-core-scheduling", "os-waiting-time"],
+        "relatedLearningEvents": [
+          {
+            "id": "event-chat-001-os-round-robin",
+            "chatId": "chat-001",
+            "messageId": "chat-001-user",
+            "preview": "Round Robin과 FCFS의 차이를 비교해줘.",
+            "updatedAt": "2026-05-12T09:24:00Z"
+          }
+        ],
+        "keywords": ["Round Robin", "time quantum", "라운드 로빈"],
+        "status": "FAMILIAR",
+        "understandingScore": 0.76
+      },
+      {
+        "id": "os-priority",
+        "label": "우선순위 스케줄링",
+        "x": 0.65,
+        "y": 0.72,
+        "size": 4.7,
+        "color": "#fb7185",
+        "kind": "concept",
+        "subtitle": "스케줄링 알고리즘 · PARTIAL",
+        "description": "각 프로세스의 우선순위에 따라 CPU 할당 순서를 정하는 방식입니다.",
+        "relatedConceptIds": ["os-core-scheduling", "os-starvation"],
+        "relatedLearningEvents": [],
+        "keywords": ["우선순위", "priority scheduling"],
+        "status": "PARTIAL",
+        "understandingScore": 0.39
+      },
+      {
+        "id": "os-starvation",
+        "label": "기아 현상",
+        "x": 0.83,
+        "y": 0.73,
+        "size": 4.3,
+        "color": "#fb923c",
+        "kind": "concept",
+        "subtitle": "스케줄링 문제 · WEAK",
+        "description": "우선순위가 낮은 작업이 계속 CPU를 배정받지 못하는 문제입니다.",
+        "relatedConceptIds": ["os-priority", "os-aging"],
+        "relatedLearningEvents": [],
+        "keywords": ["기아 현상", "starvation"],
+        "status": "WEAK",
+        "understandingScore": 0.21
+      },
+      {
+        "id": "os-aging",
+        "label": "에이징",
+        "x": 0.53,
+        "y": 0.86,
+        "size": 4.0,
+        "color": "#a78bfa",
+        "kind": "concept",
+        "subtitle": "스케줄링 문제 · UNSEEN",
+        "description": "오래 기다린 프로세스의 우선순위를 점진적으로 높여 기아 현상을 줄이는 기법입니다.",
+        "relatedConceptIds": ["os-starvation"],
+        "relatedLearningEvents": [],
+        "keywords": ["에이징", "aging"],
+        "status": "UNSEEN",
+        "understandingScore": 0.5
+      },
+      {
+        "id": "os-turnaround-time",
+        "label": "반환 시간",
+        "x": 0.23,
+        "y": 0.78,
+        "size": 4.1,
+        "color": "#34d399",
+        "kind": "concept",
+        "subtitle": "성능 지표 · PARTIAL",
+        "description": "프로세스가 제출된 시점부터 완료될 때까지 걸린 전체 시간입니다.",
+        "relatedConceptIds": ["os-fcfs", "os-waiting-time"],
+        "relatedLearningEvents": [],
+        "keywords": ["반환 시간", "turnaround time"],
+        "status": "PARTIAL",
+        "understandingScore": 0.43
+      },
+      {
+        "id": "os-waiting-time",
+        "label": "대기 시간",
+        "x": 0.14,
+        "y": 0.57,
+        "size": 4.4,
+        "color": "#22c55e",
+        "kind": "concept",
+        "subtitle": "성능 지표 · FAMILIAR",
+        "description": "프로세스가 준비 큐에서 CPU 할당을 기다린 시간의 합입니다.",
+        "relatedConceptIds": ["os-round-robin", "os-turnaround-time"],
+        "relatedLearningEvents": [],
+        "keywords": ["대기 시간", "waiting time"],
+        "status": "FAMILIAR",
+        "understandingScore": 0.61
+      }
+    ],
+    "edges": [
+      { "source": "os-process", "target": "os-thread" },
+      { "source": "os-process", "target": "os-context-switch" },
+      { "source": "os-ready-queue", "target": "os-core-scheduling" },
+      { "source": "os-core-scheduling", "target": "os-fcfs" },
+      { "source": "os-core-scheduling", "target": "os-round-robin" },
+      { "source": "os-core-scheduling", "target": "os-priority" },
+      { "source": "os-priority", "target": "os-starvation" },
+      { "source": "os-aging", "target": "os-starvation" },
+      { "source": "os-fcfs", "target": "os-turnaround-time" },
+      { "source": "os-round-robin", "target": "os-waiting-time" },
+      { "source": "os-waiting-time", "target": "os-turnaround-time" }
+    ]
+  }
+}
