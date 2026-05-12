@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 @router.post("/{project_id}/sessions", response_model=None)
-def create_diagnosis_session(project_id: str):
+def create_diagnosis_session(project_id: int):
     """새 진단 세션 ID 발급 — PDF 업로드 후 수준 진단 시작 시 호출
 
     반환된 session_id를 이후 질문/답변 요청에 모두 첨부해야 함
@@ -32,7 +32,7 @@ def create_diagnosis_session(project_id: str):
 
 
 @router.post("/{project_id}/questions", response_model=None)
-def generate_diagnosis_question(project_id: str, session_id: str | None = None, db: Session = Depends(get_db)):
+def generate_diagnosis_question(project_id: int, session_id: str | None = None, db: Session = Depends(get_db)):
     """현재 그래프 상태 기반으로 다음 진단 질문 생성"""
     try:
         result = diagnosis_service.generate_next_question(project_id, db, session_id=session_id)
@@ -52,7 +52,7 @@ def generate_diagnosis_question(project_id: str, session_id: str | None = None, 
 
 
 @router.post("/{project_id}/answers", response_model=None)
-def submit_answer(project_id: str, body: DiagnosisAnswerRequest, db: Session = Depends(get_db)):
+def submit_answer(project_id: int, body: DiagnosisAnswerRequest, db: Session = Depends(get_db)):
     """사용자 답변 저장 → AI score 계산 → affects 노드 전체 상태 갱신"""
     try:
         result = diagnosis_service.submit_answer(
@@ -89,7 +89,7 @@ def submit_answer(project_id: str, body: DiagnosisAnswerRequest, db: Session = D
 
 
 @router.get("/{project_id}/status", response_model=None)
-def get_diagnosis_status(project_id: str, session_id: str, db: Session = Depends(get_db)):
+def get_diagnosis_status(project_id: int, session_id: str, db: Session = Depends(get_db)):
     """진단 진행률 반환 — session_id 쿼리 파라미터로 PDF 업로드 차수 구분
 
     예: GET /api/diagnosis/{project_id}/status?session_id=uuid-...
@@ -99,7 +99,7 @@ def get_diagnosis_status(project_id: str, session_id: str, db: Session = Depends
 
 
 @router.get("/{project_id}/nodes", response_model=None)
-def get_diagnosis_nodes(project_id: str, question_id: str | None = None, db: Session = Depends(get_db)):
+def get_diagnosis_nodes(project_id: int, question_id: str | None = None, db: Session = Depends(get_db)):
     """진단 개념 목록 반환 — 우측 패널용
 
     question_id 전달 시 해당 문제의 concept_id 노드를 '진행 중'으로 표시

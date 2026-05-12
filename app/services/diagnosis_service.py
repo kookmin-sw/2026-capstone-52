@@ -63,7 +63,7 @@ def create_diagnosis_question(
     return q
 
 
-def generate_next_question(project_id: str, db: Session, session_id: str | None = None) -> dict | None:
+def generate_next_question(project_id: int, db: Session, session_id: str | None = None) -> dict | None:
     """프로젝트 그래프에서 다음 진단 문항을 생성하고 teacher-side payload를 저장"""
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     if not nodes:
@@ -134,7 +134,18 @@ def generate_next_question(project_id: str, db: Session, session_id: str | None 
         except DiagnosisAIError:
             raise
 
-        affects = [target_node.node_id]
+        # AI가 반환한 affects(concept_id 목록)를 프로젝트 내 node_id로 변환
+        ai_concept_ids = teacher_question.get("affects") or []
+        if ai_concept_ids:
+            affected_nodes = db.query(ConceptNode).filter(
+                ConceptNode.project_id == project_id,
+                ConceptNode.concept_id.in_(ai_concept_ids),
+            ).all()
+            affects = [n.node_id for n in affected_nodes]
+            if target_node.node_id not in affects:
+                affects.append(target_node.node_id)
+        else:
+            affects = [target_node.node_id]
         teacher_choices = teacher_question["choices"]
         q = create_diagnosis_question(
             concept_id=target_node.node_id,
@@ -291,7 +302,7 @@ def submit_answer(
             "updated_nodes": updated_nodes,
         }
 
-    is_correct = (not is_skipped) and (selected_index == q.correct_index)
+    is_correct = (not is_skipped) and (str(selected_index) == str(q.correct_index))
 
     # 답변 저장 — score는 여기에 없고 아래에서 AI 호출 후 concept_nodes에 반영
     answer = DiagnosisAnswer(
@@ -408,7 +419,7 @@ NODE_STATUS_MASTERED = "MASTERED"
 LOW_SCORE_THRESHOLD = 0.4
 
 
-def get_diagnosis_node_list(project_id: str, question_id: str | None, db: Session) -> list[dict]:
+def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Session) -> list[dict]:
     """진단 개념 목록 반환 — 우측 패널용
 
     diagnosis_label 규칙:
@@ -438,7 +449,7 @@ def get_diagnosis_node_list(project_id: str, question_id: str | None, db: Sessio
     return result
 
 
-def get_diagnosis_status(project_id: str, session_id: str, db: Session) -> dict:
+def get_diagnosis_status(project_id: int, session_id: str, db: Session) -> dict:
     """session_id 기준 진단 진행률 반환 — 문제 12개 고정"""
     answered = (
         db.query(DiagnosisAnswer)
@@ -469,22 +480,17 @@ def _json_dumps(value: list) -> str:
 
 
 def _legacy_status_from_score(score: float) -> str:
-    if score >= 0.8:
-        return "MASTERED"
-    if score >= 0.4:
+    if score <= 0.0:
+        return "WEAK"
+    if score < 0.4:
+        return "PARTIAL"
+    if score < 0.8:
         return "FAMILIAR"
-    return "WEAK"
+    return "MASTERED"
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(value, maximum))
-
-
-def _select_target_concept(nodes: list[ConceptNode]) -> ConceptNode | None:
-    candidate_nodes = _build_candidate_nodes(nodes)
-    if not candidate_nodes:
-        return None
-    return candidate_nodes[0]
 
 
 def _get_previous_reuse_keys(target_node_id: str, db: Session) -> list[str]:
@@ -533,7 +539,7 @@ def _get_latest_answer_context(session_id: str | None, db: Session) -> dict | No
 
 
 def _find_prerequisite_candidates(
-    project_id: str,
+    project_id: int,
     current_node_id: str,
     db: Session,
 ) -> list[ConceptNode]:
@@ -594,12 +600,3 @@ def _dedupe_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
     return list(unique_nodes.values())
 
 
-def _diagnostic_tag_overlap(tags_a: list[str], tags_b: list[str]) -> float:
-    set_a = {tag for tag in tags_a if tag}
-    set_b = {tag for tag in tags_b if tag}
-    if not set_a and not set_b:
-        return 0.0
-    union = set_a | set_b
-    if not union:
-        return 0.0
-    return len(set_a & set_b) / len(union)

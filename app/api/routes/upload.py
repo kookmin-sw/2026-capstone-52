@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.post("/{project_id}")
-async def upload_pdf(project_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_pdf(project_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
     """PDF 파일을 S3에 업로드하고 메타데이터를 DB에 저장"""
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="PDF 파일만 업로드 가능합니다.")
@@ -19,7 +19,7 @@ async def upload_pdf(project_id: str, file: UploadFile = File(...), db: Session 
 
 
 @router.get("/{project_id}")
-def get_file_list(project_id: str, db: Session = Depends(get_db)):
+def get_file_list(project_id: int, db: Session = Depends(get_db)):
     """프로젝트에 업로드된 파일 목록과 분석 상태 반환"""
     files = upload_service.get_files_by_project(project_id, db)
     return {"success": True, "data": [FileResponse.model_validate(f) for f in files], "message": ""}

@@ -35,7 +35,7 @@ def get_node_detail(node_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}")
-def get_project_graph(project_id: str, db: Session = Depends(get_db)):
+def get_project_graph(project_id: int, db: Session = Depends(get_db)):
     """특정 프로젝트의 노드 + 엣지 전체 반환 (그래프 시각화용)"""
     graph = graph_service.get_graph_by_project(project_id, db)
     data = {
@@ -46,7 +46,7 @@ def get_project_graph(project_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/recent")
-def get_recent_nodes(project_id: str, db: Session = Depends(get_db)):
+def get_recent_nodes(project_id: int, db: Session = Depends(get_db)):
     """최근 갱신된 노드 목록 반환 (채팅 화면 우측 패널용)"""
     nodes = graph_service.get_recent_nodes(project_id, db)
     return {"success": True, "data": [NodeResponse.model_validate(n) for n in nodes], "message": ""}

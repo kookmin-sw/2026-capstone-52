@@ -35,8 +35,8 @@ class DiagnosisQuestion(Base):
     affects: Mapped[str] = mapped_column(Text, nullable=True)
 
     question: Mapped[str] = mapped_column(Text, nullable=False)
-    choices: Mapped[str] = mapped_column(Text, nullable=False)       # JSON 배열 ["①..","②..","③..","④.."]
-    correct_index: Mapped[int] = mapped_column(String, nullable=False)  # 정답 인덱스 (0~3), 프론트에 미노출
+    choices: Mapped[str] = mapped_column(Text, nullable=False)       # JSON 배열 ["①..","②..","③..","④..","⑤.."]
+    correct_index: Mapped[str] = mapped_column(String, nullable=False)  # 정답 인덱스 (0~4), 프론트에 미노출
     correct_option_ids: Mapped[str] = mapped_column(Text, nullable=True)  # JSON 배열 ["A","C"]
     diagnostic_tags: Mapped[str] = mapped_column(Text, nullable=True)     # JSON 배열 ["deadlock_condition"]
     tag_group: Mapped[str] = mapped_column(String, nullable=True)

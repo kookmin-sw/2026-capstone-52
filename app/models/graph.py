@@ -25,7 +25,7 @@ class ConceptNode(Base):
     __tablename__ = "concept_nodes"
 
     node_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id: Mapped[str] = mapped_column(String, nullable=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.project_id"), nullable=False)
     file_id: Mapped[str] = mapped_column(String, ForeignKey("files.file_id"), nullable=True)  # 어떤 파일에서 추출했는지
     concept_id: Mapped[str] = mapped_column(String, nullable=True)   # 정규화된 stable concept ID (예: os_deadlock)
     subject_id: Mapped[str] = mapped_column(String, nullable=True)   # 과목 ID (예: operating_system)
@@ -54,7 +54,7 @@ class ConceptEdge(Base):
     __tablename__ = "concept_edges"
 
     edge_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id: Mapped[str] = mapped_column(String, nullable=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.project_id"), nullable=False)
     source_node_id: Mapped[str] = mapped_column(String, ForeignKey("concept_nodes.node_id"), nullable=False)
     target_node_id: Mapped[str] = mapped_column(String, ForeignKey("concept_nodes.node_id"), nullable=False)
     relation_type: Mapped[str] = mapped_column(String, nullable=False)

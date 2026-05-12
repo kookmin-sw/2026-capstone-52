@@ -24,26 +24,52 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
     - 질문/답변 대화 기록 저장
     - learning_logs 자동 기록
     """
+    # process_chat에 넘길 allowed_concepts 구성 — node_id 기반으로 signal 반영 시 빠른 조회용 map도 함께 생성
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
-    node_list = [
-        {"node_id": n.node_id, "name": n.name, "status": n.status, "understanding_score": n.understanding_score}
+    node_map = {n.node_id: n for n in nodes}
+    allowed_concepts = [
+        {"node_id": n.node_id, "concept_id": n.concept_id, "concept_name": n.name,
+         "understanding_score": n.understanding_score}
         for n in nodes
     ]
 
+    # explanation_style → user_state dict로 감싸서 keyword-only 인자로 전달
     profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
-    explanation_style = profile.preferred_explanation_style if profile else None
+    user_state = {"preferred_explanation_style": profile.preferred_explanation_style} if profile else None
 
     try:
-        result = process_chat(body.message, node_list, explanation_style)
+        result = process_chat(
+            body.message,
+            allowed_concepts=allowed_concepts,
+            user_state=user_state,
+        )
         ai_reply = result["reply"]
-        updated_nodes = result.get("updated_nodes", [])
+        # understanding_signals 반환
+        understanding_signals = result.get("understanding_signals", [])
     except NotImplementedError:
         ai_reply = "AI 응답 생성 로직 연결 전입니다."
-        updated_nodes = []
+        understanding_signals = []
 
-    # AI가 반환한 node_id, score, status를 그대로 DB에 반영
-    for node in updated_nodes:
-        graph_service.update_node_score(node["node_id"], node["score"], node["status"], db)
+    # understanding_signals의 score_delta를 기존 score에 누적하고 status 재산출 후 DB 반영
+    # _legacy_score_to_status(diagnosis_ai.py) 와 동일한 기준
+    updated_nodes = []
+    for signal in understanding_signals:
+        node_id = signal.get("node_id")
+        node = node_map.get(node_id)
+        if not node:
+            continue
+        current_score = node.understanding_score or 0.0
+        new_score = max(0.0, min(1.0, current_score + signal.get("score_delta", 0.0)))
+        if new_score <= 0.0:
+            new_status = "WEAK"
+        elif new_score < 0.4:
+            new_status = "PARTIAL"
+        elif new_score < 0.8:
+            new_status = "FAMILIAR"
+        else:
+            new_status = "MASTERED"
+        graph_service.update_node_score(node_id, new_score, new_status, db)
+        updated_nodes.append({"node_id": node_id, "score": new_score, "status": new_status})
 
     chat_log = save_chat(
         db=db,
