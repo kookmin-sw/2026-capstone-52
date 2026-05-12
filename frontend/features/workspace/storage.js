@@ -1,14 +1,25 @@
 const WORKSPACE_STORAGE_KEY = "eeum-workspace-v1";
 const PROJECT_DIAGNOSIS_KEY = "__project__";
+const ALLOWED_PROJECT_IDS = ["os", "data-structures", "network", "algorithm"];
+const PROJECT_DOMAIN_BY_ID = {
+  os: "operating_system",
+  "data-structures": "data_structure",
+  network: "computer_network",
+  algorithm: "algorithm"
+};
+const PROJECT_ID_BY_DOMAIN = {
+  operating_system: "os",
+  data_structure: "data-structures",
+  computer_network: "network",
+  algorithm: "algorithm",
+  os: "os",
+  "data-structures": "data-structures",
+  network: "network"
+};
 
 const defaultWorkspaceState = {
   projects: [],
   materialsByProject: {
-    calculus: [
-      { id: "doc-1", name: "미적분_1장_정리.pdf", status: "수준진단 대기" },
-      { id: "doc-2", name: "접선과_미분계수.pdf", status: "그냥 진행 가능" },
-      { id: "doc-3", name: "연습문제_풀이.pdf", status: "진단 완료" }
-    ],
     os: [
       { id: "os-doc-1", name: "프로세스와_스레드.pdf", status: "수준진단 대기" },
       { id: "os-doc-2", name: "CPU_스케줄링_정리.pdf", status: "그냥 진행 가능" }
@@ -43,6 +54,30 @@ function canUseStorage() {
   return typeof window !== "undefined";
 }
 
+function normalizeCachedProject(project) {
+  const projectId = PROJECT_ID_BY_DOMAIN[project?.domain] || project?.id;
+
+  if (!ALLOWED_PROJECT_IDS.includes(projectId)) {
+    return null;
+  }
+
+  return {
+    ...project,
+    id: projectId,
+    domain: PROJECT_DOMAIN_BY_ID[projectId]
+  };
+}
+
+function pickAllowedProjectEntries(entries = {}) {
+  return ALLOWED_PROJECT_IDS.reduce((nextEntries, projectId) => {
+    if (entries[projectId]) {
+      nextEntries[projectId] = entries[projectId];
+    }
+
+    return nextEntries;
+  }, {});
+}
+
 export function loadWorkspaceState() {
   if (!canUseStorage()) {
     return getDefaultWorkspaceState();
@@ -56,20 +91,31 @@ export function loadWorkspaceState() {
     }
 
     const parsed = JSON.parse(raw);
+    const projects = Array.isArray(parsed.projects)
+      ? parsed.projects.map(normalizeCachedProject).filter(Boolean)
+      : clone(defaultWorkspaceState.projects);
+    const projectIds = new Set(projects.map((project) => project.id));
+    const lastOpenedProjectId =
+      typeof parsed.lastOpenedProjectId === "string" && projectIds.has(parsed.lastOpenedProjectId)
+        ? parsed.lastOpenedProjectId
+        : defaultWorkspaceState.lastOpenedProjectId;
 
-    return {
-      projects: Array.isArray(parsed.projects) ? parsed.projects : clone(defaultWorkspaceState.projects),
+    const nextState = {
+      projects,
       materialsByProject: {
         ...clone(defaultWorkspaceState.materialsByProject),
-        ...(parsed.materialsByProject || {})
+        ...pickAllowedProjectEntries(parsed.materialsByProject)
       },
-      diagnosisByProject: parsed.diagnosisByProject || {},
-      notesByProject: parsed.notesByProject || {},
-      lastOpenedProjectId:
-        typeof parsed.lastOpenedProjectId === "string"
-          ? parsed.lastOpenedProjectId
-          : defaultWorkspaceState.lastOpenedProjectId
+      diagnosisByProject: pickAllowedProjectEntries(parsed.diagnosisByProject),
+      notesByProject: pickAllowedProjectEntries(parsed.notesByProject),
+      lastOpenedProjectId
     };
+
+    if (JSON.stringify(nextState) !== raw) {
+      window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(nextState));
+    }
+
+    return nextState;
   } catch {
     return getDefaultWorkspaceState();
   }

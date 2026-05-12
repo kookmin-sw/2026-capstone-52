@@ -8,7 +8,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import String, Text, Boolean, Float, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -35,8 +35,13 @@ class DiagnosisQuestion(Base):
     affects: Mapped[str] = mapped_column(Text, nullable=True)
 
     question: Mapped[str] = mapped_column(Text, nullable=False)
-    choices: Mapped[str] = mapped_column(Text, nullable=False)       # JSON 배열 ["①..","②..","③..","④.."]
-    correct_index: Mapped[int] = mapped_column(String, nullable=False)  # 정답 인덱스 (0~3), 프론트에 미노출
+    choices: Mapped[str] = mapped_column(Text, nullable=False)       # JSON 배열 ["①..","②..","③..","④..","⑤.."]
+    correct_index: Mapped[str] = mapped_column(String, nullable=False)  # 정답 인덱스 (0~4), 프론트에 미노출
+    correct_option_ids: Mapped[str] = mapped_column(Text, nullable=True)  # JSON 배열 ["A","C"]
+    diagnostic_tags: Mapped[str] = mapped_column(Text, nullable=True)     # JSON 배열 ["deadlock_condition"]
+    tag_group: Mapped[str] = mapped_column(String, nullable=True)
+    reuse_key: Mapped[str] = mapped_column(String, nullable=True)
+    diagnosis_purpose: Mapped[str] = mapped_column(String, nullable=True, default="concept_check")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -58,5 +63,12 @@ class DiagnosisAnswer(Base):
 
     # 스킵 여부 — True면 score 계산 없이 WEAK으로 처리
     is_skipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)          # JSON 배열 ["A","D"]
+    partial_score: Mapped[float] = mapped_column(Float, nullable=True)
+    answer_score: Mapped[float] = mapped_column(Float, nullable=True)
+    is_fully_correct: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+    invalid_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)  # JSON 배열 ["Z"]
+    missed_correct_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["C"]
+    wrong_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["D"]
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

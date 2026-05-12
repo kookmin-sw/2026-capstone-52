@@ -2,6 +2,24 @@
 
 이 문서는 Codex가 나중에 프론트엔드와 백엔드 연동 상태를 빠르게 판단하고 수정할 수 있도록, 현재 코드 기준의 API 연결 구조와 계약을 정리한 것이다.
 
+## 2026-05-12 프론트 연동 수정 완료 내역
+
+이번 수정은 `frontend/` 안의 코드만 변경했고, `app/` 백엔드 코드는 수정하지 않았다.
+
+- 진단 API 프론트를 백엔드의 현재 계약에 맞췄다.
+  - `POST /diagnosis/{project_id}/sessions`로 `session_id`를 먼저 발급받는다.
+  - 질문 응답은 `diagnosis_id`가 아니라 `question_id`, `concept_id`를 사용한다.
+  - 답변 제출 body는 `question_id`, `session_id`, `selected_index`, `is_skipped`로 보낸다.
+  - 상태 조회는 `GET /diagnosis/{project_id}/status?session_id=...` 형식으로 호출한다.
+- 프로필 수정 요청에서 백엔드 `UserProfileUpdate`가 받지 않는 필드를 제거했다.
+  - 프론트가 API로 보내는 필드는 `nickname`, `profile_image`, `preferred_explanation_style`만이다.
+  - `major`, `learning_fields`, `learning_goal`, `interest_field`는 현재 백엔드 PATCH 스키마가 받지 않으므로 API 요청에서 제외했다.
+  - 마이페이지 저장 후에는 백엔드 응답으로 로컬 프로필을 덮어쓰지 않고, 사용자가 입력한 프론트 상태를 유지한다.
+- 백엔드 모드 프로젝트 목록 정렬을 프론트에서 보완했다.
+  - `/projects/user/{user_id}`의 `last_accessed_at`만 믿지 않고, 각 프로젝트의 `/chat/project/{project_id}` 로그를 조회한다.
+  - 프로젝트 자체 시간과 최신 채팅 시간을 비교해 더 최신인 값으로 `updatedAt`을 계산하고 정렬한다.
+  - 따라서 백엔드가 `last_accessed_at`을 아직 갱신하지 않아도 프론트 목록은 최근 채팅한 프로젝트를 위로 올린다.
+
 ## 전체 연결 구조
 
 프론트엔드는 Next.js 앱이고, 백엔드는 FastAPI 앱이다.
@@ -92,7 +110,7 @@ Google 로그인 성공
 -> /dashboard 이동
 ```
 
-하지만 현재 백엔드에는 `POST /api/users/google` 라우트가 없다. 이 때문에 Google 계정 선택까지 성공해도 앱 내부 로그인 처리에서 막힌다.
+현재 백엔드에는 `POST /api/users/google` 라우트가 있으며, 프론트 `loginWithGoogleProfile()`과 연결되어 있다.
 
 현재 `ensureCurrentUser()`는 저장된 user_id가 없으면 임시 로컬 사용자를 생성한다.
 
@@ -171,6 +189,7 @@ Frontend receives Google ID token
 /api/learning-logs  -> app/api/routes/learning_logs.py
 /api/mypage         -> app/api/routes/mypage.py
 /api/chat           -> app/api/routes/chat.py
+/api/projects       -> app/api/routes/project_memos.py
 /api/upload         -> app/api/routes/upload.py
 /api/graph          -> app/api/routes/graph.py
 /api/explanation    -> app/api/routes/explanation.py
@@ -249,18 +268,15 @@ PATCH /api/users/{user_id}
 {
   "nickname": "...",
   "profile_image": "...",
-  "major": "...",
-  "learning_fields": "...",
-  "current_level": "...",
-  "preferred_explanation_style": "...",
-  "learning_goal": "..."
+  "preferred_explanation_style": "example"
 }
 ```
 
-현재 불일치:
+프론트 반영 상태:
 
-- 프론트 `loginWithGoogleProfile()`은 `POST /users/google`을 호출하지만 백엔드에 해당 라우트가 없다.
-- 프론트 `mapProfileToApiUpdate()`는 `interest_field`도 보내지만 백엔드 `UserProfileUpdate` 스키마에는 `interest_field`가 없다. Pydantic 기본 설정상 extra field는 무시될 가능성이 크다.
+- `loginWithGoogleProfile()`은 `POST /users/google`을 호출하고, 현재 백엔드에 해당 라우트가 있다.
+- `mapProfileToApiUpdate()`는 백엔드 `UserProfileUpdate`가 받는 `nickname`, `profile_image`, `preferred_explanation_style`만 보낸다.
+- `major`, `learning_fields`, `learning_goal`, `interest_field`는 현재 백엔드 PATCH 스키마가 받지 않으므로 프론트 API 요청에서 제외한다.
 
 ### Projects
 
@@ -295,11 +311,16 @@ POST /api/projects/
 ```json
 {
   "user_id": 1,
-  "project_name": "운영체제",
-  "project_description": "...",
-  "project_domain": "os"
+  "project_domain": "operating_system"
 }
 ```
+
+`project_domain`은 아래 값 중 하나만 사용할 수 있고, 백엔드는 해당 값에 맞는 교과목명을 `project_name`으로 저장합니다.
+
+- `operating_system` -> `운영체제`
+- `data_structure` -> `자료구조`
+- `algorithm` -> `알고리즘`
+- `computer_network` -> `컴퓨터 네트워크`
 
 응답 data:
 
@@ -309,7 +330,7 @@ POST /api/projects/
   "user_id": 1,
   "project_name": "운영체제",
   "project_description": "...",
-  "project_domain": "os",
+  "project_domain": "operating_system",
   "created_at": "..."
 }
 ```
@@ -320,16 +341,16 @@ GET /api/projects/user/{user_id}
 
 응답 data는 project 배열이다.
 
-현재 불일치:
+프로젝트 메모:
 
-- 프론트 `getProjectMemo()`와 `saveProjectMemo()`는 아래 API를 기대한다.
+프론트 `getProjectMemo()`와 `saveProjectMemo()`는 아래 API를 호출한다.
 
 ```text
 GET /api/projects/{project_id}/memo
 PATCH /api/projects/{project_id}/memo
 ```
 
-하지만 현재 백엔드에는 memo API가 없다.
+현재 백엔드에는 `app/api/routes/project_memos.py`가 `/api/projects` prefix로 등록되어 있어 위 API와 연결된다.
 
 ### Chat
 
@@ -527,17 +548,32 @@ GET /api/graph/nodes/{node_id}
 프론트 호출:
 
 ```text
+createApiDiagnosisSession(projectId)
+-> POST /diagnosis/{project_id}/sessions
+
 createApiDiagnosisQuestion(projectId)
 -> POST /diagnosis/{project_id}/questions
 
-submitApiDiagnosisAnswer(projectId, diagnosisId, selectedIndex)
+submitApiDiagnosisAnswer(projectId, sessionId, questionId, selectedIndex, isSkipped)
 -> POST /diagnosis/{project_id}/answers
 
-getApiDiagnosisStatus(projectId)
--> GET /diagnosis/{project_id}/status
+getApiDiagnosisStatus(projectId, sessionId)
+-> GET /diagnosis/{project_id}/status?session_id=...
 ```
 
 백엔드 API:
+
+```http
+POST /api/diagnosis/{project_id}/sessions
+```
+
+응답 data:
+
+```json
+{
+  "session_id": "uuid"
+}
+```
 
 ```http
 POST /api/diagnosis/{project_id}/questions
@@ -547,8 +583,11 @@ POST /api/diagnosis/{project_id}/questions
 
 ```json
 {
-  "diagnosis_id": "...",
-  "node_id": "...",
+  "question_id": "...",
+  "concept_id": "...",
+  "difficulty": "easy",
+  "question_type": "concept_check",
+  "affects": ["node-id"],
   "question": "...",
   "choices": ["...", "...", "...", "..."]
 }
@@ -562,8 +601,10 @@ POST /api/diagnosis/{project_id}/answers
 
 ```json
 {
-  "diagnosis_id": "...",
-  "selected_index": 0
+  "question_id": "...",
+  "session_id": "uuid",
+  "selected_index": 0,
+  "is_skipped": false
 }
 ```
 
@@ -573,20 +614,27 @@ POST /api/diagnosis/{project_id}/answers
 {
   "is_correct": true,
   "correct_index": 0,
-  "node_status": "KNOWN"
+  "updated_nodes": [
+    {
+      "node_id": "...",
+      "status": "MASTERED",
+      "understanding_score": 0.8
+    }
+  ]
 }
 ```
 
 ```http
-GET /api/diagnosis/{project_id}/status
+GET /api/diagnosis/{project_id}/status?session_id=uuid
 ```
 
 응답 data:
 
 ```json
 {
-  "total_nodes": 0,
-  "diagnosed_nodes": 0,
+  "session_id": "uuid",
+  "answered": 1,
+  "total_questions": 12,
   "progress_percent": 0
 }
 ```
@@ -746,30 +794,26 @@ GET /api/mypage/{user_id}
 
 ## 현재 주요 TODO와 위험 지점
 
-1. `POST /api/users/google` 미구현
-   - Google OAuth 후 대시보드 이동이 막히는 직접 원인.
-   - 빠른 해결은 email 기준 upsert 후 기존 user 응답 형태를 반환하는 라우트 추가.
-   - 장기 해결은 Google ID token 검증 + 서비스 JWT 발급.
-
-2. JWT 인증 미적용
+1. JWT 인증 미적용
    - 현재 프론트는 user_id를 localStorage에 저장하고 API body/path에 직접 사용한다.
    - 사용자가 localStorage 값을 바꾸면 다른 user_id로 요청할 수 있다.
    - EC2 배포 전에는 인증 방식 합의가 필요하다.
 
-3. Project memo API 미구현
-   - 프론트는 `GET/PATCH /projects/{project_id}/memo`를 호출한다.
-   - 백엔드에는 해당 라우트가 없다.
+2. 프로필 상세 필드 PATCH 미지원
+   - 현재 백엔드 `UserProfileUpdate`는 `nickname`, `profile_image`, `preferred_explanation_style`만 받는다.
+   - 프론트는 이에 맞춰 API 요청 필드를 제한했다.
+   - `major`, `learning_fields`, `learning_goal`까지 서버 저장이 필요하면 백엔드 스키마 확장이 필요하다.
 
-4. `interest_field` 필드 불일치
-   - 프론트는 프로필 저장 시 `interest_field`를 보낸다.
-   - 백엔드 `UserProfileUpdate`에는 없다.
-   - 모델에 필드가 있다면 스키마 추가 필요, 없다면 프론트에서 제거 또는 `learning_goal`로 통일 필요.
+3. 백엔드 프로젝트 최신 접근 시간 미갱신
+   - 채팅 저장 시 `projects.last_accessed_at`을 백엔드에서 갱신하지 않는다.
+   - 프론트는 임시로 각 프로젝트의 채팅 로그를 조회해 최신 채팅 기준으로 정렬하도록 보완했다.
+   - 장기적으로는 백엔드 `save_chat()`에서 프로젝트 접근 시간을 갱신하는 편이 효율적이다.
 
-5. S3/AWS 설정
+4. S3/AWS 설정
    - 업로드 API는 S3 업로드를 기본으로 한다.
    - 로컬 테스트에서 AWS credential, bucket, region 설정이 없으면 실패할 수 있다.
 
-6. CORS
+5. CORS
    - 현재 FastAPI는 `allow_origins=["*"]`이다.
    - Next rewrite를 통하면 브라우저 기준 same-origin이라 CORS 문제가 줄어든다.
    - 배포 시 직접 API 도메인을 호출하는 구조로 바꾸면 CORS origin 제한을 재검토해야 한다.
@@ -778,11 +822,9 @@ GET /api/mypage/{user_id}
 
 프론트-백 연동을 안정화하려면 다음 순서가 가장 작고 명확하다.
 
-1. 백엔드에 `POST /api/users/google` 추가
-   - email 기준 기존 유저 조회
-   - 없으면 생성
-   - nickname/profile_image 갱신 여부 정책 결정
-   - 기존 `GET /users/{user_id}`와 유사한 user data 반환
+1. 백엔드 프로필 PATCH 스키마 확장 여부 결정
+   - 마이페이지에서 전공/학습 분야/학습 목표를 서버에 저장하려면 `UserProfileUpdate`에 해당 필드가 필요하다.
+   - 지금 프론트는 백엔드가 받는 필드만 보내도록 정리되어 있다.
 
 2. 로그인 성공 후 `/dashboard` 이동 확인
    - `frontend/app/login/page.tsx`는 이미 `router.push("/dashboard")`를 호출한다.
@@ -793,9 +835,8 @@ GET /api/mypage/{user_id}
    - 프로젝트 생성/조회
    - 업로드
    - 채팅
+   - 진단
    - 마이페이지
 
-4. memo API 또는 프론트 fallback 정리
-
-5. JWT 인증 도입 여부 결정
+4. JWT 인증 도입 여부 결정
    - 도입한다면 `apiRequest()`에서 Authorization 헤더를 중앙 주입하는 방식이 가장 자연스럽다.

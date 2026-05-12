@@ -1,0 +1,75 @@
+{
+  "subject_id": "data_structure",
+  "concepts": [
+    {
+      "concept_id": "ds_array",
+      "canonical_name": "Array",
+      "korean_name": "배열",
+      "aliases": ["array", "배열", "indexed array", "contiguous array"],
+      "group": "Linear Structure",
+      "description": "A contiguous collection of elements accessed by index.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "ds_stack",
+      "canonical_name": "Stack",
+      "korean_name": "스택",
+      "aliases": ["stack", "스택", "lifo", "last in first out"],
+      "group": "Linear Structure",
+      "description": "A linear structure that follows the Last In, First Out access rule.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "ds_queue",
+      "canonical_name": "Queue",
+      "korean_name": "큐",
+      "aliases": ["queue", "큐", "fifo", "first in first out"],
+      "group": "Linear Structure",
+      "description": "A linear structure that follows the First In, First Out access rule.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "ds_linked_list",
+      "canonical_name": "Linked List",
+      "korean_name": "연결 리스트",
+      "aliases": ["linked list", "linkedlist", "연결 리스트", "연결리스트", "list node chain"],
+      "group": "Linear Structure",
+      "description": "A sequence of nodes where each node points to the next node.",
+      "importance": 4,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "ds_tree",
+      "canonical_name": "Tree",
+      "korean_name": "트리",
+      "aliases": ["tree", "트리", "hierarchical tree", "rooted tree"],
+      "group": "Non-Linear Structure",
+      "description": "A hierarchical data structure consisting of nodes connected by parent-child relationships.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "ds_graph",
+      "canonical_name": "Graph",
+      "korean_name": "그래프",
+      "aliases": ["graph", "그래프", "network graph", "vertex edge graph"],
+      "group": "Non-Linear Structure",
+      "description": "A data structure made of vertices and edges representing relationships.",
+      "importance": 5,
+      "concept_difficulty": 4
+    },
+    {
+      "concept_id": "ds_hash_table",
+      "canonical_name": "Hash Table",
+      "korean_name": "해시 테이블",
+      "aliases": ["hash table", "hashtable", "해시 테이블", "해시테이블", "hash map"],
+      "group": "Associative Structure",
+      "description": "A key-value data structure that uses hashing for fast average lookup.",
+      "importance": 5,
+      "concept_difficulty": 3
+    }
+  ]
+}

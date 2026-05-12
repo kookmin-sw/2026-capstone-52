@@ -84,11 +84,7 @@ export function mapProfileToApiUpdate(profile, profileImage = null) {
   return {
     nickname: profile.name,
     profile_image: profileImage,
-    major: profile.major,
-    learning_fields: profile.job,
     preferred_explanation_style: profile.explanationStyle,
-    interest_field: profile.learningGoal || profile.learningType,
-    learning_goal: profile.learningGoal || profile.learningType,
   };
 }
 
@@ -126,12 +122,7 @@ export async function ensureCurrentUser() {
     return await apiRequest(`/users/${encodeURIComponent(user.user_id)}`, {
       method: "PATCH",
       body: {
-        major: DEFAULT_USER_PROFILE.major,
-        learning_fields: DEFAULT_USER_PROFILE.learning_fields,
-        current_level: DEFAULT_USER_PROFILE.current_level,
         preferred_explanation_style: DEFAULT_USER_PROFILE.preferred_explanation_style,
-        interest_field: DEFAULT_USER_PROFILE.learning_goal,
-        learning_goal: DEFAULT_USER_PROFILE.learning_goal,
       },
     });
   } catch {

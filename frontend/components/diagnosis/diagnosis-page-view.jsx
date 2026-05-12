@@ -14,6 +14,7 @@ import {
   normalizeDiagnosisQuestion,
 } from "../../features/diagnosis/model";
 import {
+  createApiDiagnosisSession,
   createApiDiagnosisQuestion,
   getApiProjectGraph,
   getApiDiagnosisStatus,
@@ -153,9 +154,16 @@ export default function DiagnosisPageView({ projectId }) {
       setDiagnosisError(null);
 
       try {
+        const diagnosisSession = await createApiDiagnosisSession(projectId);
+        const sessionId = diagnosisSession?.session_id;
+
+        if (!sessionId) {
+          throw new Error("진단 세션을 생성하지 못했습니다.");
+        }
+
         const [question, status, graphData] = await Promise.all([
           createApiDiagnosisQuestion(projectId),
-          getApiDiagnosisStatus(projectId).catch(() => null),
+          getApiDiagnosisStatus(projectId, sessionId).catch(() => null),
           getApiProjectGraph(projectId).catch(() => null),
         ]);
 
@@ -165,13 +173,17 @@ export default function DiagnosisPageView({ projectId }) {
 
         const choices = Array.isArray(question.choices) ? question.choices : [];
         const graphNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
-        const concepts = buildApiDiagnosisConcepts(projectData, graphNodes, question);
-        const fallbackConceptId = question.node_id || "api-concept";
+        const apiQuestion = {
+          ...question,
+          node_id: question.concept_id || question.node_id,
+        };
+        const concepts = buildApiDiagnosisConcepts(projectData, graphNodes, apiQuestion);
+        const fallbackConceptId = question.concept_id || question.node_id || "api-concept";
         const normalizedQuestion = normalizeDiagnosisQuestion({
-          id: question.diagnosis_id,
-          diagnosisId: question.diagnosis_id,
+          id: question.question_id,
+          diagnosisId: question.question_id,
           type: "multiple-choice",
-          node_id: question.node_id,
+          node_id: question.concept_id || question.node_id,
           node_name: question.node_name || question.concept_name || "진단 대상 개념",
           conceptIds: question.conceptIds ||
             question.concept_ids ||
@@ -193,7 +205,7 @@ export default function DiagnosisPageView({ projectId }) {
         });
 
         setApiSession({
-          id: `api-${question.diagnosis_id}`,
+          id: sessionId,
           projectId,
           projectTitle: projectData.title,
           totalQuestions: 1,
@@ -357,8 +369,8 @@ export default function DiagnosisPageView({ projectId }) {
       setStep("analyzing");
 
       try {
-        const result = await submitApiDiagnosisAnswer(projectId, currentQuestion.diagnosisId, selectedIndex);
-        const status = await getApiDiagnosisStatus(projectId).catch(() => null);
+        const result = await submitApiDiagnosisAnswer(projectId, session.id, currentQuestion.diagnosisId, selectedIndex);
+        const status = await getApiDiagnosisStatus(projectId, session.id).catch(() => null);
         const checkedQuestion = {
           ...currentQuestion,
           correctChoiceIds: result.is_correct ? getSelectedChoiceIds(resolvedAnswer) : [],
