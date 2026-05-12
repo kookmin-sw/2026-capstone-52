@@ -1,0 +1,75 @@
+{
+  "subject_id": "computer_network",
+  "concepts": [
+    {
+      "concept_id": "cn_tcp",
+      "canonical_name": "TCP",
+      "korean_name": "전송 제어 프로토콜",
+      "aliases": ["tcp", "tcp protocol", "전송 제어 프로토콜", "transmission control protocol"],
+      "group": "Transport Layer",
+      "description": "A reliable, connection-oriented transport protocol with flow and congestion control.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "cn_udp",
+      "canonical_name": "UDP",
+      "korean_name": "사용자 데이터그램 프로토콜",
+      "aliases": ["udp", "udp protocol", "사용자 데이터그램 프로토콜", "user datagram protocol"],
+      "group": "Transport Layer",
+      "description": "A lightweight, connectionless transport protocol without guaranteed delivery.",
+      "importance": 4,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "cn_ip",
+      "canonical_name": "IP",
+      "korean_name": "인터넷 프로토콜",
+      "aliases": ["ip", "ip protocol", "인터넷 프로토콜", "internet protocol"],
+      "group": "Network Layer",
+      "description": "A network-layer protocol responsible for addressing and routing packets across networks.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "cn_dns",
+      "canonical_name": "DNS",
+      "korean_name": "도메인 이름 시스템",
+      "aliases": ["dns", "도메인 이름 시스템", "domain name system", "name resolution"],
+      "group": "Application Layer",
+      "description": "A distributed naming system that translates domain names into IP addresses.",
+      "importance": 4,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "cn_http",
+      "canonical_name": "HTTP",
+      "korean_name": "하이퍼텍스트 전송 프로토콜",
+      "aliases": ["http", "hypertext transfer protocol", "하이퍼텍스트 전송 프로토콜", "web protocol"],
+      "group": "Application Layer",
+      "description": "An application-layer protocol used for web communication between clients and servers.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "cn_routing",
+      "canonical_name": "Routing",
+      "korean_name": "라우팅",
+      "aliases": ["routing", "라우팅", "route selection", "packet routing"],
+      "group": "Network Layer",
+      "description": "The process of selecting packet forwarding paths through a network.",
+      "importance": 5,
+      "concept_difficulty": 4
+    },
+    {
+      "concept_id": "cn_congestion_control",
+      "canonical_name": "Congestion Control",
+      "korean_name": "혼잡 제어",
+      "aliases": ["congestion control", "혼잡 제어", "혼잡제어", "network congestion control"],
+      "group": "Transport Layer",
+      "description": "Mechanisms that prevent the network from becoming overloaded with traffic.",
+      "importance": 5,
+      "concept_difficulty": 4
+    }
+  ]
+}

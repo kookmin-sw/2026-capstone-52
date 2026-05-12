@@ -1,0 +1,65 @@
+{
+  "subject_id": "operating_system",
+  "concepts": [
+    {
+      "concept_id": "os_process",
+      "canonical_name": "Process",
+      "korean_name": "프로세스",
+      "aliases": ["process", "프로세스", "program in execution", "running program"],
+      "group": "Process Management",
+      "description": "A program in execution with its own state, memory space, and system resources.",
+      "importance": 5,
+      "concept_difficulty": 2
+    },
+    {
+      "concept_id": "os_thread",
+      "canonical_name": "Thread",
+      "korean_name": "스레드",
+      "aliases": ["thread", "스레드", "lightweight process", "execution thread"],
+      "group": "Process Management",
+      "description": "The smallest unit of CPU execution within a process that can run concurrently.",
+      "importance": 5,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "os_synchronization",
+      "canonical_name": "Synchronization",
+      "korean_name": "동기화",
+      "aliases": ["synchronization", "동기화", "process synchronization", "thread synchronization"],
+      "group": "Process Synchronization",
+      "description": "Techniques used to coordinate concurrent execution and protect shared resources.",
+      "importance": 5,
+      "concept_difficulty": 4
+    },
+    {
+      "concept_id": "os_deadlock",
+      "canonical_name": "Deadlock",
+      "korean_name": "교착상태",
+      "aliases": ["deadlock", "dead lock", "교착상태", "교착 상태", "process deadlock", "deadlock state"],
+      "group": "Process Synchronization",
+      "description": "A state where processes wait indefinitely for resources held by each other.",
+      "importance": 5,
+      "concept_difficulty": 4
+    },
+    {
+      "concept_id": "os_resource_allocation",
+      "canonical_name": "Resource Allocation",
+      "korean_name": "자원 할당",
+      "aliases": ["resource allocation", "resourceallocation", "자원 할당", "자원할당", "resource management"],
+      "group": "Process Synchronization",
+      "description": "The assignment and management of resources among competing processes.",
+      "importance": 4,
+      "concept_difficulty": 3
+    },
+    {
+      "concept_id": "os_virtual_memory",
+      "canonical_name": "Virtual Memory",
+      "korean_name": "가상 메모리",
+      "aliases": ["virtual memory", "virtualmemory", "가상 메모리", "가상메모리", "paging memory"],
+      "group": "Memory Management",
+      "description": "A memory management technique that gives processes the illusion of a large contiguous memory space.",
+      "importance": 5,
+      "concept_difficulty": 4
+    }
+  ]
+}
