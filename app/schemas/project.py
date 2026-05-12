@@ -1,13 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
 class ProjectCreate(BaseModel):
     user_id: int
-    project_name: str
+    project_domain: Literal[
+        "operating_system",
+        "data_structure",
+        "algorithm",
+        "computer_network"
+    ]
     project_description: Optional[str] = None
-    project_domain: Optional[str] = None
 
 
 class ProjectResponse(BaseModel):

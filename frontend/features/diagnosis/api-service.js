@@ -23,3 +23,9 @@ export async function getApiDiagnosisStatus(projectId) {
     method: "GET",
   });
 }
+
+export async function getApiProjectGraph(projectId) {
+  return apiRequest(`/graph/${encodeURIComponent(projectId)}`, {
+    method: "GET",
+  });
+}

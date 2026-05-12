@@ -148,6 +148,7 @@ def generate_question(
         "affects": llm_result.get("affects"),
         "llm_reason": llm_result.get("llm_reason"),
     }
+<<<<<<< HEAD
 
     validated_question = validate_question_payload(
         teacher_question,
@@ -546,3 +547,28 @@ def _legacy_score_to_status(score: float) -> str:
     if score < 0.8:
         return "FAMILIAR"
     return "MASTERED"
+=======
+    """
+    raise NotImplementedError
+
+
+def calculate_score(
+    node_id: str,
+    node_name: str,
+    current_score: float,
+    difficulty: str,
+    question_type: str,
+    is_correct: bool,
+    is_skipped: bool,
+    is_primary: bool,
+) -> dict:
+    """정답 여부에 따라 이해도 score와 status 계산
+
+    반환 형식:
+    {
+      "score": float,   # 0.0 ~ 1.0
+      "status": str     # MASTERED / WEAK / UNSEEN
+    }
+    """
+    raise NotImplementedError
+>>>>>>> origin/dev

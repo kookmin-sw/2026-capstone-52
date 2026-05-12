@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import EeumIcon from "./EeumIcon";
 
 const defaultNavItems = [
   { href: "/dashboard", label: "대시보드", section: "dashboard" }
@@ -21,7 +22,7 @@ export default function AppShell({
     <main className="app-shell">
       <header className="app-shell-topbar">
         <div className="app-shell-brand">
-          <span className="app-shell-brand-mark" />
+          <EeumIcon className="app-shell-brand-mark" />
           <div>
             <p className="app-shell-brand-name">eeum</p>
             {brandSubtitle ? <p className="app-shell-brand-subtitle">{brandSubtitle}</p> : null}
