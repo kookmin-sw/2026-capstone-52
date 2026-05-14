@@ -1,4 +1,5 @@
 const DEFAULT_API_BASE_URL = "/api/backend";
+const ACCESS_TOKEN_STORAGE_KEY = "eeum-api-access-token";
 
 function getApiBaseUrl() {
   return (process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
@@ -22,10 +23,43 @@ export class ApiError extends Error {
   }
 }
 
+function canUseStorage() {
+  return typeof window !== "undefined";
+}
+
+function getStoredAccessToken() {
+  if (!canUseStorage()) {
+    return null;
+  }
+
+  return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+}
+
+export function setStoredAccessToken(token) {
+  if (!canUseStorage() || !token) {
+    return;
+  }
+
+  window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+}
+
+export function clearStoredAccessToken() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+}
+
 export async function apiRequest(path, options = {}) {
   const { body, headers, ...restOptions } = options;
   const requestHeaders = new Headers(headers || {});
   let requestBody = body;
+  const accessToken = getStoredAccessToken();
+
+  if (accessToken && !requestHeaders.has("Authorization")) {
+    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+  }
 
   const isBlobBody = typeof Blob !== "undefined" && body instanceof Blob;
 

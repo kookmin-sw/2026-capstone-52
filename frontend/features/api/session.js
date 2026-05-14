@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, setStoredAccessToken } from "./client";
 
 const CURRENT_USER_STORAGE_KEY = "eeum-current-api-user-id";
 const GOOGLE_LOGIN_STORAGE_KEY = "eeum-google-login-active";
@@ -142,6 +142,10 @@ export async function loginWithGoogleProfile({ email, nickname = null, profile_i
       profile_image,
     },
   });
+
+  if (user.access_token) {
+    setStoredAccessToken(user.access_token);
+  }
 
   setStoredUserId(user.user_id);
   setGoogleLoginActive();

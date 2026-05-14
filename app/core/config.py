@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # 로컬 테스트용 — False면 S3 업로드 건너뜀
     use_s3: bool = True
 
+    # JWT — Google 로그인 성공 후 프론트에 전달할 서비스 access token
+    jwt_secret_key: str = "change-me-in-env"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60 * 24 * 7
+
     class Config:
         env_file = ".env"
 
