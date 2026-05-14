@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class ExplanationRequest(BaseModel):
     project_id: int
-    user_id: int
+    user_id: Optional[int] = None
     node_id: Optional[str] = None
     question: str
     explanation_style: Optional[Literal["example", "concise", "step"]] = None

@@ -1,7 +1,8 @@
-import { apiRequest, setStoredAccessToken } from "./client";
+import { ApiError, apiRequest, setStoredAccessToken } from "./client";
 
 const CURRENT_USER_STORAGE_KEY = "eeum-current-api-user-id";
 const GOOGLE_LOGIN_STORAGE_KEY = "eeum-google-login-active";
+const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 
 const DEFAULT_USER_PROFILE = {
   emailPrefix: "local-dev",
@@ -55,6 +56,14 @@ export function hasGoogleLoginSession() {
   return window.localStorage.getItem(GOOGLE_LOGIN_STORAGE_KEY) === "true" && Boolean(getStoredUserId());
 }
 
+function redirectToLogin() {
+  if (!canUseStorage() || window.location.pathname === "/login") {
+    return;
+  }
+
+  window.location.assign("/login");
+}
+
 function buildLocalEmail() {
   const suffix =
     canUseStorage() && typeof crypto !== "undefined" && crypto.randomUUID
@@ -95,6 +104,22 @@ export async function getApiUser(userId) {
 }
 
 export async function ensureCurrentUser() {
+  if (isBackendApiEnabled) {
+    try {
+      const user = await apiRequest("/users/me", {
+        method: "GET",
+      });
+      setStoredUserId(user.user_id);
+      return user;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        redirectToLogin();
+      }
+
+      throw error;
+    }
+  }
+
   const storedUserId = getStoredUserId();
 
   if (storedUserId) {
@@ -162,8 +187,8 @@ export async function getCurrentUserId() {
  * @param {string | null} profileImage
  */
 export async function updateCurrentUserProfile(profile, profileImage = null) {
-  const userId = await getCurrentUserId();
-  const user = await apiRequest(`/users/${encodeURIComponent(userId)}`, {
+  const path = isBackendApiEnabled ? "/users/me" : `/users/${encodeURIComponent(await getCurrentUserId())}`;
+  const user = await apiRequest(path, {
     method: "PATCH",
     body: mapProfileToApiUpdate(profile, profileImage),
   });
