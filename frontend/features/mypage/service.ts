@@ -1,6 +1,6 @@
 import type { MyPageStats, ProfileInfo, RecentLearningRecord } from "@/types/profile";
 import { apiRequest } from "@/features/api/client";
-import { ensureCurrentUser, getCurrentUserId, mapApiUserToProfile, updateCurrentUserProfile } from "@/features/api/session";
+import { ensureCurrentUser, mapApiUserToProfile, updateCurrentUserProfile } from "@/features/api/session";
 
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
@@ -70,11 +70,10 @@ export async function getApiMyPageViewData(): Promise<{
   }
 
   const user = await ensureCurrentUser();
-  const userId = await getCurrentUserId();
   const [mypage, projects, logs] = await Promise.all([
-    apiRequest(`/mypage/${encodeURIComponent(userId)}`, { method: "GET" }).catch(() => null),
-    apiRequest(`/projects/user/${encodeURIComponent(userId)}`, { method: "GET" }),
-    apiRequest(`/learning-logs/user/${encodeURIComponent(userId)}`, { method: "GET" }).catch(() => []),
+    apiRequest("/mypage/me", { method: "GET" }).catch(() => null),
+    apiRequest("/projects/me", { method: "GET" }),
+    apiRequest("/learning-logs/me", { method: "GET" }).catch(() => []),
   ]);
   const safeProjects = Array.isArray(projects) ? (projects as ApiProject[]) : [];
   const safeLogs = Array.isArray(logs) ? (logs as ApiLearningLog[]) : [];

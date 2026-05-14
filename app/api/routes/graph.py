@@ -2,7 +2,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.core.security import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services import graph_service
 from app.schemas.graph import NodeResponse, EdgeResponse, NodeDetailResponse, RelatedChatResponse
 
@@ -10,9 +12,12 @@ router = APIRouter()
 
 
 @router.get("/me")
-def get_my_graph(user_id: str, subject: str | None = None, db: Session = Depends(get_db)):
+def get_my_graph(
+    subject: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """사용자의 전체 프로젝트 지식 그래프 반환 (subject 파라미터로 과목 필터 가능)"""
-    # TODO: 백엔드1과 JWT 시크릿 키 공유 후 헤더에서 user_id 파싱하도록 변경 (구글 로그인 연동)
     return {"success": True, "data": None, "message": "미구현"}
 
 
@@ -50,4 +55,3 @@ def get_recent_nodes(project_id: int, db: Session = Depends(get_db)):
     """최근 갱신된 노드 목록 반환 (채팅 화면 우측 패널용)"""
     nodes = graph_service.get_recent_nodes(project_id, db)
     return {"success": True, "data": [NodeResponse.model_validate(n) for n in nodes], "message": ""}
-

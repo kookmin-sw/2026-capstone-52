@@ -3,9 +3,14 @@ from app.models.learning_log import LearningLog
 from app.schemas.learning_log import LearningLogCreate
 
 
-def create_learning_log(db: Session, log_data: LearningLogCreate):
+def create_learning_log(db: Session, log_data: LearningLogCreate, user_id: int | None = None):
+    resolved_user_id = user_id if user_id is not None else log_data.user_id
+
+    if resolved_user_id is None:
+        raise ValueError("user_id가 필요합니다.")
+
     log = LearningLog(
-        user_id=log_data.user_id,
+        user_id=resolved_user_id,
         project_id=log_data.project_id,
         activity_type=log_data.activity_type,
         activity_summary=log_data.activity_summary,

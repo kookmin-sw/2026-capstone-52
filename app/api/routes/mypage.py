@@ -1,24 +1,23 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.mypage_service import get_mypage_data
 from app.utils.response import success_response, error_response
 
 router = APIRouter()
 
 
-@router.get("/{user_id}")
-def get_mypage_api(user_id: int, db: Session = Depends(get_db)):
-    result = get_mypage_data(db, user_id)
-
+def _build_mypage_response(result):
     user = result["user"]
     profile = result["profile"]
 
     if not user:
-        return error_response("사용자를 찾을 수 없습니다.")
+        return None
 
-    data = {
+    return {
         "user": {
             "user_id": user.user_id,
             "email": user.email,
@@ -54,5 +53,25 @@ def get_mypage_api(user_id: int, db: Session = Depends(get_db)):
             for l in result["recent_logs"]
         ]
     }
+
+
+@router.get("/me")
+def get_my_mypage_api(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    result = get_mypage_data(db, current_user.user_id)
+    data = _build_mypage_response(result)
+
+    if not data:
+        return error_response("사용자를 찾을 수 없습니다.")
+
+    return success_response(data, "마이페이지 조회 성공")
+
+
+@router.get("/{user_id}")
+def get_mypage_api(user_id: int, db: Session = Depends(get_db)):
+    result = get_mypage_data(db, user_id)
+    data = _build_mypage_response(result)
+
+    if not data:
+        return error_response("사용자를 찾을 수 없습니다.")
 
     return success_response(data, "마이페이지 조회 성공")

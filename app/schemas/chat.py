@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class ChatRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
     message: str
     response_type: Optional[str] = "default"
 

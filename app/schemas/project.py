@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class ProjectCreate(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
     project_domain: Literal[
         "operating_system",
         "data_structure",
