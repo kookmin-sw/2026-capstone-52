@@ -110,5 +110,6 @@ export async function saveApiProfile(profile: ProfileInfo, profileImage: string 
     return profile;
   }
 
-  return updateCurrentUserProfile(profile, profileImage);
+  await updateCurrentUserProfile(profile, profileImage);
+  return profile;
 }

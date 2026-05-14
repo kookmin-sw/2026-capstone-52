@@ -56,6 +56,25 @@ const MOCK_PROJECT_CATALOG: ProjectCatalogOption[] = [
   },
 ];
 
+const PROJECT_DOMAIN_BY_CATALOG_ID: Record<string, string> = {
+  os: "operating_system",
+  "data-structures": "data_structure",
+  network: "computer_network",
+  algorithm: "algorithm",
+};
+
+const CATALOG_ID_BY_PROJECT_DOMAIN: Record<string, string> = {
+  operating_system: "os",
+  data_structure: "data-structures",
+  computer_network: "network",
+  algorithm: "algorithm",
+  os: "os",
+  "data-structures": "data-structures",
+  network: "network",
+};
+
+const CATALOG_PROJECT_IDS = new Set(MOCK_PROJECT_CATALOG.map((project) => project.id));
+
 type ApiProject = {
   project_id: number | string;
   project_name: string;
@@ -95,11 +114,53 @@ function normalizeApiDate(value: string | null | undefined) {
 }
 
 function normalizeApiProject(project: ApiProject): Project {
+  const catalogProject = project.project_domain ? getCatalogProjectByDomain(project.project_domain) : null;
+  const catalogId = project.project_domain ? CATALOG_ID_BY_PROJECT_DOMAIN[project.project_domain] : null;
+
   return {
     id: String(project.project_id),
-    title: project.project_name,
+    title: catalogProject?.title || project.project_name,
     updatedAt: normalizeApiDate(project.last_accessed_at || project.updated_at || project.created_at),
+    domain: catalogId ? PROJECT_DOMAIN_BY_CATALOG_ID[catalogId] : project.project_domain || null,
   };
+}
+
+function getCatalogProjectByDomain(projectDomain: string) {
+  const catalogId = CATALOG_ID_BY_PROJECT_DOMAIN[projectDomain];
+  return catalogId ? MOCK_PROJECT_CATALOG.find((project) => project.id === catalogId) || null : null;
+}
+
+function isCatalogProject(project: Project) {
+  if (project.domain) {
+    return Boolean(getCatalogProjectByDomain(project.domain));
+  }
+
+  return CATALOG_PROJECT_IDS.has(project.id);
+}
+
+function getLatestApiChatUpdatedAt(logs: ApiChatLog[]) {
+  return logs.reduce((latest, log) => {
+    const chatTime = Date.parse(normalizeApiDate(log.created_at));
+    return Number.isNaN(chatTime) ? latest : Math.max(latest, chatTime);
+  }, 0);
+}
+
+async function applyApiChatUpdatedAt(project: Project): Promise<Project> {
+  try {
+    const chats = await apiRequest(`/chat/project/${encodeURIComponent(project.id)}`, {
+      method: "GET",
+    });
+    const latestChatTime = Array.isArray(chats) ? getLatestApiChatUpdatedAt(chats) : 0;
+    const projectTime = Date.parse(project.updatedAt);
+    const effectiveTime = Math.max(Number.isNaN(projectTime) ? 0 : projectTime, latestChatTime);
+
+    return {
+      ...project,
+      updatedAt: effectiveTime ? new Date(effectiveTime).toISOString() : project.updatedAt,
+    };
+  } catch {
+    return project;
+  }
 }
 
 function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLog[]): Chat {
@@ -143,49 +204,6 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
 }
 
 const DEFAULT_CHATS_BY_PROJECT: Record<string, Chat[]> = {
-  calculus: [
-    {
-      id: "calculus-chat-1",
-      projectId: "calculus",
-      title: "접선의 방정식이 왜 기울기와 연결되나요?",
-      updatedAt: "2026-04-11T16:20:00.000Z",
-      messages: [
-        {
-          id: "calculus-chat-1-assistant-1",
-          role: "assistant",
-          text: "업로드한 PDF를 바탕으로 질문할 수 있습니다. 아직 대화가 많지 않다면, 먼저 궁금한 개념이나 목표를 짧게 적어보세요.",
-        },
-        {
-          id: "calculus-chat-1-user-1",
-          role: "user",
-          text: "접선의 방정식이 왜 기울기와 연결되는지 설명해줘.",
-        },
-        {
-          id: "calculus-chat-1-assistant-2",
-          role: "assistant",
-          text: "접선은 특정 점에서 곡선의 변화를 가장 잘 대표하는 직선입니다. 그래서 그 점에서의 순간 변화율이 곧 접선의 기울기가 됩니다.",
-        },
-      ],
-    },
-    {
-      id: "calculus-chat-2",
-      projectId: "calculus",
-      title: "미분계수와 평균변화율 차이",
-      updatedAt: "2026-04-09T09:10:00.000Z",
-      messages: [
-        {
-          id: "calculus-chat-2-assistant-1",
-          role: "assistant",
-          text: "평균변화율은 두 점 사이를, 미분계수는 한 점에서의 순간 변화를 다룹니다.",
-        },
-        {
-          id: "calculus-chat-2-user-1",
-          role: "user",
-          text: "미분계수와 평균변화율 차이를 짧게 정리해줘.",
-        },
-      ],
-    },
-  ],
   os: [
     {
       id: "os-chat-1",
@@ -225,46 +243,6 @@ const DEFAULT_CHATS_BY_PROJECT: Record<string, Chat[]> = {
           id: "os-chat-2-assistant-1",
           role: "assistant",
           text: "FCFS는 먼저 들어온 작업을 끝까지 처리하고, Round Robin은 time quantum 기준으로 작업을 순환시킵니다.",
-        },
-      ],
-    },
-  ],
-  ml: [
-    {
-      id: "ml-chat-1",
-      projectId: "ml",
-      title: "정규화가 필요한 이유",
-      updatedAt: "2026-04-08T14:15:00.000Z",
-      messages: [
-        {
-          id: "ml-chat-1-user-1",
-          role: "user",
-          text: "머신러닝에서 정규화가 왜 필요한지 알려줘.",
-        },
-        {
-          id: "ml-chat-1-assistant-1",
-          role: "assistant",
-          text: "특성 간 스케일 차이가 크면 최적화가 불안정해질 수 있어서 정규화를 사용합니다.",
-        },
-      ],
-    },
-  ],
-  db: [
-    {
-      id: "db-chat-1",
-      projectId: "db",
-      title: "JOIN 종류 빠르게 복습",
-      updatedAt: "2026-04-11T08:30:00.000Z",
-      messages: [
-        {
-          id: "db-chat-1-user-1",
-          role: "user",
-          text: "INNER JOIN, LEFT JOIN, RIGHT JOIN 차이 알려줘.",
-        },
-        {
-          id: "db-chat-1-assistant-1",
-          role: "assistant",
-          text: "INNER JOIN은 교집합, LEFT JOIN은 왼쪽 기준, RIGHT JOIN은 오른쪽 기준으로 데이터를 결합합니다.",
         },
       ],
     },
@@ -374,13 +352,20 @@ function loadChatStore(): DashboardChatStore {
     }
 
     const parsed = JSON.parse(raw);
+    const parsedChatsByProject = {
+      ...clone(DEFAULT_CHATS_BY_PROJECT),
+      ...(parsed?.chatsByProject || {}),
+    } as Record<string, Chat[]>;
+    const chatsByProject = Object.fromEntries(
+      Object.entries(parsedChatsByProject).filter(([projectId]) => CATALOG_PROJECT_IDS.has(projectId)),
+    ) as Record<string, Chat[]>;
+    const nextStore = { chatsByProject };
 
-    return {
-      chatsByProject: {
-        ...clone(DEFAULT_CHATS_BY_PROJECT),
-        ...(parsed?.chatsByProject || {}),
-      },
-    };
+    if (JSON.stringify(nextStore) !== raw) {
+      window.localStorage.setItem(DASHBOARD_CHAT_STORAGE_KEY, JSON.stringify(nextStore));
+    }
+
+    return nextStore;
   } catch {
     return { chatsByProject: clone(DEFAULT_CHATS_BY_PROJECT) };
   }
@@ -471,15 +456,20 @@ export async function getProjects(): Promise<Project[]> {
       method: "GET",
     });
 
-    return Array.isArray(projects)
-      ? projects.map(normalizeApiProject).sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
-      : [];
+    if (!Array.isArray(projects)) {
+      return [];
+    }
+
+    const catalogProjects = projects.map(normalizeApiProject).filter(isCatalogProject);
+    const projectsWithChatTimes = await Promise.all(catalogProjects.map(applyApiChatUpdatedAt));
+
+    return projectsWithChatTimes.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
   }
 
   const workspaceState = loadWorkspaceState();
   const chatStore = loadChatStore();
 
-  return sortProjectsByUpdatedAt(workspaceState.projects, chatStore.chatsByProject);
+  return sortProjectsByUpdatedAt(workspaceState.projects.filter(isCatalogProject), chatStore.chatsByProject);
 }
 
 export async function getProjectCatalogOptions(): Promise<ProjectCatalogOption[]> {
@@ -510,13 +500,17 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
 
   if (isBackendApiEnabled) {
     const userId = await getCurrentUserId();
+    const projectDomain = PROJECT_DOMAIN_BY_CATALOG_ID[catalogProject.id];
+
+    if (!projectDomain) {
+      throw new Error("프로젝트 도메인 값을 찾을 수 없습니다.");
+    }
+
     const project = await apiRequest("/projects/", {
       method: "POST",
       body: {
         user_id: userId,
-        project_name: catalogProject.title,
-        project_description: catalogProject.description,
-        project_domain: catalogProject.id,
+        project_domain: projectDomain,
       },
     });
 
@@ -525,10 +519,17 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
 
   const now = new Date().toISOString();
   const catalogEntry = (projectCatalog as Record<string, { materials?: unknown[] }>)[catalogProject.id];
+  const projectDomain = PROJECT_DOMAIN_BY_CATALOG_ID[catalogProject.id];
+
+  if (!projectDomain) {
+    throw new Error("프로젝트 도메인 값을 찾을 수 없습니다.");
+  }
+
   const nextProject = {
     id: catalogProject.id,
     title: catalogProject.title,
     updatedAt: now,
+    domain: projectDomain,
   };
   const currentWorkspaceState = loadWorkspaceState();
   const nextWorkspaceState = upsertProjectState(currentWorkspaceState, nextProject);

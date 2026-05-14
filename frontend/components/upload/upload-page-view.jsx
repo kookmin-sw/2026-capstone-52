@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import EeumIcon from "@/components/common/EeumIcon";
+import WorkspaceProfileCard from "@/components/dashboard/WorkspaceProfileCard";
 import { getProjectChats, getProjects } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import {
@@ -16,6 +17,45 @@ import {
 } from "../../features/upload/service";
 import { createLearningLog } from "../../features/learning-log/service";
 import { loadWorkspaceState } from "../../features/workspace/storage";
+
+const uploadProjectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
+const uploadSidebarProjectFallbacks = ["자료구조", "알고리즘", "컴퓨터 네트워크"];
+
+function formatUploadSidebarDate(isoString) {
+  const date = new Date(isoString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "최근";
+  }
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) {
+    return "방금 전";
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}분 전`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours}시간 전`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays < 7) {
+    return `${diffDays}일 전`;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+}
 
 export default function UploadPageView({ initialProjectId = null }) {
   const router = useRouter();
@@ -151,6 +191,10 @@ export default function UploadPageView({ initialProjectId = null }) {
   }, [projectId, uploadedFiles]);
 
   const sidebarChats = useMemo(() => recentChats.slice(0, 6), [recentChats]);
+  const sidebarProjects = useMemo(() => {
+    const projectNames = [projectTitle, ...uploadSidebarProjectFallbacks].filter(Boolean);
+    return [...new Set(projectNames)].slice(0, 4);
+  }, [projectTitle]);
   const hasPendingFiles = pendingFiles.length > 0;
   const canStartAnalysis = Boolean(projectId) && pendingFiles.length > 0 && !isSubmitting;
   const dashboardHref = projectId
@@ -244,58 +288,78 @@ export default function UploadPageView({ initialProjectId = null }) {
       </header>
 
       <div className="workspace-upload-page-body">
-        <aside className="workspace-upload-page-sidebar">
-          <Link href="/" className="workspace-upload-brand" aria-label="eeum 홈">
-            <EeumIcon className="workspace-upload-brand-icon" />
-            <strong>이음</strong>
-          </Link>
+        <aside className="workspace-upload-page-sidebar workspace-sidebar">
+          <div className="workspace-sidebar-top">
+            <Link href="/" className="workspace-upload-brand workspace-brand-link" aria-label="eeum 홈">
+              <EeumIcon className="workspace-upload-brand-icon" />
+              <strong>이음</strong>
+            </Link>
 
-          <Link href="/dashboard" className="workspace-upload-create-link">
-            + 새 프로젝트 생성
-          </Link>
+            <Link href="/dashboard" className="workspace-upload-create-link workspace-create-button">
+              + 새 프로젝트 생성
+            </Link>
+          </div>
 
-          {projectTitle ? (
-            <section className="workspace-upload-sidebar-section">
-              <h2>프로젝트</h2>
-              <div className="workspace-upload-project-chip">
-                <strong>{projectTitle}</strong>
+          <div className="workspace-sidebar-main">
+            {sidebarProjects.length ? (
+              <section className="workspace-sidebar-group workspace-project-selector">
+                <div className="workspace-sidebar-heading">
+                  <span>프로젝트</span>
+                </div>
+                <div className="workspace-sidebar-section-scroll workspace-project-list">
+                  {sidebarProjects.map((title, index) => {
+                    const isActive = title === projectTitle;
+                    const dotColor = uploadProjectDotColors[index % uploadProjectDotColors.length];
+
+                    return (
+                      <Link
+                        key={`${title}-${index}`}
+                        href={isActive ? dashboardHref : "/dashboard"}
+                        className={`workspace-project-item ${isActive ? "workspace-project-item-active" : ""}`}
+                        style={{ "--workspace-project-dot-color": dotColor }}
+                      >
+                        <em />
+                        <span className="workspace-project-item-copy">
+                          <strong>{title}</strong>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="workspace-sidebar-group workspace-sidebar-group-fill">
+              <div className="workspace-sidebar-heading">
+                <span>최근 채팅</span>
               </div>
-              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
-                <strong>자료구조</strong>
-              </div>
-              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
-                <strong>알고리즘</strong>
-              </div>
-              <div className="workspace-upload-project-chip workspace-upload-project-chip-muted">
-                <strong>컴퓨터 네트워크</strong>
+              <div className="workspace-sidebar-section-scroll workspace-chat-shortcuts">
+                {sidebarChats.length ? (
+                  sidebarChats.map((chat, index) => {
+                    const chatHref = projectId
+                      ? `/dashboard?projectId=${encodeURIComponent(projectId)}&chatId=${encodeURIComponent(chat.id)}`
+                      : "/dashboard";
+
+                    return (
+                      <Link
+                        key={chat.id}
+                        href={chatHref}
+                        className={`workspace-chat-shortcut ${index === 0 ? "workspace-chat-shortcut-active" : ""}`}
+                      >
+                        <span className="workspace-chat-shortcut-title">{chat.title}</span>
+                        <small className="workspace-chat-shortcut-meta">{formatUploadSidebarDate(chat.updatedAt)}</small>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="workspace-empty-copy">최근 채팅이 없습니다.</div>
+                )}
               </div>
             </section>
-          ) : null}
+          </div>
 
-          <section className="workspace-upload-sidebar-section">
-            <h2>최근 채팅</h2>
-            <div className="workspace-upload-recent-list">
-              {sidebarChats.length ? (
-                sidebarChats.map((chat) => (
-                  <div key={chat.id} className="workspace-upload-recent-item">
-                    <span>{chat.title}</span>
-                    <em />
-                  </div>
-                ))
-              ) : (
-                <div className="workspace-empty-copy">최근 채팅이 없습니다.</div>
-              )}
-            </div>
-          </section>
-
-          <div className="workspace-upload-sidebar-footer">
-            <Link href="/mypage" className="workspace-upload-account">
-              <div className="workspace-upload-account-avatar" />
-              <div>
-                <strong>@lsshhhhhh</strong>
-                <span>마이페이지</span>
-              </div>
-            </Link>
+          <div className="workspace-sidebar-footer workspace-upload-sidebar-footer">
+            <WorkspaceProfileCard />
           </div>
         </aside>
 
@@ -341,17 +405,17 @@ export default function UploadPageView({ initialProjectId = null }) {
                   }}
                   onDrop={handleDrop}
                 >
-                  <div className="workspace-upload-dropzone-icon">↥</div>
+                  <div className="workspace-upload-dropzone-icon" aria-hidden="true">
+                    <img className="workspace-upload-dropzone-symbol" src="/icons/upload/upload.svg" alt="" />
+                  </div>
                   <strong>파일을 드래그 앤 드롭</strong>
                   <span>또는</span>
                   <button type="button" onClick={() => fileInputRef.current?.click()}>
                     파일 선택
                   </button>
-                  <small>
-                    {hasPendingFiles
-                      ? `${pendingFiles.length}개 파일이 업로드 대기 중입니다. 파일을 더 추가할 수도 있습니다.`
-                      : "PDF 파일 · 최대 50MB"}
-                  </small>
+                  {hasPendingFiles ? (
+                    <small>{pendingFiles.length}개 파일이 업로드 대기 중입니다. 파일을 더 추가할 수도 있습니다.</small>
+                  ) : null}
                 </div>
 
                 {hasPendingFiles ? (
@@ -397,7 +461,7 @@ export default function UploadPageView({ initialProjectId = null }) {
 
               <section className="workspace-upload-files-panel workspace-upload-page-files" ref={fileTableRef}>
                 <h2>업로드된 파일 목록</h2>
-                <div className="workspace-upload-files-table">
+                <div className="workspace-upload-files-table workspace-upload-files-table-uploaded">
                   <div className="workspace-upload-files-head">
                     <span>파일명</span>
                     <span>프로젝트</span>
@@ -409,7 +473,7 @@ export default function UploadPageView({ initialProjectId = null }) {
                     <div key={file.id} className="workspace-upload-files-row">
                       <div className="workspace-upload-file-name">
                         <span className="workspace-upload-file-icon">📄</span>
-                        <strong>{file.name}</strong>
+                        <span className="workspace-upload-file-title">{file.name}</span>
                       </div>
                       <span>{file.subject}</span>
                       <span>{file.uploadedAt}</span>

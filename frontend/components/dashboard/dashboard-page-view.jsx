@@ -32,17 +32,19 @@ import WorkspaceProfileCard from "./WorkspaceProfileCard";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { getDashboardProfileSummary, useProfileStore } from "@/store/profileStore";
 
+const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
+
 function ProjectCatalogModal({
   options,
   selectedOptionId,
-  selectedProjectIds,
+  selectedCatalogOptionIds,
   onSelectOption,
   onClose,
   onConfirm,
   isCreating,
   errorMessage,
 }) {
-  const availableOptions = options.filter((option) => !selectedProjectIds.includes(option.id));
+  const availableOptions = options.filter((option) => !selectedCatalogOptionIds.includes(option.id));
   const selectedOption =
     availableOptions.find((option) => option.id === selectedOptionId) || availableOptions[0] || null;
 
@@ -58,13 +60,13 @@ function ProjectCatalogModal({
           }
         }}
       >
-        <p className="workspace-modal-eyebrow">Project Catalog</p>
-        <h2 className="workspace-modal-title">학습할 프로젝트를 선택합니다</h2>
-        <p className="workspace-modal-copy">DB에서 제공할 프로젝트 목록을 mock 데이터로 먼저 연결했습니다.</p>
+        <p className="workspace-modal-eyebrow">Subject Catalog</p>
+        <h2 className="workspace-modal-title">학습할 교과목을 선택합니다</h2>
+        <p className="workspace-modal-copy">선택한 교과목 이름으로 프로젝트가 생성됩니다.</p>
 
-        <div className="workspace-catalog-list" role="radiogroup" aria-label="학습 프로젝트 선택">
+        <div className="workspace-catalog-list" role="radiogroup" aria-label="학습 교과목 선택">
           {options.map((option) => {
-            const isAlreadySelected = selectedProjectIds.includes(option.id);
+            const isAlreadySelected = selectedCatalogOptionIds.includes(option.id);
             const isSelected = selectedOption?.id === option.id;
 
             return (
@@ -81,9 +83,9 @@ function ProjectCatalogModal({
               </button>
             );
           })}
-          {!options.length ? <p className="workspace-catalog-empty">선택 가능한 프로젝트를 불러오는 중입니다.</p> : null}
+          {!options.length ? <p className="workspace-catalog-empty">선택 가능한 교과목을 불러오는 중입니다.</p> : null}
           {options.length && !availableOptions.length ? (
-            <p className="workspace-catalog-empty">모든 프로젝트가 이미 선택되었습니다.</p>
+            <p className="workspace-catalog-empty">모든 교과목이 이미 선택되었습니다.</p>
           ) : null}
         </div>
 
@@ -98,7 +100,7 @@ function ProjectCatalogModal({
             className="workspace-primary-button"
             disabled={!selectedOption || isCreating}
           >
-            {isCreating ? "선택 중..." : "선택"}
+            {isCreating ? "생성 중..." : "생성"}
           </button>
         </div>
       </form>
@@ -144,6 +146,20 @@ function ResetIcon() {
   );
 }
 
+const CATALOG_OPTION_ID_BY_PROJECT_DOMAIN = {
+  operating_system: "os",
+  data_structure: "data-structures",
+  computer_network: "network",
+  algorithm: "algorithm",
+  os: "os",
+  "data-structures": "data-structures",
+  network: "network",
+};
+
+function getSelectedCatalogOptionIds(projects) {
+  return projects.map((project) => CATALOG_OPTION_ID_BY_PROJECT_DOMAIN[project.domain] || project.id);
+}
+
 function formatUpdatedAt(isoString) {
   if (!isoString || Number.isNaN(Date.parse(isoString))) {
     return "방금 업데이트";
@@ -184,6 +200,7 @@ function ProjectSelector({
   error
 }) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId) || null;
+  const visibleProjects = isExpanded ? projects : selectedProject ? [selectedProject] : [];
 
   return (
     <section className="workspace-sidebar-group workspace-project-selector">
@@ -206,42 +223,33 @@ function ProjectSelector({
       {error ? <div className="workspace-empty-copy">{error}</div> : null}
       {!isLoading && !error && !selectedProject ? <div className="workspace-empty-copy">프로젝트가 없습니다.</div> : null}
 
-      {!isLoading && !error && selectedProject ? (
-        <div className="workspace-project-dropdown">
-          <button
-            type="button"
-            className="workspace-project-item workspace-project-toggle workspace-project-item-active"
-            onClick={onToggle}
-          >
-            <span className="workspace-project-item-copy">
-              <strong>{selectedProject.title}</strong>
-              <small>{formatUpdatedAt(selectedProject.updatedAt)}</small>
-            </span>
-            <span className={`workspace-project-chevron ${isExpanded ? "workspace-project-chevron-open" : ""}`}>
-              ▾
-            </span>
-          </button>
+      {!isLoading && !error && visibleProjects.length ? (
+        <div className={`workspace-sidebar-section-scroll workspace-project-list ${
+          isExpanded ? "workspace-project-list-open" : ""
+        }`}>
+          {visibleProjects.map((project) => {
+            const projectIndex = projects.findIndex((candidate) => candidate.id === project.id);
+            const dotColor = projectDotColors[(projectIndex >= 0 ? projectIndex : 0) % projectDotColors.length];
 
-          {isExpanded ? (
-            <div className="workspace-sidebar-section-scroll workspace-project-list">
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  type="button"
-                  className={`workspace-project-item ${
-                    selectedProjectId === project.id ? "workspace-project-item-active" : ""
-                  }`}
-                  onClick={() => onSelect(project.id)}
-                >
-                  <span className="workspace-project-item-copy">
-                    <strong>{project.title}</strong>
-                    <small>{formatUpdatedAt(project.updatedAt)}</small>
-                  </span>
-                  <em />
-                </button>
-              ))}
-            </div>
-          ) : null}
+            return (
+              <button
+                key={project.id}
+                type="button"
+                className={`workspace-project-item workspace-project-item-${project.id} ${
+                  selectedProjectId === project.id ? "workspace-project-item-active" : ""
+                }`}
+                style={{ "--workspace-project-dot-color": dotColor }}
+                onClick={() => onSelect(project.id)}
+              >
+                <em />
+                <span className="workspace-project-item-copy">
+                  <strong>
+                    {!isExpanded && selectedProjectId === project.id ? `${project.title}` : project.title}
+                  </strong>
+                </span>
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </section>
@@ -370,17 +378,17 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         setProjects(nextProjects);
         setCatalogOptions(nextCatalogOptions);
         setSelectedCatalogOptionId((current) => {
-          const selectedProjectIds = new Set(nextProjects.map((project) => project.id));
+          const selectedCatalogOptionIds = new Set(getSelectedCatalogOptionIds(nextProjects));
 
           if (
             current &&
             nextCatalogOptions.some((option) => option.id === current) &&
-            !selectedProjectIds.has(current)
+            !selectedCatalogOptionIds.has(current)
           ) {
             return current;
           }
 
-          return nextCatalogOptions.find((option) => !selectedProjectIds.has(option.id))?.id || null;
+          return nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null;
         });
         setSelectedProjectId((current) => {
           const lastOpenedProjectId =
@@ -887,14 +895,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setProjectError(null);
       const nextProject = await selectProjectFromCatalog(projectId);
       const [nextProjects, nextCatalogOptions] = await Promise.all([getProjects(), getProjectCatalogOptions()]);
-      const selectedProjectIds = new Set(nextProjects.map((project) => project.id));
+      const selectedCatalogOptionIds = new Set(getSelectedCatalogOptionIds(nextProjects));
 
       setWorkspaceState(loadWorkspaceState());
       setProjects(nextProjects);
       setCatalogOptions(nextCatalogOptions);
       setSelectedProjectId(nextProject.id);
       setSelectedChatId(null);
-      setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedProjectIds.has(option.id))?.id || null);
+      setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null);
       setIsCreateOpen(false);
       setIsProjectListExpanded(false);
     } catch (error) {
@@ -1151,13 +1159,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             onClick={() => {
               setProjectError(null);
               setSelectedCatalogOptionId((current) => {
-                const selectedProjectIds = new Set(projects.map((project) => project.id));
+                const selectedCatalogOptionIds = new Set(getSelectedCatalogOptionIds(projects));
 
-                if (current && !selectedProjectIds.has(current)) {
+                if (current && !selectedCatalogOptionIds.has(current)) {
                   return current;
                 }
 
-                return catalogOptions.find((option) => !selectedProjectIds.has(option.id))?.id || null;
+                return catalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null;
               });
               setIsCreateOpen(true);
             }}
@@ -1218,7 +1226,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                     <>
                       <div className="workspace-message-head">
                         <span className="workspace-message-badge">
-                          <EeumIcon className="workspace-message-badge-icon" isLoading={Boolean(message.isPending)} />
+                          <EeumIcon
+                            className="workspace-message-badge-icon"
+                            isLoading={Boolean(message.isPending)}
+                            variant="sparkle"
+                          />
                           <span>이음 AI</span>
                         </span>
                       </div>
@@ -1230,17 +1242,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             <span />
                           </div>
                         ) : (
-                          <p>{message.text}</p>
+                          <>
+                            <p>{message.text}</p>
+                            <div className="workspace-message-tags">
+                              <span className="workspace-message-tag workspace-message-tag-amber">
+                                부족 개념: 기아 현상
+                              </span>
+                            </div>
+                          </>
                         )}
-
-                        {!message.isPending ? (
-                          <div className="workspace-message-tags">
-                            <span className="workspace-message-tag workspace-message-tag-blue">핵심 수준: 중급</span>
-                            <span className="workspace-message-tag workspace-message-tag-amber">
-                              부족 개념: 기아 현상
-                            </span>
-                          </div>
-                        ) : null}
                       </div>
                     </>
                   ) : (
@@ -1365,6 +1375,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         interactive
                         showLabels
                         labelVariant="light"
+                        nodeSizeScale={0.7}
                         selectedNodeId={selectedGraphNodeId}
                         onNodeSelect={handleGraphNodeSelect}
                         focusNodeId={graphFocusNodeId}
@@ -1617,7 +1628,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         <ProjectCatalogModal
           options={catalogOptions}
           selectedOptionId={selectedCatalogOptionId}
-          selectedProjectIds={projects.map((project) => project.id)}
+          selectedCatalogOptionIds={getSelectedCatalogOptionIds(projects)}
           onSelectOption={setSelectedCatalogOptionId}
           onClose={() => {
             if (isCreatingProject) {

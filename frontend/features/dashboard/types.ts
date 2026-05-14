@@ -16,6 +16,7 @@ export type Project = {
   id: string;
   title: string;
   updatedAt: string;
+  domain?: string | null;
 };
 
 export type ProjectCatalogOption = {

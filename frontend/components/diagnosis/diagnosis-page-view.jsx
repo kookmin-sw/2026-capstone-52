@@ -14,6 +14,7 @@ import {
   normalizeDiagnosisQuestion,
 } from "../../features/diagnosis/model";
 import {
+  createApiDiagnosisSession,
   createApiDiagnosisQuestion,
   getApiProjectGraph,
   getApiDiagnosisStatus,
@@ -34,6 +35,8 @@ const ANALYZING_DELAY_MS = 2200;
 const FINAL_PROGRESS_DELAY_MS = 420;
 const DIAGNOSIS_REMAINING_UNITS = 12;
 const DIAGNOSIS_SECONDS_PER_UNIT = 30;
+const EEUM_SPARKLE_PATH =
+  "M 0 -38 C 3 -12 12 -3 38 0 C 12 3 3 12 0 38 C -3 12 -12 3 -38 0 C -12 -3 -3 -12 0 -38 Z";
 
 function SparkDots() {
   return (
@@ -45,11 +48,39 @@ function SparkDots() {
   );
 }
 
-function EeumMark({ withBadge = false, celebration = false }) {
+function AnalysisLoadingMark() {
   return (
-    <div className={`diagnosis-flow-eeum-mark ${celebration ? "diagnosis-flow-eeum-mark-celebration" : ""}`}>
+    <div className="diagnosis-flow-analysis-mark" aria-hidden="true">
+      <svg className="diagnosis-flow-analysis-orbit" viewBox="0 0 120 120">
+        <circle className="diagnosis-flow-analysis-orbit-track" cx="60" cy="60" r="54" />
+        <circle className="diagnosis-flow-analysis-orbit-bar" cx="60" cy="60" r="54" />
+      </svg>
+      <div className="diagnosis-flow-analysis-core">
+        <svg className="diagnosis-flow-analysis-stars" viewBox="0 0 200 200">
+          <g transform="translate(90 86)">
+            <path className="diagnosis-flow-analysis-star diagnosis-flow-analysis-star-big" d={EEUM_SPARKLE_PATH} />
+          </g>
+          <g transform="translate(128 120)">
+            <path className="diagnosis-flow-analysis-star diagnosis-flow-analysis-star-small" d={EEUM_SPARKLE_PATH} />
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function EeumMark() {
+  return (
+    <div className="diagnosis-flow-eeum-mark">
       <EeumIcon className="diagnosis-flow-eeum-icon" />
-      {withBadge ? <span className="diagnosis-flow-eeum-badge" aria-hidden="true" /> : null}
+    </div>
+  );
+}
+
+function CelebrationMark() {
+  return (
+    <div className="diagnosis-flow-celebration-mark" aria-hidden="true">
+      🎉
     </div>
   );
 }
@@ -153,9 +184,16 @@ export default function DiagnosisPageView({ projectId }) {
       setDiagnosisError(null);
 
       try {
+        const diagnosisSession = await createApiDiagnosisSession(projectId);
+        const sessionId = diagnosisSession?.session_id;
+
+        if (!sessionId) {
+          throw new Error("진단 세션을 생성하지 못했습니다.");
+        }
+
         const [question, status, graphData] = await Promise.all([
           createApiDiagnosisQuestion(projectId),
-          getApiDiagnosisStatus(projectId).catch(() => null),
+          getApiDiagnosisStatus(projectId, sessionId).catch(() => null),
           getApiProjectGraph(projectId).catch(() => null),
         ]);
 
@@ -165,13 +203,17 @@ export default function DiagnosisPageView({ projectId }) {
 
         const choices = Array.isArray(question.choices) ? question.choices : [];
         const graphNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
-        const concepts = buildApiDiagnosisConcepts(projectData, graphNodes, question);
-        const fallbackConceptId = question.node_id || "api-concept";
+        const apiQuestion = {
+          ...question,
+          node_id: question.concept_id || question.node_id,
+        };
+        const concepts = buildApiDiagnosisConcepts(projectData, graphNodes, apiQuestion);
+        const fallbackConceptId = question.concept_id || question.node_id || "api-concept";
         const normalizedQuestion = normalizeDiagnosisQuestion({
-          id: question.diagnosis_id,
-          diagnosisId: question.diagnosis_id,
+          id: question.question_id,
+          diagnosisId: question.question_id,
           type: "multiple-choice",
-          node_id: question.node_id,
+          node_id: question.concept_id || question.node_id,
           node_name: question.node_name || question.concept_name || "진단 대상 개념",
           conceptIds: question.conceptIds ||
             question.concept_ids ||
@@ -193,7 +235,7 @@ export default function DiagnosisPageView({ projectId }) {
         });
 
         setApiSession({
-          id: `api-${question.diagnosis_id}`,
+          id: sessionId,
           projectId,
           projectTitle: projectData.title,
           totalQuestions: 1,
@@ -357,8 +399,8 @@ export default function DiagnosisPageView({ projectId }) {
       setStep("analyzing");
 
       try {
-        const result = await submitApiDiagnosisAnswer(projectId, currentQuestion.diagnosisId, selectedIndex);
-        const status = await getApiDiagnosisStatus(projectId).catch(() => null);
+        const result = await submitApiDiagnosisAnswer(projectId, session.id, currentQuestion.diagnosisId, selectedIndex);
+        const status = await getApiDiagnosisStatus(projectId, session.id).catch(() => null);
         const checkedQuestion = {
           ...currentQuestion,
           correctChoiceIds: result.is_correct ? getSelectedChoiceIds(resolvedAnswer) : [],
@@ -430,7 +472,7 @@ export default function DiagnosisPageView({ projectId }) {
   }
 
   return (
-    <main className="diagnosis-flow-shell">
+    <main className={`diagnosis-flow-shell diagnosis-flow-shell-${step}`}>
       <div className="diagnosis-flow-orb diagnosis-flow-orb-left" aria-hidden="true" />
       <div className="diagnosis-flow-orb diagnosis-flow-orb-right" aria-hidden="true" />
       <div className="diagnosis-flow-stars" aria-hidden="true" />
@@ -438,7 +480,7 @@ export default function DiagnosisPageView({ projectId }) {
       {step === "intro" ? (
         <section className="diagnosis-flow-centered">
           <div className="diagnosis-flow-copy diagnosis-flow-intro-copy">
-            <EeumMark withBadge />
+            <EeumMark />
             <h1>이음이 나를 알아가는 시간이에요</h1>
             <p>
               물음에 편하게 답해주세요.
@@ -481,7 +523,7 @@ export default function DiagnosisPageView({ projectId }) {
             </div>
             <div>
               <span>예상 남은 시간</span>
-              <strong>{remainingTimeValue}</strong>
+              <strong>약 {remainingTimeValue}</strong>
             </div>
           </section>
 
@@ -563,11 +605,9 @@ export default function DiagnosisPageView({ projectId }) {
       ) : null}
 
       {step === "analyzing" ? (
-        <section className="diagnosis-flow-centered">
+        <section className="diagnosis-flow-centered diagnosis-flow-analyzing">
           <div className="diagnosis-flow-copy diagnosis-flow-copy-wide">
-            <div className="diagnosis-flow-loader-mark">
-              <EeumMark />
-            </div>
+            <AnalysisLoadingMark />
             <h1>이음이 분석하고 있어요</h1>
             <p>나에게 맞는 학습 설정을 준비하는 중이에요</p>
             <SparkDots />
@@ -578,7 +618,7 @@ export default function DiagnosisPageView({ projectId }) {
       {step === "ready" ? (
         <section className="diagnosis-flow-centered">
           <div className="diagnosis-flow-copy diagnosis-flow-ready-copy">
-            <EeumMark celebration />
+            <CelebrationMark />
             <h1>준비됐어요!</h1>
             <p>이제 대화할 때마다 딱 맞는 설명을 드릴게요</p>
             <button type="button" className="diagnosis-flow-start-button" onClick={handleStartLearning}>

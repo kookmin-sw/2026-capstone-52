@@ -1,14 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
-} from "react";
+import dynamic from "next/dynamic";
+import type { ForceGraphMethods, LinkObject, NodeObject } from "react-force-graph-2d";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false }) as any;
 
 export type KnowledgeGraphNode = {
   id: string;
@@ -39,55 +35,49 @@ type KnowledgeGraphSceneProps = {
   resetViewKey?: string | number;
   dimmedNodeIds?: string[];
   labelVariant?: "dark" | "light";
+  nodeSizeScale?: number;
 };
 
-type MotionNode = KnowledgeGraphNode & {
-  driftX: number;
-  driftY: number;
-  phase: number;
-  pulse: number;
+type ForceNode = KnowledgeGraphNode & {
+  val: number;
+  searchText: string;
+  __seedX: number;
+  __seedY: number;
 };
 
-type ViewportState = {
-  scale: number;
-  panX: number;
-  panY: number;
+type ForceLink = KnowledgeGraphEdge & {
+  id: string;
 };
 
-type RenderedNode = MotionNode & {
-  screenX: number;
-  screenY: number;
-  radius: number;
-};
+const MIN_HEIGHT = 220;
+const GRAPH_PADDING = 76;
+const LIGHT_BACKGROUND = "#fbfaff";
+const DARK_BACKGROUND = "#080910";
+const TRANSPARENT_BACKGROUND = "rgba(0,0,0,0)";
+const MAX_AUTO_ZOOM = 1.18;
+const MAX_FOCUS_ZOOM = 1.42;
 
-const EDGE_COLOR = "rgba(160, 196, 255, 0.18)";
-const NODE_RING = "rgba(255, 255, 255, 0.16)";
-const NODE_GLOW = "rgba(125, 211, 252, 0.12)";
-const CORE_GLOW = "rgba(245, 211, 138, 0.16)";
-const GRAPH_BACKGROUND = "rgba(42, 43, 46, 0)";
-const MIN_SCALE = 0.78;
-const MAX_SCALE = 2.4;
-const VISIBILITY_MARGIN = 72;
-const DRAG_THRESHOLD = 6;
+function getEndpointId(endpoint: string | number | NodeObject<ForceNode> | undefined) {
+  if (endpoint && typeof endpoint === "object") {
+    return String(endpoint.id);
+  }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+  return endpoint == null ? "" : String(endpoint);
 }
 
-function getNodePosition(node: MotionNode, width: number, height: number, time: number, animated: boolean) {
-  const graphDriftX = animated ? Math.sin(time * 0.00005) * width * 0.012 : 0;
-  const graphDriftY = animated ? Math.cos(time * 0.00004) * height * 0.016 : 0;
-  const orbitalX = animated ? Math.sin(time * 0.0002 + node.phase) * node.driftX : 0;
-  const orbitalY = animated ? Math.cos(time * 0.00017 + node.phase * 1.2) * node.driftY : 0;
-  const flutterX = animated ? Math.sin(time * 0.00032 + node.phase * 0.7) * 1.8 : 0;
-  const flutterY = animated ? Math.cos(time * 0.00028 + node.phase * 0.9) * 1.6 : 0;
-  const pulse = animated ? 1 + Math.sin(time * 0.0007 + node.phase) * node.pulse : 1;
+function getNodeRadius(node: ForceNode, compact: boolean, nodeSizeScale = 1) {
+  const base = compact ? 1.6 : 2.1;
+  const multiplier = compact ? 1.7 : 2.2;
 
-  return {
-    x: node.x * width + graphDriftX + orbitalX + flutterX,
-    y: node.y * height + graphDriftY + orbitalY + flutterY,
-    size: node.size * pulse,
-  };
+  return Math.max(base, node.val * multiplier) * nodeSizeScale;
+}
+
+function truncateLabel(label: string, maxLength: number) {
+  if (label.length <= maxLength) {
+    return label;
+  }
+
+  return `${label.slice(0, maxLength - 1)}…`;
 }
 
 export default function KnowledgeGraphScene({
@@ -98,133 +88,74 @@ export default function KnowledgeGraphScene({
   animated = false,
   interactive = false,
   showLabels = false,
-  selectedNodeId = null,
+  selectedNodeId,
   onNodeSelect,
   focusNodeId = null,
   resetViewKey,
   dimmedNodeIds = [],
   labelVariant = "dark",
+  nodeSizeScale = 1,
 }: KnowledgeGraphSceneProps) {
+  const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const renderedNodesRef = useRef<RenderedNode[]>([]);
-  const pointerStateRef = useRef({
-    pointerId: null as number | null,
-    startX: 0,
-    startY: 0,
-    startPanX: 0,
-    startPanY: 0,
-    moved: false,
-  });
-
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [viewport, setViewport] = useState<ViewportState>({ scale: 1, panX: 0, panY: 0 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string | null>(null);
 
-  const shouldAnimate = animated && !interactive;
-  const sizeScale = compact ? 0.46 : 1;
-  const isLightLabelVariant = labelVariant === "light";
+  const isControlledSelection = selectedNodeId !== undefined;
+  const activeSelectedNodeId = isControlledSelection ? selectedNodeId : internalSelectedNodeId;
+  const isLight = labelVariant === "light";
   const dimmedNodeIdSet = useMemo(() => new Set(dimmedNodeIds), [dimmedNodeIds]);
+  const gridLineColor = isLight ? "rgba(36,33,61,0.045)" : "rgba(255,255,255,0.045)";
+  const gridBackgroundColor = isLight ? LIGHT_BACKGROUND : DARK_BACKGROUND;
 
-  const motionNodes = useMemo<MotionNode[]>(
-    () =>
-      nodes.map((node, index) => ({
-        ...node,
-        driftX: 8 + (index % 5) * 2.4,
-        driftY: 7 + (index % 4) * 2,
-        phase: index * 0.74,
-        pulse: 0.04 + (index % 3) * 0.008,
+  const graphData = useMemo(() => {
+    const spread = compact ? 260 : 430;
+
+    return {
+      nodes: nodes.map((node) => {
+        const seedX = (node.x - 0.5) * spread;
+        const seedY = (node.y - 0.5) * spread;
+
+        return {
+          ...node,
+          x: seedX,
+          y: seedY,
+          __seedX: seedX,
+          __seedY: seedY,
+          val: Math.max(1.2, Math.min(7.5, (node.isCore ? 1.25 : 1) * node.size)),
+          searchText: node.label.toLowerCase(),
+        };
+      }),
+      links: edges.map((edge, index) => ({
+        ...edge,
+        id: `${edge.source}-${edge.target}-${index}`,
       })),
-    [nodes]
-  );
+    };
+  }, [compact, edges, nodes]);
 
-  const baseNodes = useMemo(() => {
-    if (!canvasSize.width || !canvasSize.height) {
-      return [] as Array<{ id: string; x: number; y: number; radius: number }>;
+  const connectedNodeIds = useMemo(() => {
+    if (!activeSelectedNodeId) {
+      return new Set<string>();
     }
 
-    return motionNodes.map((node) => {
-      const position = getNodePosition(node, canvasSize.width, canvasSize.height, 0, false);
+    const connected = new Set<string>([activeSelectedNodeId]);
 
-      return {
-        id: node.id,
-        x: position.x,
-        y: position.y,
-        radius: position.size * sizeScale,
-      };
-    });
-  }, [canvasSize.height, canvasSize.width, motionNodes, sizeScale]);
+    graphData.links.forEach((link) => {
+      const source = getEndpointId(link.source);
+      const target = getEndpointId(link.target);
 
-  const clampViewport = useCallback(
-    (candidate: ViewportState) => {
-      if (!interactive || !baseNodes.length || !canvasSize.width || !canvasSize.height) {
-        return candidate;
+      if (source === activeSelectedNodeId) {
+        connected.add(target);
       }
 
-      const centerX = canvasSize.width / 2;
-      const centerY = canvasSize.height / 2;
-      const bounds = baseNodes.reduce(
-        (acc, node) => ({
-          left: Math.min(acc.left, node.x - node.radius - 28),
-          right: Math.max(acc.right, node.x + node.radius + 28),
-          top: Math.min(acc.top, node.y - node.radius - 28),
-          bottom: Math.max(acc.bottom, node.y + node.radius + 28),
-        }),
-        {
-          left: Number.POSITIVE_INFINITY,
-          right: Number.NEGATIVE_INFINITY,
-          top: Number.POSITIVE_INFINITY,
-          bottom: Number.NEGATIVE_INFINITY,
-        }
-      );
-
-      const nextScale = clamp(candidate.scale, MIN_SCALE, MAX_SCALE);
-      const leftNoPan = centerX + (bounds.left - centerX) * nextScale;
-      const rightNoPan = centerX + (bounds.right - centerX) * nextScale;
-      const topNoPan = centerY + (bounds.top - centerY) * nextScale;
-      const bottomNoPan = centerY + (bounds.bottom - centerY) * nextScale;
-
-      const minPanX = VISIBILITY_MARGIN - rightNoPan;
-      const maxPanX = canvasSize.width - VISIBILITY_MARGIN - leftNoPan;
-      const minPanY = VISIBILITY_MARGIN - bottomNoPan;
-      const maxPanY = canvasSize.height - VISIBILITY_MARGIN - topNoPan;
-
-      const nextPanX =
-        minPanX > maxPanX ? (minPanX + maxPanX) / 2 : clamp(candidate.panX, minPanX, maxPanX);
-      const nextPanY =
-        minPanY > maxPanY ? (minPanY + maxPanY) / 2 : clamp(candidate.panY, minPanY, maxPanY);
-
-      return {
-        scale: nextScale,
-        panX: nextPanX,
-        panY: nextPanY,
-      };
-    },
-    [baseNodes, canvasSize.height, canvasSize.width, interactive]
-  );
-
-  const renderedLabelNodes = useMemo(() => {
-    if (!showLabels || !canvasSize.width || !canvasSize.height) {
-      return [] as RenderedNode[];
-    }
-
-    const centerX = canvasSize.width / 2;
-    const centerY = canvasSize.height / 2;
-
-    return motionNodes.map((node) => {
-      const position = getNodePosition(node, canvasSize.width, canvasSize.height, 0, false);
-      const screenX = centerX + (position.x - centerX) * viewport.scale + viewport.panX;
-      const screenY = centerY + (position.y - centerY) * viewport.scale + viewport.panY;
-
-      return {
-        ...node,
-        screenX,
-        screenY,
-        radius: position.size * sizeScale * viewport.scale,
-      };
+      if (target === activeSelectedNodeId) {
+        connected.add(source);
+      }
     });
-  }, [canvasSize.height, canvasSize.width, motionNodes, showLabels, sizeScale, viewport.panX, viewport.panY, viewport.scale]);
+
+    return connected;
+  }, [activeSelectedNodeId, graphData.links]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -233,464 +164,338 @@ export default function KnowledgeGraphScene({
       return;
     }
 
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
+    const updateSize = () => {
+      const rect = container.getBoundingClientRect();
+      setDimensions((current) => {
+        const next = {
+          width: Math.max(1, Math.floor(rect.width)),
+          height: Math.max(MIN_HEIGHT, Math.floor(rect.height)),
+        };
 
-      if (!entry) {
-        return;
-      }
+        return current.width === next.width && current.height === next.height ? current : next;
+      });
+    };
 
-      const nextWidth = entry.contentRect.width;
-      const nextHeight = entry.contentRect.height;
-
-      setCanvasSize((current) =>
-        current.width === nextWidth && current.height === nextHeight
-          ? current
-          : { width: nextWidth, height: nextHeight }
-      );
-    });
-
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
     observer.observe(container);
 
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!interactive) {
+    const graph = graphRef.current;
+
+    if (!graph || !graphData.nodes.length) {
       return;
     }
 
-    setViewport({ scale: 1, panX: 0, panY: 0 });
-  }, [interactive, resetViewKey]);
+    graph.d3Force("charge")?.strength?.(compact ? -42 : -86);
+    graph.d3Force("link")?.distance?.((link: LinkObject<ForceNode, ForceLink>) => {
+      const source = link.source as ForceNode | undefined;
+      const target = link.target as ForceNode | undefined;
+
+      if (source?.isCore || target?.isCore) {
+        return compact ? 38 : 78;
+      }
+
+      return compact ? 28 : 58;
+    });
+    graph.d3ReheatSimulation();
+  }, [compact, graphData]);
+
+  const fitGraphToView = useCallback((duration = 420) => {
+    const graph = graphRef.current;
+
+    if (!graph) {
+      return;
+    }
+
+    graph.zoomToFit(duration, GRAPH_PADDING);
+
+    window.setTimeout(() => {
+      const currentZoom = graph.zoom();
+
+      if (currentZoom > MAX_AUTO_ZOOM) {
+        graph.zoom(MAX_AUTO_ZOOM, 180);
+      }
+    }, duration + 30);
+  }, []);
 
   useEffect(() => {
-    if (!interactive || !focusNodeId || !baseNodes.length || !canvasSize.width || !canvasSize.height) {
+    if (!graphRef.current || !dimensions.width || !dimensions.height || !graphData.nodes.length) {
       return;
     }
 
-    const focusTarget = baseNodes.find((node) => node.id === focusNodeId);
+    const timer = window.setTimeout(() => {
+      fitGraphToView();
+    }, 220);
 
-    if (!focusTarget) {
-      return;
-    }
-
-    const centerX = canvasSize.width / 2;
-    const centerY = canvasSize.height / 2;
-
-    setViewport((current) =>
-      clampViewport({
-        ...current,
-        panX: -(focusTarget.x - centerX) * current.scale,
-        panY: -(focusTarget.y - centerY) * current.scale,
-      })
-    );
-  }, [baseNodes, canvasSize.height, canvasSize.width, clampViewport, focusNodeId, interactive]);
+    return () => window.clearTimeout(timer);
+  }, [dimensions.height, dimensions.width, fitGraphToView, graphData, resetViewKey]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-
-    if (!canvas || !canvasSize.width || !canvasSize.height) {
+    if (!focusNodeId || !graphRef.current) {
       return;
     }
 
-    const context = canvas.getContext("2d");
+    const focusNode = graphData.nodes.find((node) => node.id === focusNodeId);
 
-    if (!context) {
+    if (!focusNode) {
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvasSize.width * dpr;
-    canvas.height = canvasSize.height * dpr;
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const timer = window.setTimeout(() => {
+      graphRef.current?.centerAt(focusNode.x ?? focusNode.__seedX, focusNode.y ?? focusNode.__seedY, 520);
+      graphRef.current?.zoom(compact ? 1.18 : MAX_FOCUS_ZOOM, 520);
+    }, 120);
 
-    const draw = (time: number) => {
-      const width = canvasSize.width;
-      const height = canvasSize.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
+    return () => window.clearTimeout(timer);
+  }, [compact, focusNodeId, graphData.nodes]);
 
-      context.clearRect(0, 0, width, height);
-
-      const coreX = centerX + (shouldAnimate ? Math.sin(time * 0.00007) * width * 0.015 : 0);
-      const coreY = centerY + (shouldAnimate ? Math.cos(time * 0.00006) * height * 0.018 : 0);
-
-      const nebulaA = context.createRadialGradient(
-        coreX,
-        coreY,
-        0,
-        coreX,
-        coreY,
-        width * (compact ? 0.18 : 0.3)
-      );
-      nebulaA.addColorStop(0, compact ? "rgba(245, 211, 138, 0.1)" : "rgba(245, 211, 138, 0.16)");
-      nebulaA.addColorStop(0.34, compact ? "rgba(125, 211, 252, 0.06)" : "rgba(125, 211, 252, 0.1)");
-      nebulaA.addColorStop(0.7, compact ? "rgba(196, 181, 253, 0.04)" : "rgba(196, 181, 253, 0.07)");
-      nebulaA.addColorStop(1, GRAPH_BACKGROUND);
-      context.fillStyle = nebulaA;
-      context.fillRect(0, 0, width, height);
-
-      const nebulaB = context.createRadialGradient(
-        width * 0.28,
-        height * 0.68,
-        0,
-        width * 0.28,
-        height * 0.68,
-        width * (compact ? 0.14 : 0.24)
-      );
-      nebulaB.addColorStop(0, compact ? "rgba(249, 168, 212, 0.05)" : "rgba(249, 168, 212, 0.09)");
-      nebulaB.addColorStop(0.45, compact ? "rgba(125, 211, 252, 0.04)" : "rgba(125, 211, 252, 0.06)");
-      nebulaB.addColorStop(1, GRAPH_BACKGROUND);
-      context.fillStyle = nebulaB;
-      context.fillRect(0, 0, width, height);
-
-      const positions = new Map<string, { x: number; y: number; size: number }>();
-      const nextRenderedNodes: RenderedNode[] = [];
-
-      for (const node of motionNodes) {
-        const position = getNodePosition(node, width, height, time, shouldAnimate);
-        const screenX = centerX + (position.x - centerX) * viewport.scale + viewport.panX;
-        const screenY = centerY + (position.y - centerY) * viewport.scale + viewport.panY;
-        const radius = position.size * sizeScale * viewport.scale;
-
-        positions.set(node.id, { x: screenX, y: screenY, size: radius });
-        nextRenderedNodes.push({
-          ...node,
-          screenX,
-          screenY,
-          radius,
-        });
-      }
-
-      renderedNodesRef.current = nextRenderedNodes;
-
-      context.lineWidth = compact ? 0.65 : 0.9;
-      for (const edge of edges) {
-        const source = positions.get(edge.source);
-        const target = positions.get(edge.target);
-
-        if (!source || !target) {
-          continue;
-        }
-
-        const isDimmedEdge = dimmedNodeIdSet.has(edge.source) || dimmedNodeIdSet.has(edge.target);
-        const gradient = context.createLinearGradient(source.x, source.y, target.x, target.y);
-        gradient.addColorStop(
-          0,
-          isDimmedEdge ? "rgba(88, 91, 102, 0.05)" : compact ? "rgba(160, 196, 255, 0.1)" : EDGE_COLOR
-        );
-        gradient.addColorStop(
-          0.5,
-          isDimmedEdge ? "rgba(88, 91, 102, 0.04)" : compact ? "rgba(245, 211, 138, 0.05)" : "rgba(245, 211, 138, 0.08)"
-        );
-        gradient.addColorStop(
-          1,
-          isDimmedEdge ? "rgba(88, 91, 102, 0.02)" : compact ? "rgba(255, 255, 255, 0.015)" : "rgba(255, 255, 255, 0.03)"
-        );
-        context.strokeStyle = gradient;
-        context.beginPath();
-        context.moveTo(source.x, source.y);
-        context.lineTo(target.x, target.y);
-        context.stroke();
-      }
-
-      for (const node of nextRenderedNodes) {
-        const isSelected = node.id === selectedNodeId;
-        const isHovered = node.id === hoveredNodeId;
-        const isDimmed = dimmedNodeIdSet.has(node.id);
-
-        context.save();
-        context.globalAlpha = isDimmed ? 0.16 : 1;
-
-        context.beginPath();
-        context.fillStyle = node.isCore ? CORE_GLOW : NODE_GLOW;
-        context.arc(
-          node.screenX,
-          node.screenY,
-          node.radius + (node.isCore ? 34 * sizeScale : 15 * sizeScale),
-          0,
-          Math.PI * 2
-        );
-        context.fill();
-
-        context.beginPath();
-        context.fillStyle = node.color;
-        context.arc(node.screenX, node.screenY, node.radius, 0, Math.PI * 2);
-        context.fill();
-
-        context.beginPath();
-        context.strokeStyle = NODE_RING;
-        context.lineWidth = compact ? 0.8 : 1;
-        context.arc(
-          node.screenX,
-          node.screenY,
-          node.radius + (node.isCore ? 10 * sizeScale : 6 * sizeScale),
-          0,
-          Math.PI * 2
-        );
-        context.stroke();
-
-        if (isSelected || isHovered) {
-          context.beginPath();
-          context.strokeStyle = isSelected ? "rgba(255, 202, 122, 0.78)" : "rgba(255, 255, 255, 0.48)";
-          context.lineWidth = isSelected ? 2.2 : 1.2;
-          context.arc(node.screenX, node.screenY, node.radius + 12, 0, Math.PI * 2);
-          context.stroke();
-        }
-
-        context.restore();
-      }
-
-      if (shouldAnimate) {
-        frameRef.current = window.requestAnimationFrame(draw);
-      }
-    };
-
-    draw(0);
-
-    return () => {
-      if (frameRef.current) {
-        window.cancelAnimationFrame(frameRef.current);
-      }
-    };
-  }, [
-    canvasSize.height,
-    canvasSize.width,
-    compact,
-    dimmedNodeIdSet,
-    edges,
-    hoveredNodeId,
-    motionNodes,
-    selectedNodeId,
-    shouldAnimate,
-    sizeScale,
-    viewport.panX,
-    viewport.panY,
-    viewport.scale,
-  ]);
-
-  function getNodeAtPoint(clientX: number, clientY: number) {
-    const rect = containerRef.current?.getBoundingClientRect();
-
-    if (!rect) {
-      return null;
+  useEffect(() => {
+    if (animated) {
+      graphRef.current?.resumeAnimation();
+    } else if (!interactive) {
+      const timer = window.setTimeout(() => graphRef.current?.pauseAnimation(), 900);
+      return () => window.clearTimeout(timer);
     }
+  }, [animated, interactive, graphData]);
 
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
-
-    for (let index = renderedNodesRef.current.length - 1; index >= 0; index -= 1) {
-      const node = renderedNodesRef.current[index];
-      const hitRadius = Math.max(18, node.radius + 10);
-      const distance = Math.hypot(node.screenX - localX, node.screenY - localY);
-
-      if (distance <= hitRadius) {
-        return node;
-      }
-    }
-
-    return null;
-  }
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!interactive) {
-      return;
-    }
-
-    pointerStateRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startPanX: viewport.panX,
-      startPanY: viewport.panY,
-      moved: false,
-    };
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!interactive) {
-      return;
-    }
-
-    const pointerState = pointerStateRef.current;
-
-    if (pointerState.pointerId === event.pointerId) {
-      const deltaX = event.clientX - pointerState.startX;
-      const deltaY = event.clientY - pointerState.startY;
-
-      if (!pointerState.moved && Math.hypot(deltaX, deltaY) > DRAG_THRESHOLD) {
-        pointerState.moved = true;
+  const setSelected = useCallback(
+    (nodeId: string | null) => {
+      if (!isControlledSelection) {
+        setInternalSelectedNodeId(nodeId);
       }
 
-      if (pointerState.moved) {
-        setViewport(
-          clampViewport({
-            scale: viewport.scale,
-            panX: pointerState.startPanX + deltaX,
-            panY: pointerState.startPanY + deltaY,
-          })
-        );
-        setHoveredNodeId(null);
+      onNodeSelect?.(nodeId);
+    },
+    [isControlledSelection, onNodeSelect]
+  );
+
+  const drawLink = useCallback(
+    (link: LinkObject<ForceNode, ForceLink>, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      const source = link.source as ForceNode | undefined;
+      const target = link.target as ForceNode | undefined;
+
+      if (
+        !Number.isFinite(source?.x) ||
+        !Number.isFinite(source?.y) ||
+        !Number.isFinite(target?.x) ||
+        !Number.isFinite(target?.y)
+      ) {
         return;
       }
-    }
 
-    const hoveredNode = getNodeAtPoint(event.clientX, event.clientY);
-    setHoveredNodeId(hoveredNode?.id || null);
-  }
+      const sourceId = getEndpointId(source);
+      const targetId = getEndpointId(target);
+      const isSelectedLink =
+        Boolean(activeSelectedNodeId) && (sourceId === activeSelectedNodeId || targetId === activeSelectedNodeId);
+      const isDimmed =
+        dimmedNodeIdSet.has(sourceId) ||
+        dimmedNodeIdSet.has(targetId) ||
+        (Boolean(activeSelectedNodeId) && !isSelectedLink);
 
-  function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!interactive) {
-      return;
-    }
+      ctx.save();
+      ctx.globalAlpha = isDimmed ? 0.12 : 1;
+      ctx.strokeStyle = isSelectedLink
+        ? isLight
+          ? "rgba(129,124,242,0.68)"
+          : "rgba(245,211,138,0.58)"
+        : isLight
+          ? "rgba(116,112,139,0.24)"
+          : "rgba(160,196,255,0.18)";
+      ctx.lineWidth = (isSelectedLink ? 1.55 : compact ? 0.58 : 0.86) / globalScale;
+      ctx.beginPath();
+      ctx.moveTo(source!.x!, source!.y!);
+      ctx.lineTo(target!.x!, target!.y!);
+      ctx.stroke();
+      ctx.restore();
+    },
+    [activeSelectedNodeId, compact, dimmedNodeIdSet, isLight]
+  );
 
-    const pointerState = pointerStateRef.current;
+  const drawNode = useCallback(
+    (node: NodeObject<ForceNode>, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      const forceNode = node as ForceNode;
+      const isSelected = forceNode.id === activeSelectedNodeId;
+      const isHovered = forceNode.id === hoveredNodeId;
+      const isConnected = connectedNodeIds.has(forceNode.id);
+      const hasSelection = Boolean(activeSelectedNodeId);
+      const isDimmed = dimmedNodeIdSet.has(forceNode.id) || (hasSelection && !isConnected && !isHovered);
+      const radius = getNodeRadius(forceNode, compact, nodeSizeScale);
 
-    if (pointerState.pointerId !== event.pointerId) {
-      return;
-    }
+      ctx.save();
+      ctx.globalAlpha = isDimmed ? 0.18 : 1;
 
-    const hitNode = getNodeAtPoint(event.clientX, event.clientY);
-
-    if (!pointerState.moved) {
-      onNodeSelect?.(hitNode?.id || null);
-    }
-
-    pointerStateRef.current = {
-      pointerId: null,
-      startX: 0,
-      startY: 0,
-      startPanX: 0,
-      startPanY: 0,
-      moved: false,
-    };
-
-    event.currentTarget.releasePointerCapture(event.pointerId);
-    setHoveredNodeId(hitNode?.id || null);
-  }
-
-  function handlePointerLeave() {
-    if (pointerStateRef.current.pointerId === null) {
-      setHoveredNodeId(null);
-    }
-  }
-
-  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
-    if (!interactive || !canvasSize.width || !canvasSize.height) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const rect = containerRef.current?.getBoundingClientRect();
-
-    if (!rect) {
-      return;
-    }
-
-    const pointerX = event.clientX - rect.left;
-    const pointerY = event.clientY - rect.top;
-    const centerX = canvasSize.width / 2;
-    const centerY = canvasSize.height / 2;
-
-    setViewport((current) => {
-      const nextScale = clamp(current.scale * (event.deltaY < 0 ? 1.12 : 0.9), MIN_SCALE, MAX_SCALE);
-
-      if (nextScale === current.scale) {
-        return current;
+      if (forceNode.isCore || isSelected || isHovered) {
+        ctx.beginPath();
+        ctx.arc(forceNode.x!, forceNode.y!, radius + (forceNode.isCore ? 5.5 : 3.5), 0, Math.PI * 2);
+        ctx.fillStyle = isSelected
+          ? isLight
+            ? "rgba(129,124,242,0.18)"
+            : "rgba(245,211,138,0.16)"
+          : `${forceNode.color}22`;
+        ctx.fill();
       }
 
-      const panX =
-        pointerX -
-        centerX -
-        ((pointerX - centerX - current.panX) / current.scale) * nextScale;
-      const panY =
-        pointerY -
-        centerY -
-        ((pointerY - centerY - current.panY) / current.scale) * nextScale;
+      if (isSelected || isHovered) {
+        ctx.beginPath();
+        ctx.arc(forceNode.x!, forceNode.y!, radius + (isSelected ? 4.5 : 3), 0, Math.PI * 2);
+        ctx.strokeStyle = isSelected
+          ? isLight
+            ? "rgba(129,124,242,0.72)"
+            : "rgba(245,211,138,0.68)"
+          : "rgba(255,255,255,0.48)";
+        ctx.lineWidth = (isSelected ? 1.45 : 1.05) / globalScale;
+        ctx.stroke();
+      }
 
-      return clampViewport({
-        scale: nextScale,
-        panX,
-        panY,
-      });
-    });
-  }
+      ctx.beginPath();
+      ctx.arc(forceNode.x!, forceNode.y!, radius, 0, Math.PI * 2);
+      ctx.fillStyle = forceNode.color;
+      ctx.shadowColor = forceNode.color;
+      ctx.shadowBlur = isSelected ? 7 : forceNode.isCore ? 4 : compact ? 0.8 : 1.5;
+      ctx.fill();
+      ctx.shadowBlur = 0;
 
-  const cursor =
-    interactive && pointerStateRef.current.pointerId !== null && pointerStateRef.current.moved
-      ? "grabbing"
-      : interactive && hoveredNodeId
-        ? "pointer"
-        : interactive
-          ? "grab"
-          : "default";
+      if (forceNode.isCore) {
+        ctx.strokeStyle = isLight ? "rgba(255,255,255,0.92)" : "rgba(251,250,255,0.78)";
+        ctx.lineWidth = 1.15 / globalScale;
+        ctx.stroke();
+      }
+
+      const shouldDrawLabel =
+        showLabels &&
+        forceNode.label &&
+        (globalScale > 0.72 || isSelected || isHovered || forceNode.isCore);
+
+      if (shouldDrawLabel) {
+        const labelScale = Math.max(0.5, Math.min(0.92, 1 / globalScale));
+        const fontSize = (isSelected ? 11.8 : forceNode.isCore ? 10.6 : 9.3) * labelScale;
+        const label = truncateLabel(forceNode.label, forceNode.isCore ? 24 : 18);
+
+        ctx.font = `${isSelected || forceNode.isCore ? 700 : 560} ${fontSize}px "Pretendard Variable", system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = isLight
+          ? isSelected
+            ? "#24213d"
+            : "rgba(98,96,124,0.92)"
+          : isSelected
+            ? "#ffffff"
+            : "rgba(255,255,255,0.78)";
+        ctx.fillText(label, forceNode.x!, forceNode.y! + radius + 5 / globalScale);
+      }
+
+      ctx.restore();
+    },
+    [
+      activeSelectedNodeId,
+      compact,
+      connectedNodeIds,
+      dimmedNodeIdSet,
+      hoveredNodeId,
+      isLight,
+      nodeSizeScale,
+      showLabels,
+    ]
+  );
+
+  const hoverNode = useMemo(
+    () => (hoveredNodeId ? graphData.nodes.find((node) => node.id === hoveredNodeId) || null : null),
+    [graphData.nodes, hoveredNodeId]
+  );
+
+  const hasSize = dimensions.width > 0 && dimensions.height > 0;
 
   return (
     <div
       ref={containerRef}
       aria-hidden={!interactive}
       className={`relative h-full w-full overflow-hidden ${interactive ? "" : "pointer-events-none"} ${className}`}
-      style={{ cursor, touchAction: interactive ? "none" : undefined }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-      onWheel={handleWheel}
+      style={{
+        backgroundColor: gridBackgroundColor,
+      }}
     >
       <div
-        className={`absolute inset-0 ${
-          isLightLabelVariant
-            ? "bg-[radial-gradient(circle_at_50%_48%,rgba(129,124,242,0.08),rgba(250,249,255,0.9)_60%,rgba(255,255,255,1)_100%)]"
-            : compact
-            ? "bg-[radial-gradient(circle_at_50%_50%,rgba(42,43,46,0.02),rgba(42,43,46,0.12)_60%,rgba(42,43,46,0.18)_100%)]"
-            : "bg-[radial-gradient(circle_at_50%_50%,rgba(42,43,46,0.04),rgba(42,43,46,0.26)_62%,rgba(42,43,46,0.46)_100%)]"
-        }`}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `linear-gradient(${gridLineColor} 1px, transparent 1px), linear-gradient(90deg, ${gridLineColor} 1px, transparent 1px)`,
+          backgroundSize: compact ? "32px 32px" : "30px 30px",
+        }}
       />
-      <canvas ref={canvasRef} className={`h-full w-full ${compact ? "opacity-[0.94]" : "opacity-[0.82]"}`} />
+      {hasSize ? (
+        <ForceGraph2D
+          ref={graphRef}
+          graphData={graphData}
+          width={dimensions.width}
+          height={dimensions.height}
+          backgroundColor={TRANSPARENT_BACKGROUND}
+          nodeId="id"
+          nodeVal="val"
+          nodeLabel={(node: NodeObject<ForceNode>) => {
+            const forceNode = node as ForceNode;
+            return forceNode.label;
+          }}
+          nodeCanvasObject={drawNode}
+          nodePointerAreaPaint={(
+            node: NodeObject<ForceNode>,
+            color: string,
+            ctx: CanvasRenderingContext2D
+          ) => {
+            const forceNode = node as ForceNode;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(forceNode.x!, forceNode.y!, Math.max(6, getNodeRadius(forceNode, compact, nodeSizeScale) + 4), 0, Math.PI * 2);
+            ctx.fill();
+          }}
+          linkCanvasObjectMode={() => "replace"}
+          linkCanvasObject={drawLink}
+          cooldownTicks={animated ? Infinity : compact ? 90 : 150}
+          d3AlphaDecay={animated ? 0.006 : 0.018}
+          d3VelocityDecay={0.28}
+          enableNodeDrag={interactive}
+          enablePanInteraction={interactive}
+          enableZoomInteraction={interactive}
+          enablePointerInteraction={interactive}
+          minZoom={0.28}
+          maxZoom={4}
+          showPointerCursor={(item: NodeObject<ForceNode> | LinkObject<ForceNode, ForceLink> | undefined) =>
+            Boolean(interactive && item)
+          }
+          onNodeClick={(node: NodeObject<ForceNode>) => {
+            if (!interactive) {
+              return;
+            }
 
-      {showLabels ? (
-        <div className="pointer-events-none absolute inset-0">
-          {renderedLabelNodes.map((node) => {
-            const isSelected = node.id === selectedNodeId;
-            const isHovered = node.id === hoveredNodeId;
-            const isDimmed = dimmedNodeIdSet.has(node.id);
-            const top = node.screenY + node.radius + 14;
-            const fontSize = `${clamp(11 + (viewport.scale - 1) * 2.5, 11, 15)}px`;
+            setSelected(String(node.id));
+            graphRef.current?.centerAt(node.x, node.y, 520);
+            graphRef.current?.zoom(compact ? 1.18 : MAX_FOCUS_ZOOM, 520);
+          }}
+          onNodeHover={(node: NodeObject<ForceNode> | null) => setHoveredNodeId(node ? String(node.id) : null)}
+          onBackgroundClick={() => {
+            if (interactive) {
+              setSelected(null);
+            }
+          }}
+        />
+      ) : null}
 
-            return (
-              <div
-                key={node.id}
-                className={[
-                  "absolute max-w-[11rem] -translate-x-1/2 rounded-full border px-2.5 py-1 text-center leading-tight shadow-[0_10px_24px_rgba(4,6,12,0.26)] transition-all duration-150",
-                  isLightLabelVariant && isSelected
-                    ? "border-[#817cf2]/35 bg-white text-[#817cf2] shadow-[0_10px_24px_rgba(129,124,242,0.16)]"
-                    : isLightLabelVariant && isHovered
-                      ? "border-[#817cf2]/28 bg-white text-[#24213d] shadow-[0_10px_24px_rgba(42,38,73,0.12)]"
-                      : isLightLabelVariant && isDimmed
-                        ? "border-[#ddd9f4] bg-white/45 text-[#aaa6c0]"
-                        : isLightLabelVariant
-                          ? "border-[#ddd9f4] bg-white/92 text-[#74708b] shadow-[0_10px_24px_rgba(42,38,73,0.08)]"
-                          : isSelected
-                    ? "border-[#f5d38a]/70 bg-[#2d2f35]/96 text-white"
-                    : isHovered
-                      ? "border-white/25 bg-[#282a31]/94 text-white/90"
-                      : isDimmed
-                        ? "border-white/5 bg-[#1f2127]/42 text-white/20"
-                        : "border-white/10 bg-[#1f2127]/86 text-white/78",
-                ].join(" ")}
-                style={{
-                  left: node.screenX,
-                  top,
-                  fontSize,
-                }}
-              >
-                {node.label}
-              </div>
-            );
-          })}
+      {interactive && hoverNode ? (
+        <div
+          className={`pointer-events-none absolute bottom-4 left-4 max-w-[min(26rem,calc(100%-2rem))] rounded-md border px-3 py-2 shadow-[0_18px_44px_rgba(4,6,12,0.24)] ${
+            isLight
+              ? "border-[#ddd9f4] bg-white/94 text-[#24213d]"
+              : "border-white/10 bg-[#1f2127]/94 text-white"
+          }`}
+        >
+          <strong className="block truncate text-[0.82rem] font-bold">{hoverNode.label}</strong>
+          {"subtitle" in hoverNode ? (
+            <span className={`mt-1 block truncate text-[0.72rem] ${isLight ? "text-[#74708b]" : "text-white/50"}`}>
+              {String(hoverNode.subtitle || "")}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>
