@@ -2,14 +2,16 @@ import { projectCatalog } from "../project/model";
 import { apiRequest } from "../api/client";
 import { getCurrentUserId } from "../api/session";
 import {
+  createProjectMemo as createLocalProjectMemo,
+  deleteProjectMemo as deleteLocalProjectMemo,
   getDefaultWorkspaceState,
-  getProjectNote as getLocalProjectNote,
+  getProjectMemos as getLocalProjectMemos,
   loadWorkspaceState,
-  saveProjectNote as saveLocalProjectNote,
   saveWorkspaceState,
+  updateProjectMemo as updateLocalProjectMemo,
   upsertProjectState,
 } from "../workspace/storage";
-import type { Chat, DashboardChatStore, Project, ProjectCatalogOption } from "./types";
+import type { Chat, DashboardChatStore, Project, ProjectCatalogOption, ProjectMemo } from "./types";
 
 const DASHBOARD_CHAT_STORAGE_KEY = "eeum-dashboard-chats-v1";
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
@@ -93,6 +95,15 @@ type ApiChatLog = {
   created_at?: string | null;
 };
 
+type ApiProjectMemo = {
+  memo_id: number | string;
+  project_id: number | string;
+  title?: string | null;
+  content?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type ApiGraphNode = {
   node_id: string;
   project_id: number | string;
@@ -122,6 +133,17 @@ function normalizeApiProject(project: ApiProject): Project {
     title: catalogProject?.title || project.project_name,
     updatedAt: normalizeApiDate(project.last_accessed_at || project.updated_at || project.created_at),
     domain: catalogId ? PROJECT_DOMAIN_BY_CATALOG_ID[catalogId] : project.project_domain || null,
+  };
+}
+
+function normalizeApiProjectMemo(memo: ApiProjectMemo): ProjectMemo {
+  return {
+    memoId: String(memo.memo_id),
+    projectId: String(memo.project_id),
+    title: memo.title?.trim() || "Untitled",
+    content: memo.content || "",
+    createdAt: memo.created_at || null,
+    updatedAt: memo.updated_at || null,
   };
 }
 
@@ -662,32 +684,91 @@ export async function createExplanation({
   return typeof result?.explanation === "string" ? result.explanation : "";
 }
 
-export async function getProjectMemo(projectId: string): Promise<string> {
+export async function getProjectMemos(projectId: string): Promise<ProjectMemo[]> {
   if (isBackendApiEnabled) {
-    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
+    const memos = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos`, {
       method: "GET",
     });
 
-    return typeof memo?.content === "string" ? memo.content : "";
+    return Array.isArray(memos) ? memos.map((memo) => normalizeApiProjectMemo(memo)) : [];
   }
 
-  return getLocalProjectNote(loadWorkspaceState(), projectId);
+  return getLocalProjectMemos(loadWorkspaceState(), projectId);
 }
 
-export async function saveProjectMemo(projectId: string, content: string): Promise<string> {
+export async function createProjectMemo(
+  projectId: string,
+  { title, content = "" }: { title: string; content?: string }
+): Promise<ProjectMemo> {
   if (isBackendApiEnabled) {
-    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
-      method: "PATCH",
+    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos`, {
+      method: "POST",
       body: {
+        title: title.trim() || "Untitled",
         content,
       },
     });
 
-    return typeof memo?.content === "string" ? memo.content : content;
+    return normalizeApiProjectMemo(memo);
   }
 
-  const nextWorkspaceState = saveLocalProjectNote(loadWorkspaceState(), projectId, content);
-  saveWorkspaceState(nextWorkspaceState);
+  const { state, memo } = createLocalProjectMemo(loadWorkspaceState(), projectId, {
+    title: title.trim() || "Untitled",
+    content,
+  });
+  saveWorkspaceState(state);
 
-  return content;
+  return memo;
+}
+
+export async function updateProjectMemo(
+  projectId: string,
+  memoId: string,
+  { title, content }: { title?: string; content?: string }
+): Promise<ProjectMemo> {
+  if (isBackendApiEnabled) {
+    const body: { title?: string; content?: string } = {};
+
+    if (title !== undefined) {
+      body.title = title.trim() || "Untitled";
+    }
+
+    if (content !== undefined) {
+      body.content = content;
+    }
+
+    const memo = await apiRequest(
+      `/projects/${encodeURIComponent(projectId)}/memos/${encodeURIComponent(memoId)}`,
+      {
+        method: "PATCH",
+        body,
+      }
+    );
+
+    return normalizeApiProjectMemo(memo);
+  }
+
+  const { state, memo } = updateLocalProjectMemo(loadWorkspaceState(), projectId, memoId, {
+    title,
+    content,
+  });
+  saveWorkspaceState(state);
+
+  if (!memo) {
+    throw new Error("프로젝트 메모를 찾을 수 없습니다.");
+  }
+
+  return memo;
+}
+
+export async function deleteProjectMemo(projectId: string, memoId: string): Promise<void> {
+  if (isBackendApiEnabled) {
+    await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos/${encodeURIComponent(memoId)}`, {
+      method: "DELETE",
+    });
+
+    return;
+  }
+
+  saveWorkspaceState(deleteLocalProjectMemo(loadWorkspaceState(), projectId, memoId));
 }

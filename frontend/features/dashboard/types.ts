@@ -28,6 +28,15 @@ export type ProjectCatalogOption = {
   estimatedTime: string;
 };
 
+export type ProjectMemo = {
+  memoId: string;
+  projectId: string;
+  title: string;
+  content: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export type DashboardChatStore = {
   chatsByProject: Record<string, Chat[]>;
 };
