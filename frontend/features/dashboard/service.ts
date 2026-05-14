@@ -1,6 +1,6 @@
 import { projectCatalog } from "../project/model";
 import { apiRequest } from "../api/client";
-import { getCurrentUserId } from "../api/session";
+import { ensureCurrentUser } from "../api/session";
 import {
   createProjectMemo as createLocalProjectMemo,
   deleteProjectMemo as deleteLocalProjectMemo,
@@ -473,8 +473,9 @@ function buildStarterChat(projectId: string, projectTitle: string, index: number
 
 export async function getProjects(): Promise<Project[]> {
   if (isBackendApiEnabled) {
-    const userId = await getCurrentUserId();
-    const projects = await apiRequest(`/projects/user/${encodeURIComponent(userId)}`, {
+    await ensureCurrentUser();
+
+    const projects = await apiRequest("/projects/me", {
       method: "GET",
     });
 
@@ -521,7 +522,6 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
   }
 
   if (isBackendApiEnabled) {
-    const userId = await getCurrentUserId();
     const projectDomain = PROJECT_DOMAIN_BY_CATALOG_ID[catalogProject.id];
 
     if (!projectDomain) {
@@ -531,7 +531,6 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
     const project = await apiRequest("/projects/", {
       method: "POST",
       body: {
-        user_id: userId,
         project_domain: projectDomain,
       },
     });
@@ -613,12 +612,9 @@ export async function sendChatMessage(projectId: string, message: string, respon
     throw new Error("백엔드 API 모드에서만 채팅 전송을 사용할 수 있습니다.");
   }
 
-  const userId = await getCurrentUserId();
-
   return apiRequest(`/chat/${encodeURIComponent(projectId)}`, {
     method: "POST",
     body: {
-      user_id: userId,
       message,
       response_type: responseType,
     },
@@ -670,12 +666,10 @@ export async function createExplanation({
     return "";
   }
 
-  const userId = await getCurrentUserId();
   const result = await apiRequest("/explanation", {
     method: "POST",
     body: {
       project_id: projectId,
-      user_id: String(userId),
       node_id: nodeId,
       question,
     },

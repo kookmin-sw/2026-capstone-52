@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .venv/
 *.db
+*.db.bak
 .DS_Store
 .vscode/
 

@@ -12,11 +12,15 @@ SUBJECT_NAME_MAP = {
 }
 
 
-def create_project(db: Session, project_data: ProjectCreate):
+def create_project(db: Session, project_data: ProjectCreate, user_id: int | None = None):
     project_name = SUBJECT_NAME_MAP[project_data.project_domain]
+    resolved_user_id = user_id if user_id is not None else project_data.user_id
+
+    if resolved_user_id is None:
+        raise ValueError("user_id가 필요합니다.")
 
     new_project = Project(
-        user_id=project_data.user_id,
+        user_id=resolved_user_id,
         project_name=project_name,
         project_description=project_data.project_description,
         project_domain=project_data.project_domain,
@@ -27,7 +31,7 @@ def create_project(db: Session, project_data: ProjectCreate):
     db.refresh(new_project)
 
     log = LearningLog(
-        user_id=project_data.user_id,
+        user_id=resolved_user_id,
         project_id=new_project.project_id,
         activity_type="project_created",
         activity_summary=f"{new_project.project_name} 프로젝트를 생성했습니다."
@@ -41,3 +45,16 @@ def create_project(db: Session, project_data: ProjectCreate):
 
 def get_projects_by_user(db: Session, user_id: int):
     return db.query(Project).filter(Project.user_id == user_id).all()
+
+
+def get_project_by_id(db: Session, project_id: int):
+    return db.query(Project).filter(Project.project_id == project_id).first()
+
+
+def is_project_owned_by_user(db: Session, project_id: int, user_id: int):
+    return (
+        db.query(Project)
+        .filter(Project.project_id == project_id, Project.user_id == user_id)
+        .first()
+        is not None
+    )

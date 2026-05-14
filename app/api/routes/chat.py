@@ -1,13 +1,15 @@
 # 채팅 라우터 — AI 응답 반환, 그래프 자동 업데이트, 대화 기록 저장
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.security import get_optional_current_user
 from app.db.session import get_db
 from app.services import graph_service
 from app.schemas.chat import ChatRequest
 from app.models.graph import ConceptNode
-from app.models.user import UserProfile
+from app.models.project import Project
+from app.models.user import User, UserProfile
 from app.ai.chat_ai import process_chat
 from app.services.chat_service import save_chat, get_chats_by_project
 from app.utils.response import success_response
@@ -16,7 +18,12 @@ router = APIRouter()
 
 
 @router.post("/{project_id}")
-def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
+def chat(
+    project_id: int,
+    body: ChatRequest,
+    current_user: User | None = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+):
     """
     채팅 메시지 처리
     - AI 응답 생성
@@ -24,6 +31,18 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
     - 질문/답변 대화 기록 저장
     - learning_logs 자동 기록
     """
+    user_id = current_user.user_id if current_user else body.user_id
+
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="user_id 또는 인증 토큰이 필요합니다.")
+
+    if current_user:
+        project = db.query(Project).filter(Project.project_id == project_id).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+        if project.user_id != current_user.user_id:
+            raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
+
     # process_chat에 넘길 allowed_concepts 구성 — node_id 기반으로 signal 반영 시 빠른 조회용 map도 함께 생성
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     node_map = {n.node_id: n for n in nodes}
@@ -34,7 +53,7 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
     ]
 
     # explanation_style → user_state dict로 감싸서 keyword-only 인자로 전달
-    profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     user_state = {"preferred_explanation_style": profile.preferred_explanation_style} if profile else None
 
     try:
@@ -76,6 +95,7 @@ def chat(project_id: int, body: ChatRequest, db: Session = Depends(get_db)):
         project_id=project_id,
         chat_data=body,
         ai_response=ai_reply,
+        user_id=user_id,
     )
 
     data = {
