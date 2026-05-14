@@ -678,7 +678,7 @@ POST /api/explanation
 
 ```json
 {
-  "response": "AI 설명"
+  "explanation": "AI 설명"
 }
 ```
 
