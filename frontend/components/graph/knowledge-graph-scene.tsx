@@ -35,6 +35,7 @@ type KnowledgeGraphSceneProps = {
   resetViewKey?: string | number;
   dimmedNodeIds?: string[];
   labelVariant?: "dark" | "light";
+  nodeSizeScale?: number;
 };
 
 type ForceNode = KnowledgeGraphNode & {
@@ -64,11 +65,11 @@ function getEndpointId(endpoint: string | number | NodeObject<ForceNode> | undef
   return endpoint == null ? "" : String(endpoint);
 }
 
-function getNodeRadius(node: ForceNode, compact: boolean) {
+function getNodeRadius(node: ForceNode, compact: boolean, nodeSizeScale = 1) {
   const base = compact ? 1.6 : 2.1;
   const multiplier = compact ? 1.7 : 2.2;
 
-  return Math.max(base, node.val * multiplier);
+  return Math.max(base, node.val * multiplier) * nodeSizeScale;
 }
 
 function truncateLabel(label: string, maxLength: number) {
@@ -93,6 +94,7 @@ export default function KnowledgeGraphScene({
   resetViewKey,
   dimmedNodeIds = [],
   labelVariant = "dark",
+  nodeSizeScale = 1,
 }: KnowledgeGraphSceneProps) {
   const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -321,7 +323,7 @@ export default function KnowledgeGraphScene({
       const isConnected = connectedNodeIds.has(forceNode.id);
       const hasSelection = Boolean(activeSelectedNodeId);
       const isDimmed = dimmedNodeIdSet.has(forceNode.id) || (hasSelection && !isConnected && !isHovered);
-      const radius = getNodeRadius(forceNode, compact);
+      const radius = getNodeRadius(forceNode, compact, nodeSizeScale);
 
       ctx.save();
       ctx.globalAlpha = isDimmed ? 0.18 : 1;
@@ -373,7 +375,7 @@ export default function KnowledgeGraphScene({
         const fontSize = (isSelected ? 11.8 : forceNode.isCore ? 10.6 : 9.3) * labelScale;
         const label = truncateLabel(forceNode.label, forceNode.isCore ? 24 : 18);
 
-        ctx.font = `${isSelected || forceNode.isCore ? 700 : 560} ${fontSize}px Inter, system-ui, sans-serif`;
+        ctx.font = `${isSelected || forceNode.isCore ? 700 : 560} ${fontSize}px "Pretendard Variable", system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillStyle = isLight
@@ -395,6 +397,7 @@ export default function KnowledgeGraphScene({
       dimmedNodeIdSet,
       hoveredNodeId,
       isLight,
+      nodeSizeScale,
       showLabels,
     ]
   );
@@ -444,7 +447,7 @@ export default function KnowledgeGraphScene({
             const forceNode = node as ForceNode;
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(forceNode.x!, forceNode.y!, Math.max(6, getNodeRadius(forceNode, compact) + 4), 0, Math.PI * 2);
+            ctx.arc(forceNode.x!, forceNode.y!, Math.max(6, getNodeRadius(forceNode, compact, nodeSizeScale) + 4), 0, Math.PI * 2);
             ctx.fill();
           }}
           linkCanvasObjectMode={() => "replace"}

@@ -1,3 +1,5 @@
+const defaultTheme = require("tailwindcss/defaultTheme");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -12,6 +14,15 @@ module.exports = {
         accentSoft: "#b99cff",
         panel: "#3f4037",
         ink: "#f4f0e8"
+      },
+      fontFamily: {
+        sans: [
+          "\"Pretendard Variable\"",
+          "\"Apple SD Gothic Neo\"",
+          "\"Malgun Gothic\"",
+          "\"Noto Sans KR\"",
+          ...defaultTheme.fontFamily.sans
+        ]
       },
       boxShadow: {
         glow: "0 24px 80px rgba(139, 92, 246, 0.18)",

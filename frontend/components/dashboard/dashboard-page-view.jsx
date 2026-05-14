@@ -244,7 +244,7 @@ function ProjectSelector({
                 <em />
                 <span className="workspace-project-item-copy">
                   <strong>
-                    {!isExpanded && selectedProjectId === project.id ? `프로젝트명: ${project.title}` : project.title}
+                    {!isExpanded && selectedProjectId === project.id ? `${project.title}` : project.title}
                   </strong>
                 </span>
               </button>
@@ -1226,7 +1226,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                     <>
                       <div className="workspace-message-head">
                         <span className="workspace-message-badge">
-                          <EeumIcon className="workspace-message-badge-icon" isLoading={Boolean(message.isPending)} />
+                          <EeumIcon
+                            className="workspace-message-badge-icon"
+                            isLoading={Boolean(message.isPending)}
+                            variant="sparkle"
+                          />
                           <span>이음 AI</span>
                         </span>
                       </div>
@@ -1238,17 +1242,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             <span />
                           </div>
                         ) : (
-                          <p>{message.text}</p>
+                          <>
+                            <p>{message.text}</p>
+                            <div className="workspace-message-tags">
+                              <span className="workspace-message-tag workspace-message-tag-amber">
+                                부족 개념: 기아 현상
+                              </span>
+                            </div>
+                          </>
                         )}
-
-                        {!message.isPending ? (
-                          <div className="workspace-message-tags">
-                            <span className="workspace-message-tag workspace-message-tag-blue">핵심 수준: 중급</span>
-                            <span className="workspace-message-tag workspace-message-tag-amber">
-                              부족 개념: 기아 현상
-                            </span>
-                          </div>
-                        ) : null}
                       </div>
                     </>
                   ) : (
@@ -1373,6 +1375,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         interactive
                         showLabels
                         labelVariant="light"
+                        nodeSizeScale={0.7}
                         selectedNodeId={selectedGraphNodeId}
                         onNodeSelect={handleGraphNodeSelect}
                         focusNodeId={graphFocusNodeId}

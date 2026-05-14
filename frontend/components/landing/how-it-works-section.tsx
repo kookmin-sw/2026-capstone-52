@@ -1,35 +1,27 @@
-import {
-  faBullseye,
-  faComment,
-  faDiagramProject,
-  faUpload,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-
 const steps = [
   {
     number: "01",
     title: "자료 업로드",
     description: "PDF 강의자료나 정리본을 업로드하면 AI가 학습 주제를 파악합니다.",
-    icon: faUpload,
+    iconSrc: "/icons/landing/upload.svg",
   },
   {
     number: "02",
     title: "학습 수준 진단",
     description: "몇 가지 질문으로 현재 이해도와 부족한 개념을 확인합니다.",
-    icon: faBullseye,
+    iconSrc: "/icons/landing/target.svg",
   },
   {
     number: "03",
     title: "맞춤 설명",
     description: "진단 결과를 바탕으로 내 수준에 맞춘 답변을 제공합니다.",
-    icon: faComment,
+    iconSrc: "/icons/landing/talk.svg",
   },
   {
     number: "04",
     title: "지식 그래프",
     description: "학습한 개념과 관계를 그래프로 확인하고 다음 흐름을 잡습니다.",
-    icon: faDiagramProject,
+    iconSrc: "/icons/landing/triangle.svg",
   },
 ] as const;
 
@@ -64,7 +56,7 @@ export function HowItWorksSection() {
                 {step.number}
               </span>
               <div className="flex h-14 w-14 items-center justify-center rounded-[1.05rem] bg-[#f0edff] text-[#817cf2] 2xl:h-[4.25rem] 2xl:w-[4.25rem]">
-                <FontAwesomeIcon icon={step.icon} className="h-6 w-6 2xl:h-7 2xl:w-7" />
+                <img src={step.iconSrc} alt="" aria-hidden="true" className="h-6 w-6 2xl:h-7 2xl:w-7" />
               </div>
               <h3 className="mt-7 text-[1.2rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.4rem]">
                 {step.title}

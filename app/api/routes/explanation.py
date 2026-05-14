@@ -1,38 +1,32 @@
-# 맞춤 설명 라우터 — LLM 기반 설명 생성
+# 맞춤 설명 라우터 — 설명 생성 요청을 service에 위임
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.db.session import get_db
-from app.services import graph_service
 from app.schemas.explanation import ExplanationRequest
-from app.ai.explanation_ai import generate_explanation
-from app.models.user import UserProfile
+from app.services.explanation_service import generate_personalized_explanation
 
 router = APIRouter()
 
 
 @router.post("")
 def create_explanation(body: ExplanationRequest, db: Session = Depends(get_db)):
-    """사용자 질문 + 개념 정보를 기반으로 맞춤 설명 생성 후 반환"""
-    # target_concept dict 구성
-    target_concept: dict = {}
-    if body.node_id:
-        node = graph_service.get_node_by_id(body.node_id, db)
-        if node:
-            target_concept = {
-                "concept_id": node.concept_id,
-                "concept_name": node.name,
-                "description": node.description or "",
-            }
+    """사용자 질문과 그래프/진단 context를 바탕으로 맞춤 설명을 생성한다."""
+    try:
+        result = generate_personalized_explanation(
+            project_id=body.project_id,
+            user_id=body.user_id,
+            node_id=body.node_id,
+            question=body.question,
+            db=db,
+            explanation_style=body.explanation_style,
+        )
+    except ValueError as error:
+        message = str(error)
+        status_code = 404 if "찾을 수 없습니다" in message or "설명 가능한 개념이 없습니다" in message else 400
+        raise HTTPException(status_code=status_code, detail=message) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"맞춤 설명 생성 중 오류가 발생했습니다: {error}") from error
 
-    profile = db.query(UserProfile).filter(UserProfile.user_id == body.user_id).first()
-    explanation_style = profile.preferred_explanation_style if profile else "adaptive"
-
-    # body.question은 AI에 파라미터가 없어 backbone_context로 전달
-    result = generate_explanation(
-        target_concept,
-        backbone_context=body.question,
-        explanation_style=explanation_style,
-    )
-    # dict 반환 — 프론트엔드에 필요한 전체 payload를 data로 그대로 전달
     return {"success": True, "data": result, "message": ""}

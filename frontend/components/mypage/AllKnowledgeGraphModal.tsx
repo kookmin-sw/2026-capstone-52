@@ -226,6 +226,7 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
             interactive
             showLabels
             labelVariant="light"
+            nodeSizeScale={0.7}
             dimmedNodeIds={dimmedNodeIds}
             resetViewKey={resetViewKey}
           />
