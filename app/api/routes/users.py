@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.security import create_access_token
 from app.db.session import get_db
 from app.schemas.user import UserCreate, UserProfileUpdate, GoogleLoginRequest
 from app.services.user_service import create_user, get_user_by_id, get_user_profile, update_user_profile, get_or_create_google_user
@@ -29,6 +30,14 @@ def google_login_api(login_data: GoogleLoginRequest, db: Session = Depends(get_d
         "current_level": profile.current_level if profile else None,
         "preferred_explanation_style": profile.preferred_explanation_style if profile else None,
         "learning_goal": profile.learning_goal if profile else None,
+        "access_token": create_access_token(
+            {
+                "sub": str(user.user_id),
+                "user_id": user.user_id,
+                "email": user.email,
+            }
+        ),
+        "token_type": "bearer",
     }
 
     return success_response(data, "구글 로그인 성공")
