@@ -379,7 +379,7 @@ function loadChatStore(): DashboardChatStore {
       ...(parsed?.chatsByProject || {}),
     } as Record<string, Chat[]>;
     const chatsByProject = Object.fromEntries(
-      Object.entries(parsedChatsByProject).filter(([projectId]) => CATALOG_PROJECT_IDS.has(projectId)),
+      Object.entries(parsedChatsByProject).filter(([, chats]) => Array.isArray(chats)),
     ) as Record<string, Chat[]>;
     const nextStore = { chatsByProject };
 
@@ -471,6 +471,37 @@ function buildStarterChat(projectId: string, projectTitle: string, index: number
   };
 }
 
+function buildDiagnosisReportText(projectTitle: string) {
+  return [
+    `${projectTitle} 수준진단 결과를 바탕으로 학습 리포트를 정리했어요.`,
+    "핵심 개념은 어느 정도 이해하고 있지만, 일부 연결 개념은 예시와 함께 한 번 더 확인하면 좋아요.",
+    "아래 그래프에서 현재 프로젝트의 개념 흐름을 먼저 훑고, 부족한 노드부터 이어서 질문해보세요.",
+  ].join("\n");
+}
+
+function buildDiagnosisReportChat(projectId: string, projectTitle: string, index: number): Chat {
+  const now = new Date().toISOString();
+  const chatId = `${projectId}-diagnosis-report-${Date.now()}`;
+
+  return {
+    id: chatId,
+    projectId,
+    title: `수준진단 리포트 ${index}`,
+    updatedAt: now,
+    messages: [
+      {
+        id: `${chatId}-assistant-report`,
+        role: "assistant",
+        text: buildDiagnosisReportText(projectTitle),
+        variant: "diagnosis-report",
+        attachment: {
+          type: "graph-preview",
+        },
+      },
+    ],
+  };
+}
+
 export async function getProjects(): Promise<Project[]> {
   if (isBackendApiEnabled) {
     await ensureCurrentUser();
@@ -500,6 +531,9 @@ export async function getProjectCatalogOptions(): Promise<ProjectCatalogOption[]
 }
 
 export async function getProjectChats(projectId: string): Promise<Chat[]> {
+  const chatStore = loadChatStore();
+  const localChats = sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
+
   if (isBackendApiEnabled) {
     const projects = await getProjects();
     const projectTitle = projects.find((project) => project.id === projectId)?.title || `${projectId} 프로젝트`;
@@ -507,11 +541,13 @@ export async function getProjectChats(projectId: string): Promise<Chat[]> {
       method: "GET",
     });
 
-    return [buildApiThread(projectId, projectTitle, Array.isArray(chats) ? chats : [])];
+    return sortChatsByUpdatedAt([
+      ...localChats,
+      buildApiThread(projectId, projectTitle, Array.isArray(chats) ? chats : []),
+    ]);
   }
 
-  const chatStore = loadChatStore();
-  return sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
+  return localChats;
 }
 
 export async function selectProjectFromCatalog(projectId: string): Promise<Project> {
@@ -598,6 +634,26 @@ export async function createChat(projectId: string): Promise<Chat> {
   const chatStore = loadChatStore();
   const existingChats = chatStore.chatsByProject[projectId] || [];
   const nextChat = buildStarterChat(projectId, project.title, existingChats.length + 1);
+
+  chatStore.chatsByProject[projectId] = [nextChat, ...existingChats];
+  saveChatStore(chatStore);
+  persistProjectUpdatedAt(projectId, nextChat.updatedAt);
+
+  return nextChat;
+}
+
+export async function createDiagnosisReportChat(projectId: string): Promise<Chat> {
+  const projects = await getProjects();
+  const project = projects.find((item) => item.id === projectId);
+
+  if (!project) {
+    throw new Error("선택한 프로젝트를 찾을 수 없습니다.");
+  }
+
+  const chatStore = loadChatStore();
+  const existingChats = chatStore.chatsByProject[projectId] || [];
+  const existingReportCount = existingChats.filter((chat) => chat.id.includes("-diagnosis-report-")).length;
+  const nextChat = buildDiagnosisReportChat(projectId, project.title, existingReportCount + 1);
 
   chatStore.chatsByProject[projectId] = [nextChat, ...existingChats];
   saveChatStore(chatStore);

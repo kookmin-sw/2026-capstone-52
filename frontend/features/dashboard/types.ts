@@ -2,6 +2,10 @@ export type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  variant?: "diagnosis-report";
+  attachment?: {
+    type: "graph-preview";
+  };
 };
 
 export type Chat = {

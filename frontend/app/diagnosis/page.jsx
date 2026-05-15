@@ -4,7 +4,7 @@ export default async function DiagnosisPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const projectId = resolvedSearchParams?.projectId
     ? decodeURIComponent(resolvedSearchParams.projectId)
-    : "calculus";
+    : "os";
 
   return <DiagnosisPageView projectId={projectId} />;
 }

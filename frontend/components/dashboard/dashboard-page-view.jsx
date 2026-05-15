@@ -119,6 +119,77 @@ function ProjectCatalogModal({
   );
 }
 
+function ReportGraphPreview({ graph, projectTitle, onOpen }) {
+  const hasGraph = graph.nodes.length > 0;
+
+  return (
+    <button
+      type="button"
+      className="workspace-message-graph-preview"
+      onClick={onOpen}
+      disabled={!hasGraph}
+      aria-label={`${projectTitle || "프로젝트"} 지식 그래프 크게 보기`}
+    >
+      {hasGraph ? (
+        <KnowledgeGraphScene
+          nodes={graph.nodes}
+          edges={graph.edges}
+          compact
+          showLabels
+          labelVariant="light"
+          nodeSizeScale={0.62}
+          resetViewKey={`report-preview-${projectTitle || "project"}`}
+        />
+      ) : (
+        <span>아직 생성된 지식 그래프가 없습니다.</span>
+      )}
+    </button>
+  );
+}
+
+function ReportGraphOverlay({ graph, projectTitle, selectedNodeId, onSelectNode, onClose }) {
+  return (
+    <div className="workspace-report-graph-overlay" onClick={onClose}>
+      <section
+        className="workspace-report-graph-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${projectTitle || "프로젝트"} 지식 그래프`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="workspace-report-graph-header">
+          <div>
+            <strong>Knowledge Graph</strong>
+            <span>{projectTitle || "프로젝트"}</span>
+          </div>
+          <button type="button" onClick={onClose} aria-label="그래프 닫기">
+            ×
+          </button>
+        </header>
+        <div className="workspace-report-graph-canvas">
+          {graph.nodes.length ? (
+            <KnowledgeGraphScene
+              nodes={graph.nodes}
+              edges={graph.edges}
+              interactive
+              showLabels
+              labelVariant="light"
+              nodeSizeScale={0.72}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={onSelectNode}
+              onBackgroundClick={onClose}
+            />
+          ) : (
+            <div className="workspace-empty-copy workspace-report-graph-empty">
+              아직 생성된 지식 그래프가 없습니다.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function buildUpdatedConcepts(projectData, workspaceState, graphNodes = []) {
   const diagnosisEntries = (projectData.materials || [])
     .map((material) => getDiagnosisSummary(workspaceState, projectData.projectId, material.id))
@@ -353,6 +424,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [graphResetKey, setGraphResetKey] = useState(0);
   const [isGraphSearchOpen, setIsGraphSearchOpen] = useState(false);
   const [graphSearchQuery, setGraphSearchQuery] = useState("");
+  const [isReportGraphOpen, setIsReportGraphOpen] = useState(false);
+  const [selectedReportGraphNodeId, setSelectedReportGraphNodeId] = useState(null);
   const [composerText, setComposerText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [projectMemos, setProjectMemos] = useState([]);
@@ -773,6 +846,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setVisibleGraphDetailNodeId(null);
       setGraphNodeDetail(null);
       setExplanationError(null);
+      setIsReportGraphOpen(false);
+      setSelectedReportGraphNodeId(null);
       setGraphResetKey((current) => current + 1);
     } else {
       setSelectedGraphNodeId(null);
@@ -781,6 +856,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setGraphFocusNodeId(null);
       setGraphNodeDetail(null);
       setExplanationError(null);
+      setIsReportGraphOpen(false);
+      setSelectedReportGraphNodeId(null);
     }
 
     setIsGraphSearchOpen(false);
@@ -867,6 +944,12 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         return;
       }
 
+      if (isReportGraphOpen) {
+        setIsReportGraphOpen(false);
+        setSelectedReportGraphNodeId(null);
+        return;
+      }
+
       if (activeTab === "graph" && isGraphSearchOpen) {
         setIsGraphSearchOpen(false);
         setGraphSearchQuery("");
@@ -883,7 +966,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeTab, isCreateOpen, isGraphSearchOpen]);
+  }, [activeTab, isCreateOpen, isGraphSearchOpen, isReportGraphOpen]);
 
   function requestGraphFocus(nodeId) {
     setGraphFocusNodeId(null);
@@ -1447,6 +1530,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   data-message-id={message.id}
                   className={`workspace-message workspace-message-${message.role}${
                     message.isPending ? " workspace-message-pending" : ""
+                  }${message.variant ? ` workspace-message-${message.variant}` : ""
                   }`}
                 >
                   {message.role === "assistant" ? (
@@ -1474,6 +1558,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                           </>
                         )}
                       </div>
+                      {message.attachment?.type === "graph-preview" ? (
+                        <ReportGraphPreview
+                          graph={projectGraph}
+                          projectTitle={activeProjectData?.title || null}
+                          onOpen={() => {
+                            setSelectedReportGraphNodeId(projectGraph.defaultSelectedNodeId || null);
+                            setIsReportGraphOpen(true);
+                          }}
+                        />
+                      ) : null}
                     </>
                   ) : (
                     <div className="workspace-message-user-row">
@@ -1987,6 +2081,19 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           onConfirm={handleCreateProject}
           isCreating={isCreatingProject}
           errorMessage={projectError}
+        />
+      ) : null}
+
+      {isReportGraphOpen ? (
+        <ReportGraphOverlay
+          graph={projectGraph}
+          projectTitle={activeProjectData?.title || null}
+          selectedNodeId={selectedReportGraphNodeId}
+          onSelectNode={setSelectedReportGraphNodeId}
+          onClose={() => {
+            setIsReportGraphOpen(false);
+            setSelectedReportGraphNodeId(null);
+          }}
         />
       ) : null}
 
