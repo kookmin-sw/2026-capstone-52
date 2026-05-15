@@ -31,6 +31,7 @@ type KnowledgeGraphSceneProps = {
   showLabels?: boolean;
   selectedNodeId?: string | null;
   onNodeSelect?: (nodeId: string | null) => void;
+  onBackgroundClick?: () => void;
   focusNodeId?: string | null;
   resetViewKey?: string | number;
   dimmedNodeIds?: string[];
@@ -90,6 +91,7 @@ export default function KnowledgeGraphScene({
   showLabels = false,
   selectedNodeId,
   onNodeSelect,
+  onBackgroundClick,
   focusNodeId = null,
   resetViewKey,
   dimmedNodeIds = [],
@@ -477,6 +479,7 @@ export default function KnowledgeGraphScene({
           onBackgroundClick={() => {
             if (interactive) {
               setSelected(null);
+              onBackgroundClick?.();
             }
           }}
         />

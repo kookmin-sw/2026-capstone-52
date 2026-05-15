@@ -343,11 +343,14 @@ GET /api/projects/user/{user_id}
 
 프로젝트 메모:
 
-프론트 `getProjectMemo()`와 `saveProjectMemo()`는 아래 API를 호출한다.
+프론트는 백엔드의 다중 메모 CRUD API를 사용한다.
 
 ```text
-GET /api/projects/{project_id}/memo
-PATCH /api/projects/{project_id}/memo
+GET /api/projects/{project_id}/memos
+POST /api/projects/{project_id}/memos
+GET /api/projects/{project_id}/memos/{memo_id}
+PATCH /api/projects/{project_id}/memos/{memo_id}
+DELETE /api/projects/{project_id}/memos/{memo_id}
 ```
 
 현재 백엔드에는 `app/api/routes/project_memos.py`가 `/api/projects` prefix로 등록되어 있어 위 API와 연결된다.

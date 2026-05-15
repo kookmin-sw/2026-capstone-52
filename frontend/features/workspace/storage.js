@@ -39,6 +39,7 @@ const defaultWorkspaceState = {
   },
   diagnosisByProject: {},
   notesByProject: {},
+  memosByProject: {},
   lastOpenedProjectId: null
 };
 
@@ -78,6 +79,52 @@ function pickAllowedProjectEntries(entries = {}) {
   }, {});
 }
 
+function normalizeProjectMemo(projectId, memo, index = 0) {
+  const now = new Date().toISOString();
+  const memoId = memo?.memoId || memo?.id || `local-${projectId}-${Date.now()}-${index}`;
+
+  return {
+    memoId,
+    projectId,
+    title: typeof memo?.title === "string" && memo.title.trim() ? memo.title : "메모",
+    content: typeof memo?.content === "string" ? memo.content : "",
+    createdAt: memo?.createdAt || now,
+    updatedAt: memo?.updatedAt || memo?.createdAt || now
+  };
+}
+
+function sortProjectMemos(memos = []) {
+  return [...memos].sort((left, right) => {
+    const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime();
+
+    return rightTime - leftTime;
+  });
+}
+
+function pickAllowedMemoEntries(memosByProject = {}, notesByProject = {}) {
+  return ALLOWED_PROJECT_IDS.reduce((nextEntries, projectId) => {
+    const memos = Array.isArray(memosByProject[projectId])
+      ? memosByProject[projectId].map((memo, index) => normalizeProjectMemo(projectId, memo, index))
+      : [];
+    const legacyNote = typeof notesByProject[projectId] === "string" ? notesByProject[projectId] : "";
+
+    if (memos.length) {
+      nextEntries[projectId] = sortProjectMemos(memos);
+    } else if (legacyNote) {
+      nextEntries[projectId] = [
+        normalizeProjectMemo(projectId, {
+          memoId: `local-${projectId}-legacy`,
+          title: "메모",
+          content: legacyNote
+        })
+      ];
+    }
+
+    return nextEntries;
+  }, {});
+}
+
 export function loadWorkspaceState() {
   if (!canUseStorage()) {
     return getDefaultWorkspaceState();
@@ -108,6 +155,7 @@ export function loadWorkspaceState() {
       },
       diagnosisByProject: pickAllowedProjectEntries(parsed.diagnosisByProject),
       notesByProject: pickAllowedProjectEntries(parsed.notesByProject),
+      memosByProject: pickAllowedMemoEntries(parsed.memosByProject, parsed.notesByProject),
       lastOpenedProjectId
     };
 
@@ -251,6 +299,72 @@ export function saveProjectNote(state, projectId, note) {
     notesByProject: {
       ...state.notesByProject,
       [projectId]: note
+    }
+  };
+}
+
+export function getProjectMemos(state, projectId) {
+  return sortProjectMemos(state.memosByProject?.[projectId] || []);
+}
+
+export function createProjectMemo(state, projectId, { title, content = "" }) {
+  const now = new Date().toISOString();
+  const memo = {
+    memoId: `local-${projectId}-${Date.now()}`,
+    projectId,
+    title: title.trim(),
+    content,
+    createdAt: now,
+    updatedAt: now
+  };
+  const nextMemos = sortProjectMemos([memo, ...(state.memosByProject?.[projectId] || [])]);
+  const nextState = {
+    ...state,
+    memosByProject: {
+      ...state.memosByProject,
+      [projectId]: nextMemos
+    }
+  };
+
+  return { state: nextState, memo };
+}
+
+export function updateProjectMemo(state, projectId, memoId, { title, content }) {
+  const now = new Date().toISOString();
+  const currentMemos = state.memosByProject?.[projectId] || [];
+  let updatedMemo = null;
+  const nextMemos = currentMemos.map((memo) => {
+    if (memo.memoId !== memoId) {
+      return memo;
+    }
+
+    updatedMemo = {
+      ...memo,
+      title: title !== undefined ? title.trim() : memo.title,
+      content: content !== undefined ? content : memo.content,
+      updatedAt: now
+    };
+
+    return updatedMemo;
+  });
+  const sortedMemos = sortProjectMemos(nextMemos);
+  const nextState = {
+    ...state,
+    memosByProject: {
+      ...state.memosByProject,
+      [projectId]: sortedMemos
+    }
+  };
+
+  return { state: nextState, memo: updatedMemo };
+}
+
+export function deleteProjectMemo(state, projectId, memoId) {
+  return {
+    ...state,
+    memosByProject: {
+      ...state.memosByProject,
+      [projectId]: (state.memosByProject?.[projectId] || []).filter((memo) => memo.memoId !== memoId)
     }
   };
 }

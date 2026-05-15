@@ -2,16 +2,19 @@ import { projectCatalog } from "../project/model";
 import { apiRequest } from "../api/client";
 import { ensureCurrentUser } from "../api/session";
 import {
+  createProjectMemo as createLocalProjectMemo,
+  deleteProjectMemo as deleteLocalProjectMemo,
   getDefaultWorkspaceState,
-  getProjectNote as getLocalProjectNote,
+  getProjectMemos as getLocalProjectMemos,
   loadWorkspaceState,
-  saveProjectNote as saveLocalProjectNote,
   saveWorkspaceState,
+  updateProjectMemo as updateLocalProjectMemo,
   upsertProjectState,
 } from "../workspace/storage";
-import type { Chat, DashboardChatStore, Project, ProjectCatalogOption } from "./types";
+import type { Chat, DashboardChatStore, Project, ProjectCatalogOption, ProjectMemo } from "./types";
 
 const DASHBOARD_CHAT_STORAGE_KEY = "eeum-dashboard-chats-v1";
+const DASHBOARD_CHAT_STORE_VERSION = 2;
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const MOCK_CHAT_RESPONSE_DELAY_MS = 5000;
 
@@ -93,6 +96,15 @@ type ApiChatLog = {
   created_at?: string | null;
 };
 
+type ApiProjectMemo = {
+  memo_id: number | string;
+  project_id: number | string;
+  title?: string | null;
+  content?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type ApiGraphNode = {
   node_id: string;
   project_id: number | string;
@@ -122,6 +134,17 @@ function normalizeApiProject(project: ApiProject): Project {
     title: catalogProject?.title || project.project_name,
     updatedAt: normalizeApiDate(project.last_accessed_at || project.updated_at || project.created_at),
     domain: catalogId ? PROJECT_DOMAIN_BY_CATALOG_ID[catalogId] : project.project_domain || null,
+  };
+}
+
+function normalizeApiProjectMemo(memo: ApiProjectMemo): ProjectMemo {
+  return {
+    memoId: String(memo.memo_id),
+    projectId: String(memo.project_id),
+    title: memo.title?.trim() || "Untitled",
+    content: memo.content || "",
+    createdAt: memo.created_at || null,
+    updatedAt: memo.updated_at || null,
   };
 }
 
@@ -203,118 +226,52 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
   };
 }
 
-const DEFAULT_CHATS_BY_PROJECT: Record<string, Chat[]> = {
-  os: [
-    {
-      id: "os-chat-1",
-      projectId: "os",
-      title: "기아 현상이 왜 생기나요?",
-      updatedAt: "2026-04-12T04:20:00.000Z",
-      messages: [
-        {
-          id: "os-chat-1-assistant-1",
-          role: "assistant",
-          text: "우선순위가 낮은 프로세스가 계속 선점되지 못하면 기아 현상이 생길 수 있습니다.",
-        },
-        {
-          id: "os-chat-1-user-1",
-          role: "user",
-          text: "기아 현상이 왜 생기는지 예시와 함께 설명해줘.",
-        },
-        {
-          id: "os-chat-1-assistant-2",
-          role: "assistant",
-          text: "높은 우선순위 작업이 계속 들어오면 낮은 우선순위 작업은 CPU를 받지 못합니다. 이런 상태가 오래 지속되면 기아 현상이라고 부릅니다.",
-        },
-      ],
-    },
-    {
-      id: "os-chat-2",
-      projectId: "os",
-      title: "Round Robin과 FCFS 비교",
-      updatedAt: "2026-04-10T11:40:00.000Z",
-      messages: [
-        {
-          id: "os-chat-2-user-1",
-          role: "user",
-          text: "Round Robin과 FCFS의 차이를 표처럼 정리해줘.",
-        },
-        {
-          id: "os-chat-2-assistant-1",
-          role: "assistant",
-          text: "FCFS는 먼저 들어온 작업을 끝까지 처리하고, Round Robin은 time quantum 기준으로 작업을 순환시킵니다.",
-        },
-      ],
-    },
-  ],
-  network: [
-    {
-      id: "network-chat-1",
-      projectId: "network",
-      title: "TCP 3-way handshake 순서",
-      updatedAt: "2026-04-07T07:45:00.000Z",
-      messages: [
-        {
-          id: "network-chat-1-user-1",
-          role: "user",
-          text: "TCP 3-way handshake 과정을 단계별로 설명해줘.",
-        },
-        {
-          id: "network-chat-1-assistant-1",
-          role: "assistant",
-          text: "클라이언트가 SYN, 서버가 SYN-ACK, 클라이언트가 ACK를 보내며 연결을 수립합니다.",
-        },
-      ],
-    },
-  ],
-  "data-structures": [
-    {
-      id: "data-structures-chat-1",
-      projectId: "data-structures",
-      title: "스택과 큐 사용 사례",
-      updatedAt: "2026-04-12T10:30:00.000Z",
-      messages: [
-        {
-          id: "data-structures-chat-1-assistant-1",
-          role: "assistant",
-          text: "스택은 되돌리기, 함수 호출처럼 최근 항목을 먼저 처리할 때 쓰고 큐는 작업 대기열처럼 먼저 온 항목을 먼저 처리할 때 씁니다.",
-        },
-        {
-          id: "data-structures-chat-1-user-1",
-          role: "user",
-          text: "스택과 큐는 언제 다르게 쓰는지 예시로 알려줘.",
-        },
-      ],
-    },
-  ],
-  algorithm: [
-    {
-      id: "algorithm-chat-1",
-      projectId: "algorithm",
-      title: "BFS와 DFS 비교",
-      updatedAt: "2026-04-13T13:00:00.000Z",
-      messages: [
-        {
-          id: "algorithm-chat-1-user-1",
-          role: "user",
-          text: "BFS와 DFS의 차이를 짧게 비교해줘.",
-        },
-        {
-          id: "algorithm-chat-1-assistant-1",
-          role: "assistant",
-          text: "BFS는 가까운 정점부터 넓게 탐색하고, DFS는 한 경로를 깊게 내려간 뒤 되돌아오는 방식입니다.",
-        },
-      ],
-    },
-  ],
-};
-
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
 function canUseStorage() {
   return typeof window !== "undefined";
+}
+
+function createEmptyChatStore(): DashboardChatStore {
+  return {
+    version: DASHBOARD_CHAT_STORE_VERSION,
+    chatsByProject: {},
+  };
+}
+
+function isChatRecord(value: unknown): value is Chat {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const chat = value as Partial<Chat>;
+
+  return typeof chat.id === "string" && typeof chat.projectId === "string" && Array.isArray(chat.messages);
+}
+
+function isDiagnosisReportChat(chat: Chat) {
+  return chat.id.includes("-diagnosis-report-") || chat.messages.some((message) => message.variant === "diagnosis-report");
+}
+
+function shouldKeepPersistedLocalChat(chat: Chat) {
+  return isDiagnosisReportChat(chat) || chat.messages.length === 0;
+}
+
+function pickPersistedChatsByProject(chatsByProject: unknown): Record<string, Chat[]> {
+  if (!chatsByProject || typeof chatsByProject !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(chatsByProject as Record<string, unknown>)
+      .map(([projectId, chats]) => [
+        projectId,
+        Array.isArray(chats) ? chats.filter(isChatRecord).filter(shouldKeepPersistedLocalChat) : [],
+      ])
+      .filter(([, chats]) => chats.length)
+  ) as Record<string, Chat[]>;
 }
 
 function ensureWorkspaceProjectTimestamps(projects: Project[]) {
@@ -339,27 +296,30 @@ function ensureWorkspaceProjectTimestamps(projects: Project[]) {
 
 function loadChatStore(): DashboardChatStore {
   if (!canUseStorage()) {
-    return { chatsByProject: clone(DEFAULT_CHATS_BY_PROJECT) };
+    return createEmptyChatStore();
   }
 
   try {
     const raw = window.localStorage.getItem(DASHBOARD_CHAT_STORAGE_KEY);
 
     if (!raw) {
-      const seed = { chatsByProject: clone(DEFAULT_CHATS_BY_PROJECT) };
+      const seed = createEmptyChatStore();
       window.localStorage.setItem(DASHBOARD_CHAT_STORAGE_KEY, JSON.stringify(seed));
       return seed;
     }
 
     const parsed = JSON.parse(raw);
-    const parsedChatsByProject = {
-      ...clone(DEFAULT_CHATS_BY_PROJECT),
-      ...(parsed?.chatsByProject || {}),
-    } as Record<string, Chat[]>;
-    const chatsByProject = Object.fromEntries(
-      Object.entries(parsedChatsByProject).filter(([projectId]) => CATALOG_PROJECT_IDS.has(projectId)),
-    ) as Record<string, Chat[]>;
-    const nextStore = { chatsByProject };
+    if (parsed?.version !== DASHBOARD_CHAT_STORE_VERSION) {
+      const seed = createEmptyChatStore();
+      window.localStorage.setItem(DASHBOARD_CHAT_STORAGE_KEY, JSON.stringify(seed));
+      return seed;
+    }
+
+    const chatsByProject = pickPersistedChatsByProject(parsed?.chatsByProject);
+    const nextStore = {
+      version: DASHBOARD_CHAT_STORE_VERSION,
+      chatsByProject,
+    };
 
     if (JSON.stringify(nextStore) !== raw) {
       window.localStorage.setItem(DASHBOARD_CHAT_STORAGE_KEY, JSON.stringify(nextStore));
@@ -367,7 +327,7 @@ function loadChatStore(): DashboardChatStore {
 
     return nextStore;
   } catch {
-    return { chatsByProject: clone(DEFAULT_CHATS_BY_PROJECT) };
+    return createEmptyChatStore();
   }
 }
 
@@ -421,31 +381,166 @@ function sortProjectsByUpdatedAt(projects: Project[], chatsByProject: Record<str
     .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
 }
 
-function buildStarterChat(projectId: string, projectTitle: string, index: number): Chat {
+function buildStarterChat(projectId: string, index: number): Chat {
   const now = new Date().toISOString();
-  const catalogEntry = (projectCatalog as Record<string, { chatMessages?: Chat["messages"] }>)[projectId];
-  const catalogMessages = catalogEntry?.chatMessages || [];
-  const fallbackQuestion = `${projectTitle}에서 먼저 정리해야 할 핵심 개념이 뭐야?`;
 
   return {
     id: `${projectId}-chat-${Date.now()}`,
     projectId,
     title: `새 대화 ${index}`,
     updatedAt: now,
-    messages: catalogMessages.length
-      ? clone(catalogMessages)
-      : [
-          {
-            id: `${projectId}-chat-${Date.now()}-assistant-1`,
-            role: "assistant",
-            text: `${projectTitle} 프로젝트를 시작했어요. 먼저 궁금한 개념이나 목표를 짧게 적어보세요.`,
-          },
-          {
-            id: `${projectId}-chat-${Date.now()}-user-1`,
-            role: "user",
-            text: fallbackQuestion,
-          },
-        ],
+    messages: [],
+  };
+}
+
+const OS_DIAGNOSIS_PDF_FLOW_TEXT = `혜민님, 이 PDF는 운영체제의 CPU 스케줄링 중 "비례 배분 / 공정 배분" 방식을 다루는 자료입니다.
+핵심 흐름은 기존 성능 중심 스케줄링 -> 공정성 중심 스케줄링 -> Lottery Scheduling -> Stride Scheduling -> Linux CFS 순서로 이어집니다.
+
+\`\`\`text
+09. 스케줄링 - 비례 배분
+│
+├── 1. 비례 배분 스케줄링 개요
+│   ├── 기존 스케줄링: 성능 중심
+│   │   ├── Turnaround Time
+│   │   └── Response Time
+│   └── 비례 배분 스케줄링: 공정성 중심
+│       └── 각 프로세스가 정해진 비율만큼 CPU를 사용하도록 함
+│
+├── 2. Lottery Scheduling
+│   ├── 기본 개념
+│   │   └── 티켓을 많이 가진 프로세스가 CPU를 받을 확률이 높음
+│   ├── 특징
+│   │   ├── 무작위 추첨 방식
+│   │   └── 오래 실행할수록 목표 비율에 가까워짐
+│   └── 한계
+│       ├── 짧은 시간에는 정확한 비율 보장 어려움
+│       └── 티켓 배분 기준이 필요함
+│
+├── 3. Stride Scheduling
+│   ├── 등장 이유
+│   │   └── Lottery Scheduling의 무작위성 보완
+│   ├── 기본 개념
+│   │   ├── 티켓 수에 따라 stride 계산
+│   │   └── pass 값이 가장 작은 프로세스 실행
+│   └── 특징
+│       └── 무작위가 아닌 결정적 공정 배분 방식
+│
+├── 4. Linux CFS
+│   ├── 기본 개념
+│   │   └── Linux에서 사용하는 공정 스케줄러
+│   ├── 핵심 기준
+│   │   └── vruntime이 가장 작은 프로세스 선택
+│   ├── 조절 요소
+│   │   ├── sched_latency
+│   │   ├── min_granularity
+│   │   └── niceness / weight
+│   └── 특징
+│       └── 공정성과 성능 사이의 균형을 고려함
+│
+└── 5. 전체 정리
+    ├── Lottery: 확률 기반 공정 배분
+    ├── Stride: 계산 기반 공정 배분
+    └── CFS: 실제 Linux의 공정 스케줄링 방식
+\`\`\``;
+
+const OS_DIAGNOSIS_RESULT_TEXT = `이번 퀴즈 결과를 보면, 전체적으로 **비례 배분 스케줄링의 큰 흐름은 이해하고 있지만**, 세부 개념인 **Stride Scheduling의 계산 방식**과 **CFS의 vruntime / weight 관계**에서 일부 혼동이 있는 것으로 보입니다.
+
+PDF 구조상으로 보면 이해 상태는 다음과 같이 정리할 수 있습니다.
+
+\`\`\`text
+09. 스케줄링 - 비례 배분
+│
+├── 1. 비례 배분 스케줄링 개요
+│   └── 이해 상태: 양호
+│
+├── 2. Lottery Scheduling
+│   └── 이해 상태: 보통 이상
+│
+├── 3. Stride Scheduling
+│   └── 이해 상태: 보완 필요
+│
+└── 4. Linux CFS
+    └── 이해 상태: 보완 필요
+\`\`\`
+
+# 추천 학습 경로
+
+현재 상태에서는 PDF를 처음부터 다시 전부 보는 것보다, 아래 순서로 다시 보는 것이 효율적입니다.
+
+\`\`\`text
+1단계. 비례 배분의 목표 다시 확인
+   └── CPU를 빠르게 쓰는 것이 아니라 공정하게 나누는 것이 핵심
+
+2단계. Lottery Scheduling 복습
+   └── 티켓 = 확률
+   └── 짧은 시간에는 정확한 비율 보장 어려움
+
+3단계. Stride Scheduling 집중 복습
+   └── ticket, stride, pass 관계 정리
+   └── 실행 순서 예제 직접 따라가기
+
+4단계. CFS 집중 복습
+   └── vruntime이 가장 작은 프로세스 선택
+   └── weight가 vruntime 증가 속도에 미치는 영향 정리
+
+5단계. Lottery / Stride / CFS 비교
+   └── 세 방식의 차이를 표로 정리
+\`\`\``;
+
+function buildDiagnosisReportText(projectTitle: string) {
+  return [
+    `${projectTitle} 수준진단 결과를 바탕으로 학습 리포트를 정리했어요.`,
+    "핵심 개념은 어느 정도 이해하고 있지만, 일부 연결 개념은 예시와 함께 한 번 더 확인하면 좋아요.",
+    "아래 그래프에서 현재 프로젝트의 개념 흐름을 먼저 훑고, 부족한 노드부터 이어서 질문해보세요.",
+  ].join("\n");
+}
+
+function buildDiagnosisReportMessages(projectId: string, projectTitle: string, chatId: string): Chat["messages"] {
+  if (!isBackendApiEnabled && projectId === "os") {
+    return [
+      {
+        id: `${chatId}-assistant-pdf-flow`,
+        role: "assistant",
+        text: OS_DIAGNOSIS_PDF_FLOW_TEXT,
+        variant: "diagnosis-report",
+        collapsible: true,
+      },
+      {
+        id: `${chatId}-assistant-result-summary`,
+        role: "assistant",
+        text: OS_DIAGNOSIS_RESULT_TEXT,
+        variant: "diagnosis-report",
+        collapsible: true,
+        attachment: {
+          type: "graph-preview",
+        },
+      },
+    ];
+  }
+
+  return [
+    {
+      id: `${chatId}-assistant-report`,
+      role: "assistant",
+      text: buildDiagnosisReportText(projectTitle),
+      variant: "diagnosis-report",
+      attachment: {
+        type: "graph-preview",
+      },
+    },
+  ];
+}
+
+function buildDiagnosisReportChat(projectId: string, projectTitle: string, index: number): Chat {
+  const now = new Date().toISOString();
+  const chatId = `${projectId}-diagnosis-report-${Date.now()}`;
+
+  return {
+    id: chatId,
+    projectId,
+    title: !isBackendApiEnabled && projectId === "os" ? `비례 배분 스케줄링 진단 ${index}` : `수준진단 리포트 ${index}`,
+    updatedAt: now,
+    messages: buildDiagnosisReportMessages(projectId, projectTitle, chatId),
   };
 }
 
@@ -478,6 +573,9 @@ export async function getProjectCatalogOptions(): Promise<ProjectCatalogOption[]
 }
 
 export async function getProjectChats(projectId: string): Promise<Chat[]> {
+  const chatStore = loadChatStore();
+  const localChats = sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
+
   if (isBackendApiEnabled) {
     const projects = await getProjects();
     const projectTitle = projects.find((project) => project.id === projectId)?.title || `${projectId} 프로젝트`;
@@ -485,11 +583,13 @@ export async function getProjectChats(projectId: string): Promise<Chat[]> {
       method: "GET",
     });
 
-    return [buildApiThread(projectId, projectTitle, Array.isArray(chats) ? chats : [])];
+    return sortChatsByUpdatedAt([
+      ...localChats,
+      buildApiThread(projectId, projectTitle, Array.isArray(chats) ? chats : []),
+    ]);
   }
 
-  const chatStore = loadChatStore();
-  return sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
+  return localChats;
 }
 
 export async function selectProjectFromCatalog(projectId: string): Promise<Project> {
@@ -575,11 +675,36 @@ export async function createChat(projectId: string): Promise<Chat> {
 
   const chatStore = loadChatStore();
   const existingChats = chatStore.chatsByProject[projectId] || [];
-  const nextChat = buildStarterChat(projectId, project.title, existingChats.length + 1);
+  const nextChat = buildStarterChat(projectId, existingChats.length + 1);
 
   chatStore.chatsByProject[projectId] = [nextChat, ...existingChats];
   saveChatStore(chatStore);
   persistProjectUpdatedAt(projectId, nextChat.updatedAt);
+
+  return nextChat;
+}
+
+export async function createDiagnosisReportChat(projectId: string): Promise<Chat> {
+  const reportProjectId = isBackendApiEnabled ? projectId : "os";
+  const projects = await getProjects();
+  let project = projects.find((item) => item.id === reportProjectId);
+
+  if (!project && !isBackendApiEnabled && CATALOG_PROJECT_IDS.has(reportProjectId)) {
+    project = await selectProjectFromCatalog(reportProjectId);
+  }
+
+  if (!project) {
+    throw new Error("선택한 프로젝트를 찾을 수 없습니다.");
+  }
+
+  const chatStore = loadChatStore();
+  const existingChats = chatStore.chatsByProject[reportProjectId] || [];
+  const existingReportCount = existingChats.filter((chat) => chat.id.includes("-diagnosis-report-")).length;
+  const nextChat = buildDiagnosisReportChat(reportProjectId, project.title, existingReportCount + 1);
+
+  chatStore.chatsByProject[reportProjectId] = [nextChat, ...existingChats];
+  saveChatStore(chatStore);
+  persistProjectUpdatedAt(reportProjectId, nextChat.updatedAt);
 
   return nextChat;
 }
@@ -656,32 +781,91 @@ export async function createExplanation({
   return typeof result?.explanation === "string" ? result.explanation : "";
 }
 
-export async function getProjectMemo(projectId: string): Promise<string> {
+export async function getProjectMemos(projectId: string): Promise<ProjectMemo[]> {
   if (isBackendApiEnabled) {
-    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
+    const memos = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos`, {
       method: "GET",
     });
 
-    return typeof memo?.content === "string" ? memo.content : "";
+    return Array.isArray(memos) ? memos.map((memo) => normalizeApiProjectMemo(memo)) : [];
   }
 
-  return getLocalProjectNote(loadWorkspaceState(), projectId);
+  return getLocalProjectMemos(loadWorkspaceState(), projectId);
 }
 
-export async function saveProjectMemo(projectId: string, content: string): Promise<string> {
+export async function createProjectMemo(
+  projectId: string,
+  { title, content = "" }: { title: string; content?: string }
+): Promise<ProjectMemo> {
   if (isBackendApiEnabled) {
-    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memo`, {
-      method: "PATCH",
+    const memo = await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos`, {
+      method: "POST",
       body: {
+        title: title.trim() || "Untitled",
         content,
       },
     });
 
-    return typeof memo?.content === "string" ? memo.content : content;
+    return normalizeApiProjectMemo(memo);
   }
 
-  const nextWorkspaceState = saveLocalProjectNote(loadWorkspaceState(), projectId, content);
-  saveWorkspaceState(nextWorkspaceState);
+  const { state, memo } = createLocalProjectMemo(loadWorkspaceState(), projectId, {
+    title: title.trim() || "Untitled",
+    content,
+  });
+  saveWorkspaceState(state);
 
-  return content;
+  return memo;
+}
+
+export async function updateProjectMemo(
+  projectId: string,
+  memoId: string,
+  { title, content }: { title?: string; content?: string }
+): Promise<ProjectMemo> {
+  if (isBackendApiEnabled) {
+    const body: { title?: string; content?: string } = {};
+
+    if (title !== undefined) {
+      body.title = title.trim() || "Untitled";
+    }
+
+    if (content !== undefined) {
+      body.content = content;
+    }
+
+    const memo = await apiRequest(
+      `/projects/${encodeURIComponent(projectId)}/memos/${encodeURIComponent(memoId)}`,
+      {
+        method: "PATCH",
+        body,
+      }
+    );
+
+    return normalizeApiProjectMemo(memo);
+  }
+
+  const { state, memo } = updateLocalProjectMemo(loadWorkspaceState(), projectId, memoId, {
+    title,
+    content,
+  });
+  saveWorkspaceState(state);
+
+  if (!memo) {
+    throw new Error("프로젝트 메모를 찾을 수 없습니다.");
+  }
+
+  return memo;
+}
+
+export async function deleteProjectMemo(projectId: string, memoId: string): Promise<void> {
+  if (isBackendApiEnabled) {
+    await apiRequest(`/projects/${encodeURIComponent(projectId)}/memos/${encodeURIComponent(memoId)}`, {
+      method: "DELETE",
+    });
+
+    return;
+  }
+
+  saveWorkspaceState(deleteLocalProjectMemo(loadWorkspaceState(), projectId, memoId));
 }
