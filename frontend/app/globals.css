@@ -3462,6 +3462,50 @@ a {
   background: #fbfaff;
 }
 
+.workspace-graph-stage-legend {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 6;
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(29, 30, 37, 0.78);
+  color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.workspace-graph-stage-legend-item {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.workspace-graph-stage-legend-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.workspace-graph-stage-legend-item b {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+}
+
+.workspace-graph-stage-legend-item strong {
+  font: inherit;
+}
+
 .workspace-graph-canvas::before {
   content: "";
   position: absolute;
@@ -5967,6 +6011,23 @@ a {
   background: #fbfaff;
 }
 
+.workspace-graph-stage-legend {
+  top: 1.25rem;
+  right: 1.25rem;
+  border-color: #eeeef8;
+  background: rgba(255, 255, 255, 0.92);
+  color: #24213d;
+  box-shadow: 0 12px 26px rgba(45, 39, 84, 0.1);
+}
+
+.workspace-graph-stage-legend-dot {
+  box-shadow: 0 0 0 3px rgba(129, 124, 242, 0.1);
+}
+
+.workspace-graph-stage-legend-item b {
+  color: #8a859d;
+}
+
 .workspace-graph-canvas::before {
   display: none;
 }
@@ -6010,6 +6071,7 @@ a {
 .workspace-graph-detail-card-dot {
   width: 0.7rem;
   height: 0.7rem;
+  margin-top: 0.58rem;
 }
 
 .workspace-graph-detail-card strong {
@@ -6202,6 +6264,13 @@ a {
   .workspace-graph-view-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .workspace-graph-stage-legend {
+    top: 0.8rem;
+    right: 0.8rem;
+    transform: scale(0.92);
+    transform-origin: top right;
   }
 
   .workspace-graph-view-body {
