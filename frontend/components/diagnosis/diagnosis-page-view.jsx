@@ -21,7 +21,7 @@ import {
   isDiagnosisBackendApiEnabled,
   submitApiDiagnosisAnswer,
 } from "../../features/diagnosis/api-service";
-import { createChat, getProjectChats } from "../../features/dashboard/service";
+import { createDiagnosisReportChat } from "../../features/dashboard/service";
 import { createLearningLog } from "../../features/learning-log/service";
 import { getProjectData } from "../../features/project/model";
 import {
@@ -356,9 +356,8 @@ export default function DiagnosisPageView({ projectId }) {
     saveWorkspaceState(nextWorkspaceState);
 
     try {
-      const chats = await getProjectChats(targetProjectId);
-      const targetChat = chats[0] || (await createChat(targetProjectId));
-      const params = new URLSearchParams({ projectId: targetProjectId });
+      const targetChat = await createDiagnosisReportChat(targetProjectId);
+      const params = new URLSearchParams({ projectId: targetChat?.projectId || targetProjectId });
 
       if (targetChat?.id) {
         params.set("chatId", targetChat.id);

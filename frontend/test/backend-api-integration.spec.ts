@@ -161,7 +161,7 @@ test.describe("frontend-backend API integration smoke", () => {
       { label: "send chat message", matches: (call) => call.method === "POST" && /^\/api\/chat\/\d+$/.test(call.path) },
       { label: "load project graph", matches: (call) => call.method === "GET" && /^\/api\/graph\/\d+$/.test(call.path) },
       { label: "load recent graph nodes", matches: (call) => call.method === "GET" && /^\/api\/graph\/\d+\/recent$/.test(call.path) },
-      { label: "load project memo", matches: (call) => call.method === "GET" && /^\/api\/projects\/\d+\/memo$/.test(call.path) },
+      { label: "load project memos", matches: (call) => call.method === "GET" && /^\/api\/projects\/\d+\/memos$/.test(call.path) },
       { label: "load mypage", matches: (call) => call.method === "GET" && /^\/api\/mypage\/\d+$/.test(call.path) },
       { label: "load learning logs", matches: (call) => call.method === "GET" && /^\/api\/learning-logs\/user\/\d+$/.test(call.path) },
     ];

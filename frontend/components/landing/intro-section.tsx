@@ -1,32 +1,19 @@
-import {
-  faBullseye,
-  faDiagramProject,
-  faFileLines,
-  faWandMagicSparkles,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ReactNode } from "react";
 
 function FeatureCard({
-  icon,
-  iconClassName,
+  iconSrc,
   title,
   description,
   children,
 }: {
-  icon: typeof faBullseye;
-  iconClassName: string;
+  iconSrc: string;
   title: string;
   description: string;
   children: ReactNode;
 }) {
   return (
     <article className="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 px-7 py-7 shadow-[0_26px_70px_rgba(42,38,73,0.06)] backdrop-blur md:px-9 md:py-9 2xl:px-11 2xl:py-11">
-      <div
-        className={`flex h-14 w-14 items-center justify-center rounded-[1.05rem] text-[1.22rem] 2xl:h-[4.25rem] 2xl:w-[4.25rem] ${iconClassName}`}
-      >
-        <FontAwesomeIcon icon={icon} className="h-5.5 w-5.5 2xl:h-7 2xl:w-7" />
-      </div>
+      <img src={iconSrc} alt="" aria-hidden="true" className="h-14 w-14 2xl:h-[4.25rem] 2xl:w-[4.25rem]" />
       <h3 className="mt-6 text-[1.35rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.55rem]">{title}</h3>
       <p className="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">{description}</p>
       <div className="mt-7">{children}</div>
@@ -53,28 +40,43 @@ function ExplanationPreview() {
 }
 
 function MiniGraphPreview() {
-  const nodes = [
-    { label: "스케줄링", className: "left-[16%] top-[43%] bg-[#817cf2]" },
-    { label: "FCFS", className: "left-[43%] top-[21%] bg-[#62ceb0]" },
-    { label: "RR", className: "left-[43%] top-[58%] bg-[#ff9a72]" },
-    { label: "기아 현상", className: "left-[73%] top-[45%] bg-[#f36f7b]" },
-  ] as const;
-
   return (
     <div className="relative h-[171px] overflow-hidden rounded-[1rem] bg-[#f0eefb]">
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 460 150" aria-hidden="true">
-        <line x1="122" y1="77" x2="223" y2="50" stroke="#c7c1fa" strokeWidth="3" />
-        <line x1="122" y1="77" x2="224" y2="100" stroke="#c7c1fa" strokeWidth="3" />
-        <line x1="246" y1="100" x2="356" y2="78" stroke="#c7c1fa" strokeWidth="3" />
+      <svg className="h-full w-full" viewBox="0 0 600 172" role="img" aria-label="스케줄링, FCFS, RR, 기아현상이 연결된 지식 그래프">
+        <defs>
+          <filter id="landing-graph-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#4d467a" floodOpacity="0.12" />
+          </filter>
+        </defs>
+
+        <g fill="none" stroke="#bdb7f7" strokeLinecap="round" strokeWidth="4">
+          <path d="M152 88 C218 62 266 50 326 48" />
+          <path d="M152 88 C218 104 264 118 326 122" />
+          <path d="M382 122 C430 112 466 100 518 86" />
+        </g>
+
+        <g filter="url(#landing-graph-node-shadow)">
+          <g transform="translate(118 88)">
+            <circle r="30" fill="#817cf2" />
+            <text y="4" fill="#fff" fontSize="10.5" fontWeight="850" textAnchor="middle">스케줄링</text>
+          </g>
+
+          <g transform="translate(352 46)">
+            <circle r="31" fill="#62ceb0" />
+            <text y="5" fill="#fff" fontSize="13" fontWeight="850" textAnchor="middle">FCFS</text>
+          </g>
+
+          <g transform="translate(352 124)">
+            <circle r="31" fill="#ff9a72" />
+            <text y="5" fill="#fff" fontSize="13" fontWeight="850" textAnchor="middle">RR</text>
+          </g>
+
+          <g transform="translate(536 84)">
+            <circle r="31" fill="#f36f7b" />
+            <text y="4" fill="#fff" fontSize="10.5" fontWeight="850" textAnchor="middle">기아 현상</text>
+          </g>
+        </g>
       </svg>
-      {nodes.map((node) => (
-        <span
-          key={node.label}
-          className={`absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-2 text-center text-[0.74rem] font-black leading-4 text-white ${node.className}`}
-        >
-          {node.label}
-        </span>
-      ))}
     </div>
   );
 }
@@ -121,8 +123,7 @@ export function IntroSection() {
 
         <div className="mx-auto mt-20 grid w-full max-w-[1400px] gap-6 md:grid-cols-2 2xl:gap-7">
           <FeatureCard
-            icon={faBullseye}
-            iconClassName="bg-[#ebe8ff] text-[#817cf2]"
+            iconSrc="/icons/landing/landing_target.svg"
             title="학습 출발점 체크"
             description="최소 질문으로 현재 학습 상태를 확인하고, 이해·추가 학습·미진단 개념을 구분합니다."
           >
@@ -130,8 +131,7 @@ export function IntroSection() {
           </FeatureCard>
 
           <FeatureCard
-            icon={faWandMagicSparkles}
-            iconClassName="bg-[#ffe3d3] text-[#ff8a62]"
+            iconSrc="/icons/landing/landing_explain.svg"
             title="내 수준에 맞는 설명"
             description="진단 결과와 대화 맥락을 반영해 너무 쉽지도 어렵지도 않은 설명을 제공합니다."
           >
@@ -139,8 +139,7 @@ export function IntroSection() {
           </FeatureCard>
 
           <FeatureCard
-            icon={faDiagramProject}
-            iconClassName="bg-[#d9f7ea] text-[#60d3a7]"
+            iconSrc="/icons/landing/landing_graph.svg"
             title="프로젝트별 지식 그래프"
             description="운영체제, 자료구조처럼 프로젝트별로 학습한 개념과 관계를 그래프로 볼 수 있습니다."
           >
@@ -148,8 +147,7 @@ export function IntroSection() {
           </FeatureCard>
 
           <FeatureCard
-            icon={faFileLines}
-            iconClassName="bg-[#d9eaff] text-[#72a9f6]"
+            iconSrc="/icons/landing/landing_report.svg"
             title="학습 기록과 메모"
             description="최근 업데이트된 개념, 질문 기록, 메모를 함께 남겨 다음 학습으로 이어갑니다."
           >

@@ -2,6 +2,11 @@ export type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  variant?: "diagnosis-report";
+  collapsible?: boolean;
+  attachment?: {
+    type: "graph-preview";
+  };
 };
 
 export type Chat = {
@@ -28,6 +33,16 @@ export type ProjectCatalogOption = {
   estimatedTime: string;
 };
 
+export type ProjectMemo = {
+  memoId: string;
+  projectId: string;
+  title: string;
+  content: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export type DashboardChatStore = {
+  version: number;
   chatsByProject: Record<string, Chat[]>;
 };
