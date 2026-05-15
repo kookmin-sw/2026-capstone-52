@@ -357,7 +357,7 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       const targetChat = await createDiagnosisReportChat(targetProjectId);
-      const params = new URLSearchParams({ projectId: targetProjectId });
+      const params = new URLSearchParams({ projectId: targetChat?.projectId || targetProjectId });
 
       if (targetChat?.id) {
         params.set("chatId", targetChat.id);

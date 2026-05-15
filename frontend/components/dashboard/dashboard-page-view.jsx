@@ -119,31 +119,194 @@ function ProjectCatalogModal({
   );
 }
 
+const DIAGNOSIS_COLLAPSED_HEIGHT = 260;
+
+function parseDiagnosisMessageBlocks(text) {
+  const blocks = [];
+  const codeFencePattern = /```(?:[\w-]+)?\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match = codeFencePattern.exec(text);
+
+  while (match) {
+    const textContent = text.slice(lastIndex, match.index).trim();
+
+    if (textContent) {
+      blocks.push({ type: "text", content: textContent });
+    }
+
+    blocks.push({
+      type: "code",
+      content: match[1].replace(/^\n/, "").replace(/\n$/, ""),
+    });
+
+    lastIndex = codeFencePattern.lastIndex;
+    match = codeFencePattern.exec(text);
+  }
+
+  const remainingText = text.slice(lastIndex).trim();
+
+  if (remainingText) {
+    blocks.push({ type: "text", content: remainingText });
+  }
+
+  return blocks.length ? blocks : [{ type: "text", content: text }];
+}
+
+function renderInlineStrong(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
+function renderDiagnosisTextBlock(content, blockIndex) {
+  return (
+    <div key={`text-${blockIndex}`} className="workspace-diagnosis-text-block">
+      {content.split("\n").map((line, lineIndex) => {
+        const trimmedLine = line.trim();
+
+        if (!trimmedLine) {
+          return <span key={`blank-${lineIndex}`} className="workspace-diagnosis-line workspace-diagnosis-line-blank" />;
+        }
+
+        if (trimmedLine === "---") {
+          return <span key={`divider-${lineIndex}`} className="workspace-diagnosis-divider" />;
+        }
+
+        if (trimmedLine.startsWith("# ")) {
+          return (
+            <strong key={`heading-${lineIndex}`} className="workspace-diagnosis-heading">
+              {trimmedLine.slice(2)}
+            </strong>
+          );
+        }
+
+        return (
+          <span key={`line-${lineIndex}`} className="workspace-diagnosis-line">
+            {renderInlineStrong(line)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function DiagnosisMessageBody({ message }) {
+  const contentRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [canToggle, setCanToggle] = useState(false);
+
+  useEffect(() => {
+    if (!message.collapsible) {
+      setCanToggle(false);
+      return undefined;
+    }
+
+    const isLongByContent = message.text.length > 520 || message.text.split("\n").length > 10;
+    const frameId = window.requestAnimationFrame(() => {
+      const contentElement = contentRef.current;
+
+      if (!contentElement) {
+        setCanToggle(isLongByContent);
+        return;
+      }
+
+      setCanToggle(isLongByContent || contentElement.scrollHeight > DIAGNOSIS_COLLAPSED_HEIGHT + 12);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [message.collapsible, message.text]);
+
+  const blocks = parseDiagnosisMessageBlocks(message.text);
+  const shouldCollapse = Boolean(message.collapsible && !isExpanded);
+
+  return (
+    <div className="workspace-diagnosis-message">
+      <div
+        ref={contentRef}
+        className={`workspace-diagnosis-message-content ${
+          shouldCollapse ? "workspace-diagnosis-message-content-collapsed" : ""
+        }`}
+      >
+        {blocks.map((block, blockIndex) =>
+          block.type === "code" ? (
+            <pre key={`code-${blockIndex}`} className="workspace-diagnosis-code-block">
+              <code>{block.content}</code>
+            </pre>
+          ) : (
+            renderDiagnosisTextBlock(block.content, blockIndex)
+          )
+        )}
+      </div>
+
+      {canToggle ? (
+        <button
+          type="button"
+          className="workspace-diagnosis-more-button"
+          onClick={() => setIsExpanded((current) => !current)}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? "접기" : "더보기"}
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <path d={isExpanded ? "M5 12.5 10 7.5l5 5" : "M5 7.5l5 5 5-5"} />
+          </svg>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function ReportGraphPreview({ graph, projectTitle, onOpen }) {
   const hasGraph = graph.nodes.length > 0;
 
   return (
-    <button
-      type="button"
-      className="workspace-message-graph-preview"
-      onClick={onOpen}
-      disabled={!hasGraph}
-      aria-label={`${projectTitle || "프로젝트"} 지식 그래프 크게 보기`}
+    <div
+      role={hasGraph ? "button" : undefined}
+      tabIndex={hasGraph ? 0 : undefined}
+      className={`workspace-message-graph-preview ${
+        hasGraph ? "workspace-message-graph-preview-interactive" : "workspace-message-graph-preview-empty"
+      }`}
+      aria-label={`${projectTitle || "프로젝트"} 지식 그래프 미리보기`}
+      onClick={() => {
+        if (hasGraph) {
+          onOpen();
+        }
+      }}
+      onKeyDown={(event) => {
+        if (!hasGraph || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        onOpen();
+      }}
     >
-      {hasGraph ? (
-        <KnowledgeGraphScene
-          nodes={graph.nodes}
-          edges={graph.edges}
-          compact
-          showLabels
-          labelVariant="light"
-          nodeSizeScale={0.62}
-          resetViewKey={`report-preview-${projectTitle || "project"}`}
-        />
-      ) : (
-        <span>아직 생성된 지식 그래프가 없습니다.</span>
-      )}
-    </button>
+      <div className="workspace-message-graph-preview-header">
+        <div>
+          <strong>Knowledge Graph</strong>
+          <span>{projectTitle || "진단 개념 흐름"}</span>
+        </div>
+      </div>
+      <div className="workspace-message-graph-preview-canvas">
+        {hasGraph ? (
+          <KnowledgeGraphScene
+            nodes={graph.nodes}
+            edges={graph.edges}
+            compact
+            interactive
+            showLabels
+            labelVariant="light"
+            nodeSizeScale={0.62}
+            resetViewKey={`report-preview-${projectTitle || "project"}`}
+          />
+        ) : (
+          <span>아직 생성된 지식 그래프가 없습니다.</span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -204,6 +367,183 @@ function buildUpdatedConcepts(projectData, workspaceState, graphNodes = []) {
   const merged = [...graphConcepts, ...diagnosisConcepts];
 
   return [...new Set(merged)].slice(0, 3);
+}
+
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return value ? [value] : [];
+}
+
+function normalizeQuizToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function getConceptLikeTokens(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (typeof value === "object") {
+    return [
+      value.id,
+      value.node_id,
+      value.nodeId,
+      value.concept_id,
+      value.conceptId,
+      value.label,
+      value.name,
+      value.node_name,
+      value.concept_name,
+      value.title,
+    ]
+      .map(normalizeQuizToken)
+      .filter(Boolean);
+  }
+
+  return [normalizeQuizToken(value)].filter(Boolean);
+}
+
+function getQuestionConceptTokens(question) {
+  const references = [
+    ...toArray(question.conceptIds),
+    ...toArray(question.concept_ids),
+    ...toArray(question.coreConceptIds),
+    ...toArray(question.core_concept_ids),
+    ...toArray(question.node_id),
+    ...toArray(question.concept_id),
+    ...(question.choices || []).flatMap((choice) => [
+      ...toArray(choice.conceptIds),
+      ...toArray(choice.concept_ids),
+      ...toArray(choice.nodeIds),
+      ...toArray(choice.node_ids),
+      ...toArray(choice.nodeId),
+      ...toArray(choice.node_id),
+      ...toArray(choice.conceptId),
+      ...toArray(choice.concept_id),
+    ]),
+  ];
+
+  return new Set(references.flatMap(getConceptLikeTokens));
+}
+
+function getGraphNodeQuizTokens(node) {
+  if (!node) {
+    return [];
+  }
+
+  const conceptKey = node.id?.includes("-concept-") ? node.id.split("-concept-").pop() : "";
+
+  return [...new Set([node.label, conceptKey, ...(node.keywords || [])].map(normalizeQuizToken).filter(Boolean))];
+}
+
+function getSelectedAnswerIds(answer) {
+  if (Array.isArray(answer)) {
+    return answer.filter(Boolean).map((choiceId) => String(choiceId));
+  }
+
+  return answer ? [String(answer)] : [];
+}
+
+function getCorrectAnswerIds(question) {
+  return [
+    ...toArray(question.correctChoiceIds),
+    ...toArray(question.correct_choice_ids),
+    ...toArray(question.correctChoiceId),
+    ...toArray(question.correct_choice_id),
+  ]
+    .filter(Boolean)
+    .map((choiceId) => String(choiceId));
+}
+
+function evaluateQuizAnswer(question, answer) {
+  if (question.type === "short-answer") {
+    return null;
+  }
+
+  const selectedIds = getSelectedAnswerIds(answer);
+  const correctIds = getCorrectAnswerIds(question);
+
+  if (!correctIds.length || !selectedIds.length) {
+    return null;
+  }
+
+  const selectedSet = new Set(selectedIds);
+  const correctSet = new Set(correctIds);
+
+  return selectedSet.size === correctSet.size && [...selectedSet].every((choiceId) => correctSet.has(choiceId));
+}
+
+function formatQuizAnswer(question, answer) {
+  if (question.type === "short-answer") {
+    return typeof answer === "string" && answer.trim() ? `응답: ${answer.trim()}` : "응답: 미응답";
+  }
+
+  const selectedIds = getSelectedAnswerIds(answer);
+
+  if (!selectedIds.length) {
+    return "응답: 미응답";
+  }
+
+  const choiceLabels = new Map((question.choices || []).map((choice) => [String(choice.id), choice.label || String(choice.id)]));
+  const selectedLabels = selectedIds.map((choiceId) => choiceLabels.get(choiceId) || choiceId);
+
+  return `응답: ${selectedLabels.join(", ")}`;
+}
+
+function questionMatchesGraphNode(question, graphNode) {
+  const graphTokens = getGraphNodeQuizTokens(graphNode);
+
+  if (!graphTokens.length) {
+    return false;
+  }
+
+  const questionTokens = getQuestionConceptTokens(question);
+  const searchableQuestionText = normalizeQuizToken(
+    [
+      question.prompt,
+      question.question,
+      ...(question.choices || []).map((choice) => choice.label || choice.text || ""),
+    ].join(" ")
+  );
+
+  return graphTokens.some((token) => questionTokens.has(token) || searchableQuestionText.includes(token));
+}
+
+function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
+  if (!projectData) {
+    return [];
+  }
+
+  const diagnosisEntries = (projectData.materials || [])
+    .map((material) => getDiagnosisSummary(workspaceState, projectData.projectId, material.id))
+    .filter(Boolean);
+  const projectDiagnosis = getProjectDiagnosis(workspaceState, projectData.projectId);
+  const mergedDiagnosisEntries = projectDiagnosis ? [...diagnosisEntries, projectDiagnosis] : diagnosisEntries;
+  const records = mergedDiagnosisEntries.flatMap((entry, entryIndex) =>
+    (entry.questions || []).map((question, questionIndex) => {
+      const answer = entry.answers?.[question.id];
+      const isCorrect = evaluateQuizAnswer(question, answer);
+
+      return {
+        id: `${entry.sessionId || "diagnosis"}-${question.id || questionIndex}-${entryIndex}`,
+        prompt: question.prompt || question.question || `퀴즈 ${questionIndex + 1}`,
+        answerSummary: formatQuizAnswer(question, answer),
+        statusLabel: isCorrect === null ? "응답 완료" : isCorrect ? "정답" : "오답",
+        updatedAt: entry.savedAt ? new Date(entry.savedAt).toISOString() : new Date().toISOString(),
+        isRelated: questionMatchesGraphNode(question, graphNode),
+      };
+    })
+  );
+  const relatedRecords = graphNode ? records.filter((record) => record.isRelated) : records;
+
+  return relatedRecords.length ? relatedRecords : records;
 }
 
 function SearchIcon() {
@@ -708,6 +1048,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       .map((nodeId) => projectGraph.nodes.find((node) => node.id === nodeId))
       .filter(Boolean);
   }, [projectGraph.nodes, visibleGraphDetailNode]);
+  const visibleGraphDetailQuizRecords = useMemo(
+    () => buildGraphQuizRecords(activeProjectData, workspaceState, visibleGraphDetailNode),
+    [activeProjectData, visibleGraphDetailNode, workspaceState]
+  );
   const graphSearchResults = useMemo(() => {
     if (!projectGraph.nodes.length) {
       return [];
@@ -1379,10 +1723,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     setGraphResetKey((current) => current + 1);
   }
 
-  function handleGraphHistoryClick() {
-    // Navigation to the exact chat/message will be wired after backend data is available.
-  }
-
   async function handleCreateNodeExplanation() {
     if (!activeProjectData?.projectId || !visibleGraphDetailNode || isExplanationGenerating) {
       return;
@@ -1554,7 +1894,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                           </div>
                         ) : (
                           <>
-                            <p>{message.text}</p>
+                            {message.variant === "diagnosis-report" ? (
+                              <DiagnosisMessageBody message={message} />
+                            ) : (
+                              <p>{message.text}</p>
+                            )}
                           </>
                         )}
                       </div>
@@ -1821,22 +2165,18 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                       </section>
 
                       <section className="workspace-resource-section">
-                        <h2>관련 학습 기록</h2>
+                        <h2>퀴즈 히스토리</h2>
                         <div className="workspace-graph-history-list">
-                          {visibleGraphDetailNode.relatedLearningEvents.length ? (
-                            visibleGraphDetailNode.relatedLearningEvents.map((entry) => (
-                              <button
-                                key={entry.id}
-                                type="button"
-                                className="workspace-graph-history-item workspace-graph-history-button"
-                                onClick={handleGraphHistoryClick}
-                              >
-                                <span>{formatUpdatedAt(entry.updatedAt)}</span>
-                                <strong>{entry.preview}</strong>
-                              </button>
+                          {visibleGraphDetailQuizRecords.length ? (
+                            visibleGraphDetailQuizRecords.map((entry) => (
+                              <article key={entry.id} className="workspace-graph-history-item">
+                                <span>{entry.statusLabel}</span>
+                                <strong>{entry.prompt}</strong>
+                                <span>{entry.answerSummary}</span>
+                              </article>
                             ))
                           ) : (
-                            <div className="workspace-graph-empty-copy">연결된 학습 기록이 없습니다.</div>
+                            <div className="workspace-graph-empty-copy">아직 퀴즈 기록이 없습니다.</div>
                           )}
                         </div>
                       </section>
@@ -1919,7 +2259,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   </div>
                 </>
               ) : (
-                <div className="workspace-empty-copy">최근 업데이트된 개념이 없습니다.</div>
+                <div className="workspace-empty-copy workspace-concept-empty">최근 업데이트된 개념이 없습니다.</div>
               )}
             </div>
           </section>
@@ -2018,7 +2358,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             ) : null}
 
             {!isProjectMemoLoading && projectMemoViewMode === "list" && !projectMemos.length ? (
-              <p className="workspace-memo-empty">Empty</p>
+              <p className="workspace-memo-empty">생성된 메모가 없습니다</p>
             ) : null}
 
             {projectMemoError && projectMemoViewMode === "list" ? (

@@ -3,6 +3,7 @@ export type ChatMessage = {
   role: "assistant" | "user";
   text: string;
   variant?: "diagnosis-report";
+  collapsible?: boolean;
   attachment?: {
     type: "graph-preview";
   };
@@ -42,5 +43,6 @@ export type ProjectMemo = {
 };
 
 export type DashboardChatStore = {
+  version: number;
   chatsByProject: Record<string, Chat[]>;
 };
