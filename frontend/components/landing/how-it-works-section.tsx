@@ -2,25 +2,45 @@ const steps = [
   {
     number: "01",
     title: "자료 업로드",
-    description: "PDF 강의자료나 정리본을 업로드하면 AI가 학습 주제를 파악합니다.",
+    description: (
+      <>
+        PDF 강의자료나 정리본을 업로드하면<br />
+        AI가 학습 주제를 파악합니다.
+      </>
+    ),
     iconSrc: "/icons/landing/upload.svg",
   },
   {
     number: "02",
     title: "학습 수준 진단",
-    description: "몇 가지 질문으로 현재 이해도와 부족한 개념을 확인합니다.",
+    description: (
+      <>
+        몇 가지 질문으로 현재 이해도와<br />
+        부족한 개념을 확인합니다.
+      </>
+    ),
     iconSrc: "/icons/landing/target.svg",
   },
   {
     number: "03",
     title: "맞춤 설명",
-    description: "진단 결과를 바탕으로 내 수준에 맞춘 답변을 제공합니다.",
+    description: (
+      <>
+        진단 결과를 바탕으로 내 수준에 맞춘<br />
+        답변을 제공합니다.
+      </>
+    ),
     iconSrc: "/icons/landing/talk.svg",
   },
   {
     number: "04",
     title: "지식 그래프",
-    description: "학습한 개념과 관계를 그래프로 확인하고 다음 흐름을 잡습니다.",
+    description: (
+      <>
+        학습한 개념과 관계를 그래프로 확인하고<br />
+        다음 흐름을 잡습니다.
+      </>
+    ),
     iconSrc: "/icons/landing/triangle.svg",
   },
 ] as const;
