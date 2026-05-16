@@ -16,16 +16,18 @@ import {
 import {
   createChat,
   createExplanation,
+  createProjectMemo,
+  deleteProjectMemo,
   getGraphNodeDetail,
   getProjectCatalogOptions,
-  getProjectMemo,
+  getProjectMemos,
   getProjectGraphData,
   getProjectChats,
   getProjects,
   getRecentGraphNodes,
-  saveProjectMemo,
   selectProjectFromCatalog,
   sendChatMessage,
+  updateProjectMemo,
 } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import WorkspaceProfileCard from "./WorkspaceProfileCard";
@@ -33,6 +35,26 @@ import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { getDashboardProfileSummary, useProfileStore } from "@/store/profileStore";
 
 const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
+const rootKnowledgeColor = "#f5d38a";
+const knowledgeStageLabels = ["진단 전", "입문", "기초", "심화", "마스터"];
+const knowledgeStageColors = ["#fb923c", "#f9a8d4", "#a78bfa", "#60a5fa", "#34d399"];
+const fallbackKnowledgeStageCycle = [1, 2, 3, 4, 1, 2, 3, 4, 0];
+
+function getKnowledgeStageColor(stageIndex) {
+  const maxStageIndex = Math.max(knowledgeStageLabels.length - 1, 1);
+  const normalizedStageIndex = Math.min(Math.max(stageIndex, 0), maxStageIndex);
+
+  return knowledgeStageColors[normalizedStageIndex] || knowledgeStageColors[0];
+}
+
+function sortProjectMemosByUpdatedAt(memos) {
+  return [...memos].sort((left, right) => {
+    const leftTime = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightTime = new Date(right.updatedAt || right.createdAt || 0).getTime();
+
+    return rightTime - leftTime;
+  });
+}
 
 function ProjectCatalogModal({
   options,
@@ -108,6 +130,240 @@ function ProjectCatalogModal({
   );
 }
 
+const DIAGNOSIS_COLLAPSED_HEIGHT = 260;
+
+function parseDiagnosisMessageBlocks(text) {
+  const blocks = [];
+  const codeFencePattern = /```(?:[\w-]+)?\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match = codeFencePattern.exec(text);
+
+  while (match) {
+    const textContent = text.slice(lastIndex, match.index).trim();
+
+    if (textContent) {
+      blocks.push({ type: "text", content: textContent });
+    }
+
+    blocks.push({
+      type: "code",
+      content: match[1].replace(/^\n/, "").replace(/\n$/, ""),
+    });
+
+    lastIndex = codeFencePattern.lastIndex;
+    match = codeFencePattern.exec(text);
+  }
+
+  const remainingText = text.slice(lastIndex).trim();
+
+  if (remainingText) {
+    blocks.push({ type: "text", content: remainingText });
+  }
+
+  return blocks.length ? blocks : [{ type: "text", content: text }];
+}
+
+function renderInlineStrong(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
+function renderDiagnosisTextBlock(content, blockIndex) {
+  return (
+    <div key={`text-${blockIndex}`} className="workspace-diagnosis-text-block">
+      {content.split("\n").map((line, lineIndex) => {
+        const trimmedLine = line.trim();
+
+        if (!trimmedLine) {
+          return <span key={`blank-${lineIndex}`} className="workspace-diagnosis-line workspace-diagnosis-line-blank" />;
+        }
+
+        if (trimmedLine === "---") {
+          return <span key={`divider-${lineIndex}`} className="workspace-diagnosis-divider" />;
+        }
+
+        if (trimmedLine.startsWith("# ")) {
+          return (
+            <strong key={`heading-${lineIndex}`} className="workspace-diagnosis-heading">
+              {trimmedLine.slice(2)}
+            </strong>
+          );
+        }
+
+        return (
+          <span key={`line-${lineIndex}`} className="workspace-diagnosis-line">
+            {renderInlineStrong(line)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function DiagnosisMessageBody({ message }) {
+  const contentRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [canToggle, setCanToggle] = useState(false);
+
+  useEffect(() => {
+    if (!message.collapsible) {
+      setCanToggle(false);
+      return undefined;
+    }
+
+    const isLongByContent = message.text.length > 520 || message.text.split("\n").length > 10;
+    const frameId = window.requestAnimationFrame(() => {
+      const contentElement = contentRef.current;
+
+      if (!contentElement) {
+        setCanToggle(isLongByContent);
+        return;
+      }
+
+      setCanToggle(isLongByContent || contentElement.scrollHeight > DIAGNOSIS_COLLAPSED_HEIGHT + 12);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [message.collapsible, message.text]);
+
+  const blocks = parseDiagnosisMessageBlocks(message.text);
+  const shouldCollapse = Boolean(message.collapsible && !isExpanded);
+
+  return (
+    <div className="workspace-diagnosis-message">
+      <div
+        ref={contentRef}
+        className={`workspace-diagnosis-message-content ${
+          shouldCollapse ? "workspace-diagnosis-message-content-collapsed" : ""
+        }`}
+      >
+        {blocks.map((block, blockIndex) =>
+          block.type === "code" ? (
+            <pre key={`code-${blockIndex}`} className="workspace-diagnosis-code-block">
+              <code>{block.content}</code>
+            </pre>
+          ) : (
+            renderDiagnosisTextBlock(block.content, blockIndex)
+          )
+        )}
+      </div>
+
+      {canToggle ? (
+        <button
+          type="button"
+          className="workspace-diagnosis-more-button"
+          onClick={() => setIsExpanded((current) => !current)}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? "접기" : "더보기"}
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <path d={isExpanded ? "M5 12.5 10 7.5l5 5" : "M5 7.5l5 5 5-5"} />
+          </svg>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function ReportGraphPreview({ graph, projectTitle, onOpen }) {
+  const hasGraph = graph.nodes.length > 0;
+
+  return (
+    <div
+      role={hasGraph ? "button" : undefined}
+      tabIndex={hasGraph ? 0 : undefined}
+      className={`workspace-message-graph-preview ${
+        hasGraph ? "workspace-message-graph-preview-interactive" : "workspace-message-graph-preview-empty"
+      }`}
+      aria-label={`${projectTitle || "프로젝트"} 지식 그래프 미리보기`}
+      onClick={() => {
+        if (hasGraph) {
+          onOpen();
+        }
+      }}
+      onKeyDown={(event) => {
+        if (!hasGraph || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        onOpen();
+      }}
+    >
+      <div className="workspace-message-graph-preview-header">
+        <div>
+          <strong>Knowledge Graph</strong>
+          <span>{projectTitle || "진단 개념 흐름"}</span>
+        </div>
+      </div>
+      <div className="workspace-message-graph-preview-canvas">
+        {hasGraph ? (
+          <KnowledgeGraphScene
+            nodes={graph.nodes}
+            edges={graph.edges}
+            compact
+            interactive
+            showLabels
+            labelVariant="light"
+            nodeSizeScale={0.62}
+            resetViewKey={`report-preview-${projectTitle || "project"}`}
+          />
+        ) : (
+          <span>아직 생성된 지식 그래프가 없습니다.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReportGraphOverlay({ graph, projectTitle, selectedNodeId, onSelectNode, onClose }) {
+  return (
+    <div className="workspace-report-graph-overlay" onClick={onClose}>
+      <section
+        className="workspace-report-graph-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${projectTitle || "프로젝트"} 지식 그래프`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="workspace-report-graph-header">
+          <div>
+            <strong>Knowledge Graph</strong>
+            <span>{projectTitle || "프로젝트"}</span>
+          </div>
+          <button type="button" onClick={onClose} aria-label="그래프 닫기">
+            ×
+          </button>
+        </header>
+        <div className="workspace-report-graph-canvas">
+          {graph.nodes.length ? (
+            <KnowledgeGraphScene
+              nodes={graph.nodes}
+              edges={graph.edges}
+              interactive
+              showLabels
+              labelVariant="light"
+              nodeSizeScale={0.72}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={onSelectNode}
+              onBackgroundClick={onClose}
+            />
+          ) : (
+            <div className="workspace-empty-copy workspace-report-graph-empty">
+              아직 생성된 지식 그래프가 없습니다.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function buildUpdatedConcepts(projectData, workspaceState, graphNodes = []) {
   const diagnosisEntries = (projectData.materials || [])
     .map((material) => getDiagnosisSummary(workspaceState, projectData.projectId, material.id))
@@ -122,6 +378,267 @@ function buildUpdatedConcepts(projectData, workspaceState, graphNodes = []) {
   const merged = [...graphConcepts, ...diagnosisConcepts];
 
   return [...new Set(merged)].slice(0, 3);
+}
+
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return value ? [value] : [];
+}
+
+function normalizeQuizToken(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function getConceptLikeTokens(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (typeof value === "object") {
+    return [
+      value.id,
+      value.node_id,
+      value.nodeId,
+      value.concept_id,
+      value.conceptId,
+      value.label,
+      value.name,
+      value.node_name,
+      value.concept_name,
+      value.title,
+    ]
+      .map(normalizeQuizToken)
+      .filter(Boolean);
+  }
+
+  return [normalizeQuizToken(value)].filter(Boolean);
+}
+
+function getQuestionConceptTokens(question) {
+  const references = [
+    ...toArray(question.conceptIds),
+    ...toArray(question.concept_ids),
+    ...toArray(question.coreConceptIds),
+    ...toArray(question.core_concept_ids),
+    ...toArray(question.node_id),
+    ...toArray(question.concept_id),
+    ...(question.choices || []).flatMap((choice) => [
+      ...toArray(choice.conceptIds),
+      ...toArray(choice.concept_ids),
+      ...toArray(choice.nodeIds),
+      ...toArray(choice.node_ids),
+      ...toArray(choice.nodeId),
+      ...toArray(choice.node_id),
+      ...toArray(choice.conceptId),
+      ...toArray(choice.concept_id),
+    ]),
+  ];
+
+  return new Set(references.flatMap(getConceptLikeTokens));
+}
+
+function getGraphNodeQuizTokens(node) {
+  if (!node) {
+    return [];
+  }
+
+  const conceptKey = node.id?.includes("-concept-") ? node.id.split("-concept-").pop() : "";
+
+  return [...new Set([node.label, conceptKey, ...(node.keywords || [])].map(normalizeQuizToken).filter(Boolean))];
+}
+
+function getSelectedAnswerIds(answer) {
+  if (Array.isArray(answer)) {
+    return answer.filter(Boolean).map((choiceId) => String(choiceId));
+  }
+
+  return answer ? [String(answer)] : [];
+}
+
+function getCorrectAnswerIds(question) {
+  return [
+    ...toArray(question.correctChoiceIds),
+    ...toArray(question.correct_choice_ids),
+    ...toArray(question.correctChoiceId),
+    ...toArray(question.correct_choice_id),
+  ]
+    .filter(Boolean)
+    .map((choiceId) => String(choiceId));
+}
+
+function evaluateQuizAnswer(question, answer) {
+  if (question.type === "short-answer") {
+    return null;
+  }
+
+  const selectedIds = getSelectedAnswerIds(answer);
+  const correctIds = getCorrectAnswerIds(question);
+
+  if (!correctIds.length || !selectedIds.length) {
+    return null;
+  }
+
+  const selectedSet = new Set(selectedIds);
+  const correctSet = new Set(correctIds);
+
+  return selectedSet.size === correctSet.size && [...selectedSet].every((choiceId) => correctSet.has(choiceId));
+}
+
+function formatQuizAnswer(question, answer) {
+  if (question.type === "short-answer") {
+    return typeof answer === "string" && answer.trim() ? `응답: ${answer.trim()}` : "응답: 미응답";
+  }
+
+  const selectedIds = getSelectedAnswerIds(answer);
+
+  if (!selectedIds.length) {
+    return "응답: 미응답";
+  }
+
+  const choiceLabels = new Map((question.choices || []).map((choice) => [String(choice.id), choice.label || String(choice.id)]));
+  const selectedLabels = selectedIds.map((choiceId) => choiceLabels.get(choiceId) || choiceId);
+
+  return `응답: ${selectedLabels.join(", ")}`;
+}
+
+function questionMatchesGraphNode(question, graphNode) {
+  const graphTokens = getGraphNodeQuizTokens(graphNode);
+
+  if (!graphTokens.length) {
+    return false;
+  }
+
+  const questionTokens = getQuestionConceptTokens(question);
+  const searchableQuestionText = normalizeQuizToken(
+    [
+      question.prompt,
+      question.question,
+      ...(question.choices || []).map((choice) => choice.label || choice.text || ""),
+    ].join(" ")
+  );
+
+  return graphTokens.some((token) => questionTokens.has(token) || searchableQuestionText.includes(token));
+}
+
+function buildGraphQuizRecordPool(projectData, workspaceState, graphNode) {
+  if (!projectData) {
+    return {
+      records: [],
+      relatedRecords: [],
+    };
+  }
+
+  const diagnosisEntries = (projectData.materials || [])
+    .map((material) => getDiagnosisSummary(workspaceState, projectData.projectId, material.id))
+    .filter(Boolean);
+  const projectDiagnosis = getProjectDiagnosis(workspaceState, projectData.projectId);
+  const mergedDiagnosisEntries = projectDiagnosis ? [...diagnosisEntries, projectDiagnosis] : diagnosisEntries;
+  const records = mergedDiagnosisEntries.flatMap((entry, entryIndex) =>
+    (entry.questions || []).map((question, questionIndex) => {
+      const answer = entry.answers?.[question.id];
+      const isCorrect = evaluateQuizAnswer(question, answer);
+
+      return {
+        id: `${entry.sessionId || "diagnosis"}-${question.id || questionIndex}-${entryIndex}`,
+        prompt: question.prompt || question.question || `퀴즈 ${questionIndex + 1}`,
+        answerSummary: formatQuizAnswer(question, answer),
+        isCorrect,
+        statusLabel: isCorrect === null ? "응답 완료" : isCorrect ? "정답" : "오답",
+        updatedAt: entry.savedAt ? new Date(entry.savedAt).toISOString() : new Date().toISOString(),
+        isRelated: questionMatchesGraphNode(question, graphNode),
+      };
+    })
+  );
+  const relatedRecords = graphNode ? records.filter((record) => record.isRelated) : records;
+
+  return {
+    records,
+    relatedRecords,
+  };
+}
+
+function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
+  const { records, relatedRecords } = buildGraphQuizRecordPool(projectData, workspaceState, graphNode);
+
+  return (relatedRecords.length ? relatedRecords : records).slice(0, 3);
+}
+
+function getKnowledgeStageIndexFromQuizRecords(records) {
+  const scorableRecords = records.filter((record) => typeof record.isCorrect === "boolean");
+
+  if (!scorableRecords.length) {
+    return records.length ? 1 : 0;
+  }
+
+  const correctCount = scorableRecords.filter((record) => record.isCorrect).length;
+  const correctRatio = correctCount / scorableRecords.length;
+
+  if (correctRatio <= 0) {
+    return 1;
+  }
+
+  if (correctRatio < 0.5) {
+    return 2;
+  }
+
+  if (correctRatio < 0.85) {
+    return 3;
+  }
+
+  return 4;
+}
+
+function getGraphNodeKnowledgeStageIndex(projectData, workspaceState, graphNode) {
+  if (!projectData || !graphNode) {
+    return 0;
+  }
+
+  const { relatedRecords } = buildGraphQuizRecordPool(projectData, workspaceState, graphNode);
+
+  return getKnowledgeStageIndexFromQuizRecords(relatedRecords);
+}
+
+function getFallbackKnowledgeStageIndex(nodeIndex) {
+  return fallbackKnowledgeStageCycle[nodeIndex % fallbackKnowledgeStageCycle.length];
+}
+
+function applyKnowledgeStagesToGraph(graph, projectData, workspaceState) {
+  let conceptNodeIndex = 0;
+
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      if (node.isCore) {
+        const knowledgeStageIndex = getGraphNodeKnowledgeStageIndex(projectData, workspaceState, node);
+
+        return {
+          ...node,
+          color: rootKnowledgeColor,
+          knowledgeStageIndex,
+          knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
+        };
+      }
+
+      const rawKnowledgeStageIndex = getGraphNodeKnowledgeStageIndex(projectData, workspaceState, node);
+      const knowledgeStageIndex =
+        rawKnowledgeStageIndex === 0 ? getFallbackKnowledgeStageIndex(conceptNodeIndex) : rawKnowledgeStageIndex;
+      conceptNodeIndex += 1;
+
+      return {
+        ...node,
+        color: getKnowledgeStageColor(knowledgeStageIndex),
+        knowledgeStageIndex,
+        knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
+      };
+    }),
+  };
 }
 
 function SearchIcon() {
@@ -313,7 +830,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const graphSearchInputRef = useRef(null);
   const composerFileInputRef = useRef(null);
   const hasAppliedInitialChatRef = useRef(false);
-  const latestProjectNoteRef = useRef("");
+  const latestProjectMemoDraftRef = useRef({ memoId: null, title: "", content: "" });
   const router = useRouter();
   const pathname = usePathname();
   const [workspaceState, setWorkspaceState] = useState(() => getDefaultWorkspaceState());
@@ -342,13 +859,26 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [graphResetKey, setGraphResetKey] = useState(0);
   const [isGraphSearchOpen, setIsGraphSearchOpen] = useState(false);
   const [graphSearchQuery, setGraphSearchQuery] = useState("");
+  const [isReportGraphOpen, setIsReportGraphOpen] = useState(false);
+  const [selectedReportGraphNodeId, setSelectedReportGraphNodeId] = useState(null);
   const [composerText, setComposerText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [projectNote, setProjectNote] = useState("");
-  const [projectNoteProjectId, setProjectNoteProjectId] = useState(null);
-  const [isProjectNoteDirty, setIsProjectNoteDirty] = useState(false);
-  const [isProjectNoteSaving, setIsProjectNoteSaving] = useState(false);
-  const [projectNoteError, setProjectNoteError] = useState(null);
+  const [projectMemos, setProjectMemos] = useState([]);
+  const [selectedProjectMemoId, setSelectedProjectMemoId] = useState(null);
+  const [projectMemoTitle, setProjectMemoTitle] = useState("");
+  const [projectMemoContent, setProjectMemoContent] = useState("");
+  const [projectMemoProjectId, setProjectMemoProjectId] = useState(null);
+  const [projectMemoViewMode, setProjectMemoViewMode] = useState("list");
+  const [isProjectMemoDirty, setIsProjectMemoDirty] = useState(false);
+  const [isProjectMemoSaving, setIsProjectMemoSaving] = useState(false);
+  const [isProjectMemoLoading, setIsProjectMemoLoading] = useState(false);
+  const [projectMemoError, setProjectMemoError] = useState(null);
+  const [showProjectMemoTitleWarning, setShowProjectMemoTitleWarning] = useState(false);
+  const [projectMemoTitleWarningMessage, setProjectMemoTitleWarningMessage] = useState("제목을 정해주세요");
+  const [isProjectMemoTitleShaking, setIsProjectMemoTitleShaking] = useState(false);
+  const [isProjectMemoDeleteMode, setIsProjectMemoDeleteMode] = useState(false);
+  const [selectedProjectMemoDeleteIds, setSelectedProjectMemoDeleteIds] = useState([]);
+  const [isProjectMemoDeleting, setIsProjectMemoDeleting] = useState(false);
   const [graphNodeDetail, setGraphNodeDetail] = useState(null);
   const [isGraphNodeDetailLoading, setIsGraphNodeDetailLoading] = useState(false);
   const [nodeExplanations, setNodeExplanations] = useState({});
@@ -554,11 +1084,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           }
         : null;
 
-      return backendGraph
+      const baseGraph = backendGraph
         ? buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats)
         : buildProjectKnowledgeGraph(projectInput, recentChats);
+
+      return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState);
     },
-    [activeProjectData, backendGraph, recentChats]
+    [activeProjectData, backendGraph, recentChats, workspaceState]
   );
   const updatedConcepts = useMemo(
     () =>
@@ -613,6 +1145,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       .map((nodeId) => projectGraph.nodes.find((node) => node.id === nodeId))
       .filter(Boolean);
   }, [projectGraph.nodes, visibleGraphDetailNode]);
+  const visibleGraphDetailQuizRecords = useMemo(
+    () => buildGraphQuizRecords(activeProjectData, workspaceState, visibleGraphDetailNode),
+    [activeProjectData, visibleGraphDetailNode, workspaceState]
+  );
   const graphSearchResults = useMemo(() => {
     if (!projectGraph.nodes.length) {
       return [];
@@ -627,97 +1163,94 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     return source.slice(0, 8);
   }, [graphSearchQuery, projectGraph.nodes]);
+  const selectedProjectMemo = useMemo(
+    () => projectMemos.find((memo) => memo.memoId === selectedProjectMemoId) || null,
+    [projectMemos, selectedProjectMemoId]
+  );
 
   useEffect(() => {
-    latestProjectNoteRef.current = projectNote;
-  }, [projectNote]);
+    latestProjectMemoDraftRef.current = {
+      memoId: selectedProjectMemoId,
+      title: projectMemoTitle,
+      content: projectMemoContent,
+    };
+  }, [projectMemoContent, projectMemoTitle, selectedProjectMemoId]);
 
   useEffect(() => {
     const projectId = activeProjectData?.projectId;
 
     if (!projectId) {
-      setProjectNote("");
-      setProjectNoteProjectId(null);
-      setIsProjectNoteDirty(false);
-      setIsProjectNoteSaving(false);
-      setProjectNoteError(null);
+      setProjectMemos([]);
+      setSelectedProjectMemoId(null);
+      setProjectMemoTitle("");
+      setProjectMemoContent("");
+      setProjectMemoProjectId(null);
+      setProjectMemoViewMode("list");
+      setIsProjectMemoDirty(false);
+      setIsProjectMemoSaving(false);
+      setIsProjectMemoLoading(false);
+      setProjectMemoError(null);
+      setShowProjectMemoTitleWarning(false);
+      setIsProjectMemoDeleteMode(false);
+      setSelectedProjectMemoDeleteIds([]);
       return undefined;
     }
 
     let cancelled = false;
 
-    setProjectNoteProjectId(projectId);
-    setIsProjectNoteDirty(false);
-    setIsProjectNoteSaving(false);
-    setProjectNoteError(null);
+    setProjectMemoProjectId(projectId);
+    setIsProjectMemoDirty(false);
+    setIsProjectMemoSaving(false);
+    setIsProjectMemoLoading(true);
+    setProjectMemoError(null);
 
-    async function loadProjectMemo() {
+    async function loadProjectMemos() {
       try {
-        const note = await getProjectMemo(projectId);
+        const memos = await getProjectMemos(projectId);
 
         if (cancelled) {
           return;
         }
 
-        setProjectNote(note);
-        latestProjectNoteRef.current = note;
+        setProjectMemos(sortProjectMemosByUpdatedAt(memos));
+        setSelectedProjectMemoId(null);
+        setProjectMemoTitle("");
+        setProjectMemoContent("");
+        setProjectMemoViewMode("list");
+        setShowProjectMemoTitleWarning(false);
+        setIsProjectMemoDeleteMode(false);
+        setSelectedProjectMemoDeleteIds([]);
+        latestProjectMemoDraftRef.current = {
+          memoId: null,
+          title: "",
+          content: "",
+        };
         setWorkspaceState(loadWorkspaceState());
       } catch (error) {
         if (!cancelled) {
-          setProjectNote("");
-          setProjectNoteError(error instanceof Error ? error.message : "프로젝트 메모를 불러오지 못했습니다.");
+          setProjectMemos([]);
+          setSelectedProjectMemoId(null);
+          setProjectMemoTitle("");
+          setProjectMemoContent("");
+          setProjectMemoViewMode("list");
+          setShowProjectMemoTitleWarning(false);
+          setIsProjectMemoDeleteMode(false);
+          setSelectedProjectMemoDeleteIds([]);
+          setProjectMemoError(error instanceof Error ? error.message : "프로젝트 메모를 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProjectMemoLoading(false);
         }
       }
     }
 
-    loadProjectMemo();
+    loadProjectMemos();
 
     return () => {
       cancelled = true;
     };
   }, [activeProjectData?.projectId]);
-
-  useEffect(() => {
-    if (!projectNoteProjectId || !isProjectNoteDirty) {
-      return undefined;
-    }
-
-    let cancelled = false;
-    const noteToSave = projectNote;
-    const projectId = projectNoteProjectId;
-
-    const timeoutId = window.setTimeout(async () => {
-      setIsProjectNoteSaving(true);
-
-      try {
-        await saveProjectMemo(projectId, noteToSave);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (latestProjectNoteRef.current === noteToSave) {
-          setIsProjectNoteDirty(false);
-        }
-
-        setProjectNoteError(null);
-        setWorkspaceState(loadWorkspaceState());
-      } catch (error) {
-        if (!cancelled) {
-          setProjectNoteError(error instanceof Error ? error.message : "프로젝트 메모를 저장하지 못했습니다.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsProjectNoteSaving(false);
-        }
-      }
-    }, 500);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [isProjectNoteDirty, projectNote, projectNoteProjectId]);
 
   useEffect(() => {
     if (!chatLogRef.current) {
@@ -754,6 +1287,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setVisibleGraphDetailNodeId(null);
       setGraphNodeDetail(null);
       setExplanationError(null);
+      setIsReportGraphOpen(false);
+      setSelectedReportGraphNodeId(null);
       setGraphResetKey((current) => current + 1);
     } else {
       setSelectedGraphNodeId(null);
@@ -762,6 +1297,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setGraphFocusNodeId(null);
       setGraphNodeDetail(null);
       setExplanationError(null);
+      setIsReportGraphOpen(false);
+      setSelectedReportGraphNodeId(null);
     }
 
     setIsGraphSearchOpen(false);
@@ -848,6 +1385,12 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         return;
       }
 
+      if (isReportGraphOpen) {
+        setIsReportGraphOpen(false);
+        setSelectedReportGraphNodeId(null);
+        return;
+      }
+
       if (activeTab === "graph" && isGraphSearchOpen) {
         setIsGraphSearchOpen(false);
         setGraphSearchQuery("");
@@ -864,7 +1407,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeTab, isCreateOpen, isGraphSearchOpen]);
+  }, [activeTab, isCreateOpen, isGraphSearchOpen, isReportGraphOpen]);
 
   function requestGraphFocus(nodeId) {
     setGraphFocusNodeId(null);
@@ -1025,15 +1568,223 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
   }
 
-  function handleNoteChange(note) {
-    if (!activeProjectData?.projectId) {
+  function applyProjectMemoDraft(memo) {
+    setSelectedProjectMemoId(memo?.memoId || null);
+    setProjectMemoTitle(memo?.title || "");
+    setProjectMemoContent(memo?.content || "");
+    setProjectMemoViewMode("editor");
+    setShowProjectMemoTitleWarning(false);
+    setProjectMemoTitleWarningMessage("제목을 정해주세요");
+    setIsProjectMemoTitleShaking(false);
+    latestProjectMemoDraftRef.current = {
+      memoId: memo?.memoId || null,
+      title: memo?.title || "",
+      content: memo?.content || "",
+    };
+    setIsProjectMemoDirty(false);
+  }
+
+  async function handleProjectMemoSelect(memoId) {
+    if (isProjectMemoDeleteMode) {
+      setSelectedProjectMemoDeleteIds((currentIds) =>
+        currentIds.includes(memoId) ? currentIds.filter((id) => id !== memoId) : [...currentIds, memoId]
+      );
       return;
     }
 
-    latestProjectNoteRef.current = note;
-    setProjectNote(note);
-    setProjectNoteProjectId(activeProjectData.projectId);
-    setIsProjectNoteDirty(true);
+    if (memoId === selectedProjectMemoId) {
+      return;
+    }
+
+    const memo = projectMemos.find((item) => item.memoId === memoId) || null;
+    applyProjectMemoDraft(memo);
+  }
+
+  async function handleCreateProjectMemo() {
+    const projectId = activeProjectData?.projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    setProjectMemoError(null);
+    setSelectedProjectMemoId(null);
+    setProjectMemoTitle("");
+    setProjectMemoContent("");
+    setProjectMemoProjectId(projectId);
+    setProjectMemoViewMode("editor");
+    setIsProjectMemoDirty(false);
+    setShowProjectMemoTitleWarning(false);
+    setProjectMemoTitleWarningMessage("제목을 정해주세요");
+    setIsProjectMemoTitleShaking(false);
+    latestProjectMemoDraftRef.current = {
+      memoId: null,
+      title: "",
+      content: "",
+    };
+  }
+
+  function handleProjectMemoListOpen() {
+    setProjectMemoViewMode("list");
+    setSelectedProjectMemoId(null);
+    setProjectMemoTitle("");
+    setProjectMemoContent("");
+    setProjectMemoError(null);
+    setShowProjectMemoTitleWarning(false);
+    setProjectMemoTitleWarningMessage("제목을 정해주세요");
+    setIsProjectMemoTitleShaking(false);
+    setIsProjectMemoDeleteMode(false);
+    setSelectedProjectMemoDeleteIds([]);
+    latestProjectMemoDraftRef.current = {
+      memoId: null,
+      title: "",
+      content: "",
+    };
+  }
+
+  function handleProjectMemoTitleChange(title) {
+    if (!activeProjectData?.projectId || projectMemoViewMode !== "editor") {
+      return;
+    }
+
+    setProjectMemoTitle(title);
+    setProjectMemoProjectId(activeProjectData.projectId);
+    if (title.trim()) {
+      setShowProjectMemoTitleWarning(false);
+    }
+    setIsProjectMemoTitleShaking(false);
+    setIsProjectMemoDirty(true);
+  }
+
+  function handleProjectMemoContentChange(content) {
+    if (!activeProjectData?.projectId || projectMemoViewMode !== "editor") {
+      return;
+    }
+
+    setProjectMemoContent(content);
+    setProjectMemoProjectId(activeProjectData.projectId);
+    setIsProjectMemoDirty(true);
+  }
+
+  function handleProjectMemoDeleteModeOpen() {
+    if (!projectMemos.length || isProjectMemoDeleting) {
+      return;
+    }
+
+    if (isProjectMemoDeleteMode) {
+      setIsProjectMemoDeleteMode(false);
+      setSelectedProjectMemoDeleteIds([]);
+      return;
+    }
+
+    setIsProjectMemoDeleteMode(true);
+    setSelectedProjectMemoDeleteIds([]);
+    setProjectMemoError(null);
+  }
+
+  function handleProjectMemoDeleteToggle(memoId) {
+    setSelectedProjectMemoDeleteIds((currentIds) =>
+      currentIds.includes(memoId) ? currentIds.filter((id) => id !== memoId) : [...currentIds, memoId]
+    );
+  }
+
+  async function handleConfirmProjectMemoDelete() {
+    const projectId = activeProjectData?.projectId || projectMemoProjectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    if (!selectedProjectMemoDeleteIds.length) {
+      setIsProjectMemoDeleteMode(false);
+      return;
+    }
+
+    setIsProjectMemoDeleting(true);
+    setProjectMemoError(null);
+
+    try {
+      for (const memoId of selectedProjectMemoDeleteIds) {
+        await deleteProjectMemo(projectId, memoId);
+      }
+
+      const memos = await getProjectMemos(projectId);
+
+      setProjectMemos(sortProjectMemosByUpdatedAt(memos));
+      setSelectedProjectMemoDeleteIds([]);
+      setIsProjectMemoDeleteMode(false);
+      setWorkspaceState(loadWorkspaceState());
+    } catch (error) {
+      setProjectMemoError(error instanceof Error ? error.message : "프로젝트 메모를 삭제하지 못했습니다.");
+    } finally {
+      setIsProjectMemoDeleting(false);
+    }
+  }
+
+  async function handleSaveProjectMemo() {
+    const projectId = projectMemoProjectId || activeProjectData?.projectId;
+    const title = projectMemoTitle.trim();
+
+    if (!projectId || projectMemoViewMode !== "editor") {
+      return;
+    }
+
+    if (!title) {
+      setProjectMemoTitleWarningMessage("제목을 정해주세요");
+      setShowProjectMemoTitleWarning(true);
+      setIsProjectMemoTitleShaking(true);
+      window.setTimeout(() => setIsProjectMemoTitleShaking(false), 420);
+      return;
+    }
+
+    const normalizedTitle = title.toLowerCase();
+    const hasDuplicateTitle = projectMemos.some(
+      (memo) => memo.memoId !== selectedProjectMemoId && memo.title.trim().toLowerCase() === normalizedTitle
+    );
+
+    if (hasDuplicateTitle) {
+      setShowProjectMemoTitleWarning(false);
+      setIsProjectMemoTitleShaking(true);
+      window.setTimeout(() => setIsProjectMemoTitleShaking(false), 420);
+      return;
+    }
+
+    setIsProjectMemoSaving(true);
+    setShowProjectMemoTitleWarning(false);
+    setProjectMemoError(null);
+
+    try {
+      if (selectedProjectMemoId) {
+        await updateProjectMemo(projectId, selectedProjectMemoId, {
+          title,
+          content: projectMemoContent,
+        });
+      } else {
+        await createProjectMemo(projectId, {
+          title,
+          content: projectMemoContent,
+        });
+      }
+
+      const memos = await getProjectMemos(projectId);
+
+      setProjectMemos(sortProjectMemosByUpdatedAt(memos));
+      setSelectedProjectMemoId(null);
+      setProjectMemoTitle("");
+      setProjectMemoContent("");
+      setProjectMemoViewMode("list");
+      setIsProjectMemoDirty(false);
+      latestProjectMemoDraftRef.current = {
+        memoId: null,
+        title: "",
+        content: "",
+      };
+      setWorkspaceState(loadWorkspaceState());
+    } catch (error) {
+      setProjectMemoError(error instanceof Error ? error.message : "프로젝트 메모를 저장하지 못했습니다.");
+    } finally {
+      setIsProjectMemoSaving(false);
+    }
   }
 
   function handleGraphSearchSelect(nodeId) {
@@ -1067,10 +1818,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
   function handleResetGraphView() {
     setGraphResetKey((current) => current + 1);
-  }
-
-  function handleGraphHistoryClick() {
-    // Navigation to the exact chat/message will be wired after backend data is available.
   }
 
   async function handleCreateNodeExplanation() {
@@ -1109,6 +1856,12 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       ? graphNodeDetail.description
       : visibleGraphDetailNode?.description || "";
   const visibleNodeExplanation = visibleGraphDetailNode ? nodeExplanations[visibleGraphDetailNode.id] : "";
+  const visibleGraphKnowledgeStageIndex = visibleGraphDetailNode?.knowledgeStageIndex ?? 0;
+  const visibleGraphKnowledgeStageLabel =
+    visibleGraphDetailNode?.knowledgeStageLabel ||
+    knowledgeStageLabels[visibleGraphKnowledgeStageIndex] ||
+    knowledgeStageLabels[0];
+  const visibleGraphKnowledgeStageColor = getKnowledgeStageColor(visibleGraphKnowledgeStageIndex);
 
   return (
     <div className={`workspace-shell ${activeTab === "graph" ? "workspace-shell-graph-mode" : ""}`}>
@@ -1220,6 +1973,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   data-message-id={message.id}
                   className={`workspace-message workspace-message-${message.role}${
                     message.isPending ? " workspace-message-pending" : ""
+                  }${message.variant ? ` workspace-message-${message.variant}` : ""
                   }`}
                 >
                   {message.role === "assistant" ? (
@@ -1243,15 +1997,24 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                           </div>
                         ) : (
                           <>
-                            <p>{message.text}</p>
-                            <div className="workspace-message-tags">
-                              <span className="workspace-message-tag workspace-message-tag-amber">
-                                부족 개념: 기아 현상
-                              </span>
-                            </div>
+                            {message.variant === "diagnosis-report" ? (
+                              <DiagnosisMessageBody message={message} />
+                            ) : (
+                              <p>{message.text}</p>
+                            )}
                           </>
                         )}
                       </div>
+                      {message.attachment?.type === "graph-preview" ? (
+                        <ReportGraphPreview
+                          graph={projectGraph}
+                          projectTitle={activeProjectData?.title || null}
+                          onOpen={() => {
+                            setSelectedReportGraphNodeId(projectGraph.defaultSelectedNodeId || null);
+                            setIsReportGraphOpen(true);
+                          }}
+                        />
+                      ) : null}
                     </>
                   ) : (
                     <div className="workspace-message-user-row">
@@ -1382,6 +2145,19 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         resetViewKey={graphResetKey}
                       />
 
+                      <div className="workspace-graph-stage-legend" aria-label="이해도 단계 색상">
+                        {knowledgeStageLabels.map((label, index) => (
+                          <div key={label} className="workspace-graph-stage-legend-item">
+                            <span
+                              className="workspace-graph-stage-legend-dot"
+                              style={{ backgroundColor: getKnowledgeStageColor(index) }}
+                            />
+                            <b>-</b>
+                            <strong>{label}</strong>
+                          </div>
+                        ))}
+                      </div>
+
                       {isGraphSearchOpen ? (
                         <div className="workspace-graph-search-panel">
                           <div className="workspace-graph-search-input-wrap">
@@ -1462,7 +2238,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         />
                         <div>
                           <strong>{visibleGraphDetailNode.label}</strong>
-                          <span>{visibleGraphDetailNode.subtitle}</span>
+                          <span
+                            className="workspace-graph-detail-stage-badge"
+                            style={{
+                              backgroundColor: `${visibleGraphKnowledgeStageColor}24`,
+                              color: visibleGraphKnowledgeStageColor,
+                            }}
+                          >
+                            현재 이해도 : {visibleGraphKnowledgeStageLabel}
+                          </span>
                         </div>
                       </section>
 
@@ -1505,22 +2289,18 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                       </section>
 
                       <section className="workspace-resource-section">
-                        <h2>관련 학습 기록</h2>
+                        <h2>퀴즈 히스토리</h2>
                         <div className="workspace-graph-history-list">
-                          {visibleGraphDetailNode.relatedLearningEvents.length ? (
-                            visibleGraphDetailNode.relatedLearningEvents.map((entry) => (
-                              <button
-                                key={entry.id}
-                                type="button"
-                                className="workspace-graph-history-item workspace-graph-history-button"
-                                onClick={handleGraphHistoryClick}
-                              >
-                                <span>{formatUpdatedAt(entry.updatedAt)}</span>
-                                <strong>{entry.preview}</strong>
-                              </button>
+                          {visibleGraphDetailQuizRecords.length ? (
+                            visibleGraphDetailQuizRecords.map((entry) => (
+                              <article key={entry.id} className="workspace-graph-history-item">
+                                <span>{entry.statusLabel}</span>
+                                <strong>{entry.prompt}</strong>
+                                <span>{entry.answerSummary}</span>
+                              </article>
                             ))
                           ) : (
-                            <div className="workspace-graph-empty-copy">연결된 학습 기록이 없습니다.</div>
+                            <div className="workspace-graph-empty-copy">아직 퀴즈 기록이 없습니다.</div>
                           )}
                         </div>
                       </section>
@@ -1603,21 +2383,146 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   </div>
                 </>
               ) : (
-                <div className="workspace-empty-copy">최근 업데이트된 개념이 없습니다.</div>
+                <div className="workspace-empty-copy workspace-concept-empty">최근 업데이트된 개념이 없습니다.</div>
               )}
             </div>
           </section>
 
-          <section className="workspace-resource-section workspace-resource-section-memo">
-            <h2>메모장</h2>
-            <textarea
-              value={projectNote}
-              onChange={(event) => handleNoteChange(event.target.value)}
-              placeholder="학습 중 떠오른 생각을 자유롭게 적어보세요."
-            />
-            {projectNoteError ? <p className="workspace-modal-error">{projectNoteError}</p> : null}
-            {!projectNoteError && isProjectNoteSaving ? (
-              <p className="workspace-empty-copy">메모를 저장하는 중입니다.</p>
+          <section
+            className={`workspace-resource-section workspace-resource-section-memo workspace-resource-section-memo-${projectMemoViewMode}`}
+          >
+            <div className="workspace-memo-toolbar">
+              <h2>메모장</h2>
+              {projectMemoViewMode === "editor" ? (
+                <div className="workspace-memo-toolbar-actions">
+                  <button
+                    type="button"
+                    className="workspace-memo-list-button"
+                    onClick={handleProjectMemoListOpen}
+                    disabled={isProjectMemoSaving}
+                  >
+                    목록
+                  </button>
+                  <button
+                    type="button"
+                    className="workspace-memo-save-button"
+                    onClick={handleSaveProjectMemo}
+                    disabled={isProjectMemoSaving}
+                  >
+                    저장
+                  </button>
+                </div>
+              ) : (
+                <div className="workspace-memo-toolbar-actions">
+                  <button
+                    type="button"
+                    className="workspace-memo-icon-button"
+                    onClick={handleProjectMemoDeleteModeOpen}
+                    disabled={!projectMemos.length || isProjectMemoDeleting}
+                    aria-label="메모 삭제 선택"
+                    title="메모 삭제 선택"
+                  >
+                    -
+                  </button>
+                  {isProjectMemoDeleteMode ? (
+                    <button
+                      type="button"
+                      className="workspace-memo-confirm-button"
+                      onClick={handleConfirmProjectMemoDelete}
+                      disabled={isProjectMemoDeleting}
+                    >
+                      확인
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="workspace-memo-icon-button"
+                      onClick={handleCreateProjectMemo}
+                      disabled={!activeProjectData?.projectId}
+                      aria-label="새 메모"
+                      title="새 메모"
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {isProjectMemoLoading ? <p className="workspace-empty-copy">메모를 불러오는 중입니다.</p> : null}
+
+            {!isProjectMemoLoading && projectMemoViewMode === "list" && projectMemos.length ? (
+              <div
+                className={`workspace-memo-list ${isProjectMemoDeleteMode ? "workspace-memo-list-delete-mode" : ""}`}
+                aria-label="프로젝트 메모 목록"
+              >
+                {projectMemos.map((memo) => (
+                  <div key={memo.memoId} className="workspace-memo-list-row">
+                    <input
+                      type="checkbox"
+                      className="workspace-memo-delete-checkbox"
+                      checked={selectedProjectMemoDeleteIds.includes(memo.memoId)}
+                      onChange={() => handleProjectMemoDeleteToggle(memo.memoId)}
+                      aria-label={`${memo.title || "Untitled"} 삭제 선택`}
+                      tabIndex={isProjectMemoDeleteMode ? 0 : -1}
+                    />
+                    <span className="workspace-memo-delete-checkmark" aria-hidden="true" />
+                    <button
+                      type="button"
+                      className={`workspace-memo-list-item ${
+                        memo.memoId === selectedProjectMemoId ? "workspace-memo-list-item-active" : ""
+                      }`}
+                      onClick={() => handleProjectMemoSelect(memo.memoId)}
+                    >
+                      <span>{memo.title || "Untitled"}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {!isProjectMemoLoading && projectMemoViewMode === "list" && !projectMemos.length ? (
+              <p className="workspace-memo-empty">생성된 메모가 없습니다</p>
+            ) : null}
+
+            {projectMemoError && projectMemoViewMode === "list" ? (
+              <p className="workspace-modal-error">{projectMemoError}</p>
+            ) : null}
+
+            {projectMemoViewMode === "editor" ? (
+              <>
+                {showProjectMemoTitleWarning ? (
+                  <div className="workspace-memo-title-popover">{projectMemoTitleWarningMessage}</div>
+                ) : null}
+                <input
+                  className={`workspace-memo-title-input ${
+                    isProjectMemoTitleShaking ? "workspace-memo-title-input-shake" : ""
+                  }`}
+                  value={projectMemoTitle}
+                  onChange={(event) => handleProjectMemoTitleChange(event.target.value)}
+                  placeholder="메모 제목"
+                />
+                <textarea
+                  value={projectMemoContent}
+                  onChange={(event) => handleProjectMemoContentChange(event.target.value)}
+                  placeholder="학습 중 떠오른 생각을 자유롭게 적어보세요."
+                />
+                <div className="workspace-memo-footer">
+                  {projectMemoError ? (
+                    <p className="workspace-modal-error">{projectMemoError}</p>
+                  ) : isProjectMemoSaving ? (
+                    <p className="workspace-empty-copy">메모를 저장하는 중입니다.</p>
+                  ) : showProjectMemoTitleWarning ? (
+                    <p className="workspace-empty-copy">제목 입력 후 저장할 수 있습니다.</p>
+                  ) : isProjectMemoDirty ? (
+                    <p className="workspace-empty-copy">저장되지 않은 변경사항이 있습니다.</p>
+                  ) : selectedProjectMemo ? (
+                    <p className="workspace-empty-copy">저장됨</p>
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                </div>
+              </>
             ) : null}
           </section>
         </aside>
@@ -1640,6 +2545,19 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           onConfirm={handleCreateProject}
           isCreating={isCreatingProject}
           errorMessage={projectError}
+        />
+      ) : null}
+
+      {isReportGraphOpen ? (
+        <ReportGraphOverlay
+          graph={projectGraph}
+          projectTitle={activeProjectData?.title || null}
+          selectedNodeId={selectedReportGraphNodeId}
+          onSelectNode={setSelectedReportGraphNodeId}
+          onClose={() => {
+            setIsReportGraphOpen(false);
+            setSelectedReportGraphNodeId(null);
+          }}
         />
       ) : null}
 

@@ -1,4 +1,4 @@
-import { ApiError, apiRequest, setStoredAccessToken } from "./client";
+import { ApiError, apiRequest, clearStoredAccessToken, setStoredAccessToken } from "./client";
 
 const CURRENT_USER_STORAGE_KEY = "eeum-current-api-user-id";
 const GOOGLE_LOGIN_STORAGE_KEY = "eeum-google-login-active";
@@ -40,6 +40,14 @@ export function setCurrentUserId(userId) {
   setStoredUserId(userId);
 }
 
+function emitSessionChange() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.dispatchEvent(new Event("eeum-auth-session-change"));
+}
+
 function setGoogleLoginActive() {
   if (!canUseStorage()) {
     return;
@@ -54,6 +62,17 @@ export function hasGoogleLoginSession() {
   }
 
   return window.localStorage.getItem(GOOGLE_LOGIN_STORAGE_KEY) === "true" && Boolean(getStoredUserId());
+}
+
+export function logoutGoogleSession() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  clearStoredAccessToken();
+  window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+  window.localStorage.removeItem(GOOGLE_LOGIN_STORAGE_KEY);
+  emitSessionChange();
 }
 
 function redirectToLogin() {
@@ -174,6 +193,7 @@ export async function loginWithGoogleProfile({ email, nickname = null, profile_i
 
   setStoredUserId(user.user_id);
   setGoogleLoginActive();
+  emitSessionChange();
   return user;
 }
 
