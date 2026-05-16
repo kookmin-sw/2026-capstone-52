@@ -19,6 +19,7 @@ import {
   createProjectMemo,
   deleteProjectMemo,
   getGraphNodeDetail,
+  getGraphNodeQuizHistory,
   getProjectCatalogOptions,
   getProjectMemos,
   getProjectGraphData,
@@ -33,6 +34,10 @@ import { getProjectData } from "../../features/project/model";
 import WorkspaceProfileCard from "./WorkspaceProfileCard";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { getDashboardProfileSummary, useProfileStore } from "@/store/profileStore";
+import MiniQuizPopup from "@/components/mini-quiz/MiniQuizPopup";
+import QuizReviewPopup from "./QuizReviewPopup";
+import { isDashboardBackendApiEnabled } from "../../features/dashboard/service";
+import { MOCK_MINI_QUIZ_READY_CONCEPTS } from "../../features/mini-quiz/mock-data";
 
 const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
 const rootKnowledgeColor = "#f5d38a";
@@ -544,6 +549,17 @@ function buildGraphQuizRecordPool(projectData, workspaceState, graphNode) {
     (entry.questions || []).map((question, questionIndex) => {
       const answer = entry.answers?.[question.id];
       const isCorrect = evaluateQuizAnswer(question, answer);
+      const selectedIds = getSelectedAnswerIds(answer);
+      const correctIds = getCorrectAnswerIds(question);
+      const reviewChoices = (question.choices || []).map((choice) => {
+        const optionId = String(choice.id ?? choice.option_id ?? "");
+        return {
+          option_id: optionId,
+          text: choice.label || choice.text || optionId,
+          is_correct: correctIds.includes(optionId),
+          is_selected: selectedIds.includes(optionId),
+        };
+      });
 
       return {
         id: `${entry.sessionId || "diagnosis"}-${question.id || questionIndex}-${entryIndex}`,
@@ -553,6 +569,14 @@ function buildGraphQuizRecordPool(projectData, workspaceState, graphNode) {
         statusLabel: isCorrect === null ? "응답 완료" : isCorrect ? "정답" : "오답",
         updatedAt: entry.savedAt ? new Date(entry.savedAt).toISOString() : new Date().toISOString(),
         isRelated: questionMatchesGraphNode(question, graphNode),
+        reviewEntry: {
+          question_id: question.id || `${entryIndex}-${questionIndex}`,
+          question: question.prompt || question.question || `퀴즈 ${questionIndex + 1}`,
+          choices: reviewChoices,
+          correct_option_ids: correctIds,
+          selected_option_ids: selectedIds,
+          is_fully_correct: isCorrect,
+        },
       };
     })
   );
@@ -863,6 +887,59 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [selectedReportGraphNodeId, setSelectedReportGraphNodeId] = useState(null);
   const [composerText, setComposerText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [miniQuizReadyByMessage, setMiniQuizReadyByMessage] = useState({});
+  const [activeMiniQuiz, setActiveMiniQuiz] = useState(null);
+  const [deferredMiniQuizzes, setDeferredMiniQuizzes] = useState([]);
+  const [isDeferredMiniQuizListOpen, setIsDeferredMiniQuizListOpen] = useState(false);
+  const [miniQuizFloatOffset, setMiniQuizFloatOffset] = useState({ x: 0, y: 0 });
+  const miniQuizFloatDragRef = useRef(null);
+
+  function handleMiniQuizFloatPointerDown(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    miniQuizFloatDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      initialOffsetX: miniQuizFloatOffset.x,
+      initialOffsetY: miniQuizFloatOffset.y,
+      moved: false,
+    };
+
+    function handleMove(moveEvent) {
+      const drag = miniQuizFloatDragRef.current;
+      if (!drag) return;
+      const dx = moveEvent.clientX - drag.startX;
+      const dy = moveEvent.clientY - drag.startY;
+      if (!drag.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        drag.moved = true;
+      }
+      setMiniQuizFloatOffset({
+        x: drag.initialOffsetX + dx,
+        y: drag.initialOffsetY + dy,
+      });
+    }
+
+    function handleUp() {
+      document.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerup", handleUp);
+      document.removeEventListener("pointercancel", handleUp);
+    }
+
+    document.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerup", handleUp);
+    document.addEventListener("pointercancel", handleUp);
+  }
+
+  function handleMiniQuizFloatClick() {
+    const drag = miniQuizFloatDragRef.current;
+    miniQuizFloatDragRef.current = null;
+    if (drag?.moved) return;
+    setIsDeferredMiniQuizListOpen((current) => !current);
+  }
+  const [graphNodeQuizHistory, setGraphNodeQuizHistory] = useState([]);
+  const [isGraphNodeQuizHistoryLoading, setIsGraphNodeQuizHistoryLoading] = useState(false);
+  const [activeQuizReview, setActiveQuizReview] = useState(null);
+  const [miniQuizResults, setMiniQuizResults] = useState([]);
   const [projectMemos, setProjectMemos] = useState([]);
   const [selectedProjectMemoId, setSelectedProjectMemoId] = useState(null);
   const [projectMemoTitle, setProjectMemoTitle] = useState("");
@@ -1070,7 +1147,33 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     [recentChats, selectedChatId]
   );
 
-  const activeChatMessages = activeChat?.messages || [];
+  const rawActiveChatMessages = activeChat?.messages || [];
+
+  // mock 모드일 때만 — 진단 그래프 프리뷰 메시지 뒤에 미니퀴즈 안내 말풍선을 합성 메시지로 추가.
+  // 백엔드 모드에서는 실제 chat 응답의 concept_counting.quiz_ready_concepts가 트리거 역할을 하므로 합성하지 않음.
+  const activeChatMessages = useMemo(() => {
+    if (isDashboardBackendApiEnabled) return rawActiveChatMessages;
+    if (!rawActiveChatMessages.length) return rawActiveChatMessages;
+    const hasGraphPreview = rawActiveChatMessages.some(
+      (message) => message.attachment?.type === "graph-preview"
+    );
+    if (!hasGraphPreview) return rawActiveChatMessages;
+    const syntheticId = `${activeChat?.id || "chat"}-mock-mini-quiz`;
+    if (rawActiveChatMessages.some((message) => message.id === syntheticId)) {
+      return rawActiveChatMessages;
+    }
+    const syntheticMessage = {
+      id: syntheticId,
+      role: "assistant",
+      text: "지식 그래프에서 다룬 개념을 짧은 미니 퀴즈로 점검해볼까요?",
+      miniQuizReady: MOCK_MINI_QUIZ_READY_CONCEPTS.map((concept) => ({
+        nodeId: concept.node_id,
+        name: concept.name,
+      })),
+    };
+    return [...rawActiveChatMessages, syntheticMessage];
+  }, [rawActiveChatMessages, activeChat?.id]);
+
   const activeChatLastMessage = activeChatMessages[activeChatMessages.length - 1] || null;
   const activeChatScrollKey = `${activeChatMessages.length}:${activeChatLastMessage?.id || ""}:${
     activeChatLastMessage?.text || ""
@@ -1149,6 +1252,18 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     () => buildGraphQuizRecords(activeProjectData, workspaceState, visibleGraphDetailNode),
     [activeProjectData, visibleGraphDetailNode, workspaceState]
   );
+  // 현재 노드와 연관된 미니퀴즈 결과 — nodeId 또는 conceptName 일치 시 매칭 (mock 모드에서도 동작)
+  const miniQuizResultsForVisibleNode = useMemo(() => {
+    if (!visibleGraphDetailNode) return [];
+    const nodeLabel = visibleGraphDetailNode.label || "";
+    return miniQuizResults
+      .filter(
+        (item) =>
+          item.nodeId === visibleGraphDetailNode.id ||
+          (nodeLabel && item.conceptName === nodeLabel)
+      )
+      .map((item) => item.review);
+  }, [miniQuizResults, visibleGraphDetailNode]);
   const graphSearchResults = useMemo(() => {
     if (!projectGraph.nodes.length) {
       return [];
@@ -1526,13 +1641,27 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     });
 
     try {
-      await sendChatMessage(selectedProjectId, nextMessage);
+      const sendResponse = await sendChatMessage(selectedProjectId, nextMessage);
+      const quizReady = Array.isArray(sendResponse?.concept_counting?.quiz_ready_concepts)
+        ? sendResponse.concept_counting.quiz_ready_concepts
+        : [];
       const [nextProjects, nextChats, nextGraph, nextRecentGraphNodes] = await Promise.all([
         getProjects(),
         getProjectChats(selectedProjectId),
         getProjectGraphData(selectedProjectId).catch(() => null),
         getRecentGraphNodes(selectedProjectId).catch(() => []),
       ]);
+
+      if (quizReady.length && sendResponse?.chat_id !== undefined) {
+        const assistantMessageId = `api-chat-${sendResponse.chat_id}-assistant`;
+        setMiniQuizReadyByMessage((current) => ({
+          ...current,
+          [assistantMessageId]: quizReady.map((concept) => ({
+            nodeId: concept.node_id,
+            name: concept.name,
+          })),
+        }));
+      }
 
       setProjects(nextProjects);
       setRecentChats(nextChats);
@@ -1805,14 +1934,22 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
 
     setIsGraphNodeDetailLoading(true);
+    setIsGraphNodeQuizHistoryLoading(true);
+    setGraphNodeQuizHistory([]);
 
     try {
-      const detail = await getGraphNodeDetail(nodeId);
+      const [detail, history] = await Promise.all([
+        getGraphNodeDetail(nodeId),
+        getGraphNodeQuizHistory(nodeId).catch(() => []),
+      ]);
       setGraphNodeDetail(detail);
+      setGraphNodeQuizHistory(Array.isArray(history) ? history : []);
     } catch {
       setGraphNodeDetail(null);
+      setGraphNodeQuizHistory([]);
     } finally {
       setIsGraphNodeDetailLoading(false);
+      setIsGraphNodeQuizHistoryLoading(false);
     }
   }
 
@@ -2002,6 +2139,67 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             ) : (
                               <p>{message.text}</p>
                             )}
+                            {(() => {
+                              const overridden = miniQuizReadyByMessage[message.id];
+                              const triggers =
+                                overridden !== undefined ? overridden : message.miniQuizReady || null;
+                              if (!triggers || triggers.length === 0) return null;
+                              return (
+                                <div className="workspace-message-mini-quiz">
+                                  <div className="workspace-message-mini-quiz-label">
+                                    <strong>시험 준비가 되었습니다</strong>
+                                    <span>
+                                      {triggers.length > 1
+                                        ? `${triggers.length}개의 미니 퀴즈를 풀어볼까요?`
+                                        : `${triggers[0].name} 미니 퀴즈를 풀어볼까요?`}
+                                    </span>
+                                  </div>
+                                  <div className="workspace-message-mini-quiz-actions">
+                                    <button
+                                      type="button"
+                                      className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-primary"
+                                      onClick={() =>
+                                        setActiveMiniQuiz({
+                                          projectId: selectedProjectId,
+                                          queue: triggers.map((target) => ({
+                                            nodeId: target.nodeId,
+                                            name: target.name,
+                                          })),
+                                          sourceMessageId: message.id,
+                                        })
+                                      }
+                                    >
+                                      퀴즈 풀기
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
+                                      onClick={() => {
+                                        setDeferredMiniQuizzes((current) => {
+                                          const existingIds = new Set(current.map((item) => item.nodeId));
+                                          const additions = triggers
+                                            .filter((target) => !existingIds.has(target.nodeId))
+                                            .map((target) => ({
+                                              id: `${message.id}-${target.nodeId}`,
+                                              nodeId: target.nodeId,
+                                              name: target.name,
+                                              projectId: selectedProjectId,
+                                              deferredAt: Date.now(),
+                                            }));
+                                          return [...current, ...additions];
+                                        });
+                                        setMiniQuizReadyByMessage((current) => ({
+                                          ...current,
+                                          [message.id]: [],
+                                        }));
+                                      }}
+                                    >
+                                      나중에 보기
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </>
                         )}
                       </div>
@@ -2032,6 +2230,67 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                 </article>
               ))}
             </div>
+
+            {deferredMiniQuizzes.length > 0 ? (
+              <div
+                className="workspace-mini-quiz-float-wrap"
+                style={{ transform: `translate(${miniQuizFloatOffset.x}px, ${miniQuizFloatOffset.y}px)` }}
+              >
+                <button
+                  type="button"
+                  className="workspace-mini-quiz-float-button"
+                  aria-label="미뤄둔 미니퀴즈"
+                  onPointerDown={handleMiniQuizFloatPointerDown}
+                  onClick={handleMiniQuizFloatClick}
+                >
+                  <span className="workspace-mini-quiz-float-icon" aria-hidden="true">
+                    Q
+                  </span>
+                  <span className="workspace-mini-quiz-float-count">{deferredMiniQuizzes.length}</span>
+                </button>
+
+                {isDeferredMiniQuizListOpen ? (
+                  <div
+                    className="workspace-mini-quiz-deferred-panel"
+                    role="dialog"
+                    aria-label="미뤄둔 미니퀴즈 목록"
+                  >
+                    <div className="workspace-mini-quiz-deferred-head">
+                      <strong>미뤄둔 미니퀴즈</strong>
+                      <span>{deferredMiniQuizzes.length}개</span>
+                    </div>
+                    <ul className="workspace-mini-quiz-deferred-list">
+                      {deferredMiniQuizzes.map((item, index) => (
+                        <li
+                          key={item.id}
+                          className="workspace-mini-quiz-deferred-list-row"
+                          style={{ animationDelay: `${index * 55}ms` }}
+                        >
+                          <button
+                            type="button"
+                            className="workspace-mini-quiz-deferred-item"
+                            onClick={() => {
+                              setActiveMiniQuiz({
+                                projectId: item.projectId || selectedProjectId,
+                                nodeId: item.nodeId,
+                                name: item.name,
+                                sourceMessageId: null,
+                                deferredId: item.id,
+                              });
+                              setIsDeferredMiniQuizListOpen(false);
+                            }}
+                          >
+                            <span className="workspace-mini-quiz-deferred-dot" aria-hidden="true" />
+                            <span className="workspace-mini-quiz-deferred-name">{item.name}</span>
+                            <span className="workspace-mini-quiz-deferred-cta">풀기 →</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <form className="workspace-composer" onSubmit={handleSendMessage}>
               <div className="workspace-composer-input-shell">
@@ -2238,15 +2497,17 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         />
                         <div>
                           <strong>{visibleGraphDetailNode.label}</strong>
-                          <span
-                            className="workspace-graph-detail-stage-badge"
-                            style={{
-                              backgroundColor: `${visibleGraphKnowledgeStageColor}24`,
-                              color: visibleGraphKnowledgeStageColor,
-                            }}
-                          >
-                            현재 이해도 : {visibleGraphKnowledgeStageLabel}
-                          </span>
+                          {visibleGraphDetailNode.isCore ? null : (
+                            <span
+                              className="workspace-graph-detail-stage-badge"
+                              style={{
+                                backgroundColor: `${visibleGraphKnowledgeStageColor}24`,
+                                color: visibleGraphKnowledgeStageColor,
+                              }}
+                            >
+                              현재 이해도 : {visibleGraphKnowledgeStageLabel}
+                            </span>
+                          )}
                         </div>
                       </section>
 
@@ -2274,13 +2535,21 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         <div className="workspace-graph-related-list">
                           {visibleGraphDetailConcepts.length ? (
                             visibleGraphDetailConcepts.map((topic) => (
-                              <div key={topic.id} className="workspace-graph-related-item">
+                              <button
+                                key={topic.id}
+                                type="button"
+                                className="workspace-graph-related-item workspace-graph-related-item-button"
+                                onClick={() => {
+                                  handleGraphNodeSelect(topic.id);
+                                  requestGraphFocus(topic.id);
+                                }}
+                              >
                                 <span
                                   className="workspace-graph-related-dot"
                                   style={{ background: topic.color }}
                                 />
                                 <span>{topic.label}</span>
-                              </div>
+                              </button>
                             ))
                           ) : (
                             <div className="workspace-graph-empty-copy">연결된 관련 개념이 없습니다.</div>
@@ -2289,19 +2558,111 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                       </section>
 
                       <section className="workspace-resource-section">
-                        <h2>퀴즈 히스토리</h2>
+                        <h2>풀이 이력</h2>
                         <div className="workspace-graph-history-list">
-                          {visibleGraphDetailQuizRecords.length ? (
-                            visibleGraphDetailQuizRecords.map((entry) => (
-                              <article key={entry.id} className="workspace-graph-history-item">
-                                <span>{entry.statusLabel}</span>
-                                <strong>{entry.prompt}</strong>
-                                <span>{entry.answerSummary}</span>
-                              </article>
-                            ))
-                          ) : (
-                            <div className="workspace-graph-empty-copy">아직 퀴즈 기록이 없습니다.</div>
-                          )}
+                          {(() => {
+                            if (isGraphNodeQuizHistoryLoading) {
+                              return (
+                                <div className="workspace-graph-empty-copy">풀이 이력을 불러오는 중입니다.</div>
+                              );
+                            }
+
+                            // 백엔드 quiz-history 와 로컬 미니퀴즈 결과 dedup (백엔드가 source=mini_quiz 로 포함하기 시작하면 이 dedup 이 효과 발휘)
+                            const backendQuestionIds = new Set(
+                              graphNodeQuizHistory.map((entry) => entry.question_id)
+                            );
+                            const combinedHistory = [
+                              ...graphNodeQuizHistory,
+                              ...miniQuizResultsForVisibleNode.filter(
+                                (entry) => !backendQuestionIds.has(entry.question_id)
+                              ),
+                            ];
+
+                            const renderBackendStyle = (entry) => {
+                              const isCorrect = entry.is_fully_correct ?? null;
+                              const statusLabel =
+                                isCorrect === true ? "정답" : isCorrect === false ? "오답" : "기록";
+                              const selectedTexts = entry.choices
+                                .filter((choice) => choice.is_selected)
+                                .map((choice) => choice.text);
+                              const correctTexts = entry.choices
+                                .filter((choice) => choice.is_correct)
+                                .map((choice) => choice.text);
+                              const isMiniQuiz = entry.source === "mini_quiz";
+                              return (
+                                <button
+                                  key={entry.question_id}
+                                  type="button"
+                                  className={`workspace-graph-history-item workspace-graph-history-item-clickable ${
+                                    isCorrect === true
+                                      ? "workspace-graph-history-item-correct"
+                                      : isCorrect === false
+                                        ? "workspace-graph-history-item-wrong"
+                                        : ""
+                                  }`}
+                                  onClick={() =>
+                                    setActiveQuizReview({
+                                      entry,
+                                      conceptName: visibleGraphDetailNode?.label || null,
+                                    })
+                                  }
+                                >
+                                  <span>
+                                    {statusLabel}
+                                    {isMiniQuiz ? " · 미니퀴즈" : ""}
+                                  </span>
+                                  <strong>{entry.question}</strong>
+                                  <span>
+                                    내 답: {selectedTexts.length ? selectedTexts.join(", ") : "스킵"}
+                                  </span>
+                                  <span>정답: {correctTexts.join(", ") || "-"}</span>
+                                </button>
+                              );
+                            };
+
+                            const renderMockStyle = (entry) => {
+                              const toneClass =
+                                entry.isCorrect === true
+                                  ? "workspace-graph-history-item-correct"
+                                  : entry.isCorrect === false
+                                    ? "workspace-graph-history-item-wrong"
+                                    : "";
+                              return (
+                                <button
+                                  key={entry.id}
+                                  type="button"
+                                  className={`workspace-graph-history-item workspace-graph-history-item-clickable ${toneClass}`}
+                                  onClick={() =>
+                                    entry.reviewEntry
+                                      ? setActiveQuizReview({
+                                          entry: entry.reviewEntry,
+                                          conceptName: visibleGraphDetailNode?.label || null,
+                                        })
+                                      : null
+                                  }
+                                >
+                                  <span>{entry.statusLabel}</span>
+                                  <strong>{entry.prompt}</strong>
+                                  <span>{entry.answerSummary}</span>
+                                </button>
+                              );
+                            };
+
+                            if (combinedHistory.length || visibleGraphDetailQuizRecords.length) {
+                              return (
+                                <>
+                                  {combinedHistory.map(renderBackendStyle)}
+                                  {combinedHistory.length === 0
+                                    ? visibleGraphDetailQuizRecords.map(renderMockStyle)
+                                    : null}
+                                </>
+                              );
+                            }
+
+                            return (
+                              <div className="workspace-graph-empty-copy">아직 풀이 이력이 없습니다.</div>
+                            );
+                          })()}
                         </div>
                       </section>
                     </>
@@ -2557,6 +2918,59 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           onClose={() => {
             setIsReportGraphOpen(false);
             setSelectedReportGraphNodeId(null);
+          }}
+        />
+      ) : null}
+
+      {activeQuizReview ? (
+        <QuizReviewPopup
+          entry={activeQuizReview.entry}
+          onClose={() => setActiveQuizReview(null)}
+        />
+      ) : null}
+
+      {activeMiniQuiz ? (
+        <MiniQuizPopup
+          projectId={activeMiniQuiz.projectId}
+          conceptNodeId={activeMiniQuiz.nodeId}
+          conceptName={activeMiniQuiz.name}
+          conceptQueue={activeMiniQuiz.queue}
+          onResult={({ nodeId, conceptName, reviewEntry }) => {
+            setMiniQuizResults((current) => {
+              const dedup = current.filter(
+                (item) => item.review.question_id !== reviewEntry.question_id
+              );
+              return [...dedup, { nodeId, conceptName, review: reviewEntry, completedAt: Date.now() }];
+            });
+          }}
+          onClose={() => {
+            const sourceId = activeMiniQuiz.sourceMessageId;
+            const deferredId = activeMiniQuiz.deferredId;
+            const completedQueue = Array.isArray(activeMiniQuiz.queue) ? activeMiniQuiz.queue : null;
+            setActiveMiniQuiz(null);
+            if (sourceId) {
+              setMiniQuizReadyByMessage((current) => ({
+                ...current,
+                [sourceId]: [],
+              }));
+            }
+            if (deferredId) {
+              setDeferredMiniQuizzes((current) => current.filter((item) => item.id !== deferredId));
+            }
+            if (completedQueue?.length) {
+              const completedNodeIds = new Set(completedQueue.map((item) => item.nodeId));
+              setDeferredMiniQuizzes((current) =>
+                current.filter((item) => !completedNodeIds.has(item.nodeId))
+              );
+            }
+            if (selectedProjectId) {
+              getProjectGraphData(selectedProjectId)
+                .then((nextGraph) => setBackendGraph(nextGraph))
+                .catch(() => null);
+              getRecentGraphNodes(selectedProjectId)
+                .then((nextNodes) => setRecentGraphNodes(nextNodes))
+                .catch(() => null);
+            }
           }}
         />
       ) : null}
