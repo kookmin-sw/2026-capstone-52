@@ -61,6 +61,7 @@ def submit_mini_quiz(
     try:
         result = mini_quiz_service.submit_mini_quiz_answer(
             project_id=project_id,
+            user_id=current_user.user_id,
             question_id=body.question_id,
             selected_option_ids=body.selected_option_ids,
             is_skipped=body.is_skipped,
