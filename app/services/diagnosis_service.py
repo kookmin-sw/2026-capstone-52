@@ -574,6 +574,49 @@ def _dedupe_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
     return list(unique_nodes.values())
 
 
+def get_node_quiz_history(node_id: str, db: Session) -> list[dict]:
+    """노드에 출제된 모든 퀴즈 이력 반환 — 수준진단 + 미니퀴즈 통합"""
+    questions = (
+        db.query(DiagnosisQuestion)
+        .filter(DiagnosisQuestion.concept_id == node_id)
+        .order_by(DiagnosisQuestion.created_at.desc())
+        .all()
+    )
+    result = []
+    for q in questions:
+        answer = (
+            db.query(DiagnosisAnswer)
+            .filter(DiagnosisAnswer.question_id == q.question_id)
+            .order_by(DiagnosisAnswer.created_at.desc())
+            .first()
+        )
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer and answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct if answer else None,
+            "partial_score": answer.partial_score if answer else None,
+            "answer_score": answer.answer_score if answer else None,
+            "explanation": q.explanation,
+        })
+    return result
+
+
 def get_session_review(session_id: str, db: Session) -> list[dict]:
     """세션의 모든 질문/답변/정답을 리뷰용으로 반환"""
     answers = (

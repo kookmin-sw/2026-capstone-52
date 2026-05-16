@@ -7,7 +7,9 @@ from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.services import graph_service
+from app.services.diagnosis_service import get_node_quiz_history
 from app.schemas.graph import NodeResponse, EdgeResponse, NodeDetailResponse, RelatedChatResponse
+from app.schemas.quiz_review import QuizQuestionReview
 
 router = APIRouter()
 
@@ -53,6 +55,23 @@ def get_node_detail(
         related_chats=[RelatedChatResponse(**c) for c in related_chats],
     )
     return {"success": True, "data": data, "message": ""}
+
+
+@router.get("/nodes/{node_id}/quiz-history")
+def get_node_quiz_history_view(
+    node_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """노드 클릭 시 해당 개념의 수준진단/미니퀴즈 이력 반환"""
+    node = graph_service.get_node_by_id(node_id, db)
+    if not node:
+        raise HTTPException(status_code=404, detail="노드를 찾을 수 없습니다.")
+
+    _get_project_or_403(node.project_id, current_user, db)
+
+    history = get_node_quiz_history(node_id, db)
+    return {"success": True, "data": [QuizQuestionReview(**h) for h in history], "message": ""}
 
 
 @router.get("/{project_id}")
