@@ -35,6 +35,17 @@ import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { getDashboardProfileSummary, useProfileStore } from "@/store/profileStore";
 
 const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
+const rootKnowledgeColor = "#f5d38a";
+const knowledgeStageLabels = ["진단 전", "입문", "기초", "심화", "마스터"];
+const knowledgeStageColors = ["#fb923c", "#f9a8d4", "#a78bfa", "#60a5fa", "#34d399"];
+const fallbackKnowledgeStageCycle = [1, 2, 3, 4, 1, 2, 3, 4, 0];
+
+function getKnowledgeStageColor(stageIndex) {
+  const maxStageIndex = Math.max(knowledgeStageLabels.length - 1, 1);
+  const normalizedStageIndex = Math.min(Math.max(stageIndex, 0), maxStageIndex);
+
+  return knowledgeStageColors[normalizedStageIndex] || knowledgeStageColors[0];
+}
 
 function sortProjectMemosByUpdatedAt(memos) {
   return [...memos].sort((left, right) => {
@@ -516,9 +527,12 @@ function questionMatchesGraphNode(question, graphNode) {
   return graphTokens.some((token) => questionTokens.has(token) || searchableQuestionText.includes(token));
 }
 
-function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
+function buildGraphQuizRecordPool(projectData, workspaceState, graphNode) {
   if (!projectData) {
-    return [];
+    return {
+      records: [],
+      relatedRecords: [],
+    };
   }
 
   const diagnosisEntries = (projectData.materials || [])
@@ -535,6 +549,7 @@ function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
         id: `${entry.sessionId || "diagnosis"}-${question.id || questionIndex}-${entryIndex}`,
         prompt: question.prompt || question.question || `퀴즈 ${questionIndex + 1}`,
         answerSummary: formatQuizAnswer(question, answer),
+        isCorrect,
         statusLabel: isCorrect === null ? "응답 완료" : isCorrect ? "정답" : "오답",
         updatedAt: entry.savedAt ? new Date(entry.savedAt).toISOString() : new Date().toISOString(),
         isRelated: questionMatchesGraphNode(question, graphNode),
@@ -543,7 +558,87 @@ function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
   );
   const relatedRecords = graphNode ? records.filter((record) => record.isRelated) : records;
 
-  return relatedRecords.length ? relatedRecords : records;
+  return {
+    records,
+    relatedRecords,
+  };
+}
+
+function buildGraphQuizRecords(projectData, workspaceState, graphNode) {
+  const { records, relatedRecords } = buildGraphQuizRecordPool(projectData, workspaceState, graphNode);
+
+  return (relatedRecords.length ? relatedRecords : records).slice(0, 3);
+}
+
+function getKnowledgeStageIndexFromQuizRecords(records) {
+  const scorableRecords = records.filter((record) => typeof record.isCorrect === "boolean");
+
+  if (!scorableRecords.length) {
+    return records.length ? 1 : 0;
+  }
+
+  const correctCount = scorableRecords.filter((record) => record.isCorrect).length;
+  const correctRatio = correctCount / scorableRecords.length;
+
+  if (correctRatio <= 0) {
+    return 1;
+  }
+
+  if (correctRatio < 0.5) {
+    return 2;
+  }
+
+  if (correctRatio < 0.85) {
+    return 3;
+  }
+
+  return 4;
+}
+
+function getGraphNodeKnowledgeStageIndex(projectData, workspaceState, graphNode) {
+  if (!projectData || !graphNode) {
+    return 0;
+  }
+
+  const { relatedRecords } = buildGraphQuizRecordPool(projectData, workspaceState, graphNode);
+
+  return getKnowledgeStageIndexFromQuizRecords(relatedRecords);
+}
+
+function getFallbackKnowledgeStageIndex(nodeIndex) {
+  return fallbackKnowledgeStageCycle[nodeIndex % fallbackKnowledgeStageCycle.length];
+}
+
+function applyKnowledgeStagesToGraph(graph, projectData, workspaceState) {
+  let conceptNodeIndex = 0;
+
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      if (node.isCore) {
+        const knowledgeStageIndex = getGraphNodeKnowledgeStageIndex(projectData, workspaceState, node);
+
+        return {
+          ...node,
+          color: rootKnowledgeColor,
+          knowledgeStageIndex,
+          knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
+        };
+      }
+
+      const rawKnowledgeStageIndex = getGraphNodeKnowledgeStageIndex(projectData, workspaceState, node);
+      const knowledgeStageIndex =
+        rawKnowledgeStageIndex === 0 ? getFallbackKnowledgeStageIndex(conceptNodeIndex) : rawKnowledgeStageIndex;
+      conceptNodeIndex += 1;
+
+      return {
+        ...node,
+        color: getKnowledgeStageColor(knowledgeStageIndex),
+        knowledgeStageIndex,
+        knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
+      };
+    }),
+  };
 }
 
 function SearchIcon() {
@@ -989,11 +1084,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           }
         : null;
 
-      return backendGraph
+      const baseGraph = backendGraph
         ? buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats)
         : buildProjectKnowledgeGraph(projectInput, recentChats);
+
+      return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState);
     },
-    [activeProjectData, backendGraph, recentChats]
+    [activeProjectData, backendGraph, recentChats, workspaceState]
   );
   const updatedConcepts = useMemo(
     () =>
@@ -1759,6 +1856,12 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       ? graphNodeDetail.description
       : visibleGraphDetailNode?.description || "";
   const visibleNodeExplanation = visibleGraphDetailNode ? nodeExplanations[visibleGraphDetailNode.id] : "";
+  const visibleGraphKnowledgeStageIndex = visibleGraphDetailNode?.knowledgeStageIndex ?? 0;
+  const visibleGraphKnowledgeStageLabel =
+    visibleGraphDetailNode?.knowledgeStageLabel ||
+    knowledgeStageLabels[visibleGraphKnowledgeStageIndex] ||
+    knowledgeStageLabels[0];
+  const visibleGraphKnowledgeStageColor = getKnowledgeStageColor(visibleGraphKnowledgeStageIndex);
 
   return (
     <div className={`workspace-shell ${activeTab === "graph" ? "workspace-shell-graph-mode" : ""}`}>
@@ -2042,6 +2145,19 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         resetViewKey={graphResetKey}
                       />
 
+                      <div className="workspace-graph-stage-legend" aria-label="이해도 단계 색상">
+                        {knowledgeStageLabels.map((label, index) => (
+                          <div key={label} className="workspace-graph-stage-legend-item">
+                            <span
+                              className="workspace-graph-stage-legend-dot"
+                              style={{ backgroundColor: getKnowledgeStageColor(index) }}
+                            />
+                            <b>-</b>
+                            <strong>{label}</strong>
+                          </div>
+                        ))}
+                      </div>
+
                       {isGraphSearchOpen ? (
                         <div className="workspace-graph-search-panel">
                           <div className="workspace-graph-search-input-wrap">
@@ -2122,7 +2238,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         />
                         <div>
                           <strong>{visibleGraphDetailNode.label}</strong>
-                          <span>{visibleGraphDetailNode.subtitle}</span>
+                          <span
+                            className="workspace-graph-detail-stage-badge"
+                            style={{
+                              backgroundColor: `${visibleGraphKnowledgeStageColor}24`,
+                              color: visibleGraphKnowledgeStageColor,
+                            }}
+                          >
+                            현재 이해도 : {visibleGraphKnowledgeStageLabel}
+                          </span>
                         </div>
                       </section>
 
