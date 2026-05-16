@@ -174,7 +174,7 @@ def get_diagnosis_status(
     """
     _get_project_or_403(project_id, current_user, db)
 
-    status = diagnosis_service.get_diagnosis_status(project_id, session_id, db)
+    status = diagnosis_service.get_diagnosis_status(session_id, db)
     return {"success": True, "data": status, "message": ""}
 
 

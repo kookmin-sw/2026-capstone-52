@@ -421,7 +421,7 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
     return result
 
 
-def get_diagnosis_status(project_id: int, session_id: str, db: Session) -> dict:
+def get_diagnosis_status(session_id: str, db: Session) -> dict:
     """session_id 기준 진단 진행률 반환 — 문제 12개 고정"""
     answered = (
         db.query(DiagnosisAnswer)
