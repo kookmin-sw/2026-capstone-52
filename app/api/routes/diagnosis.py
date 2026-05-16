@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.security import get_optional_current_user
+from app.core.security import get_current_user
 from app.db.session import get_db
 from app.services import diagnosis_service
 from app.services.diagnosis_report_service import create_diagnosis_report_chats
@@ -22,12 +22,27 @@ from app.models.user import User
 router = APIRouter()
 
 
+def _get_project_or_403(project_id: int, current_user: User, db: Session) -> Project:
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    if project.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
+    return project
+
+
 @router.post("/{project_id}/sessions", response_model=None)
-def create_diagnosis_session(project_id: int):
+def create_diagnosis_session(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """새 진단 세션 ID 발급 — PDF 업로드 후 수준 진단 시작 시 호출
 
     반환된 session_id를 이후 질문/답변 요청에 모두 첨부해야 함
     """
+    _get_project_or_403(project_id, current_user, db)
+
     session_id = diagnosis_service.create_session_id()
     return {
         "success": True,
@@ -37,8 +52,15 @@ def create_diagnosis_session(project_id: int):
 
 
 @router.post("/{project_id}/questions", response_model=None)
-def generate_diagnosis_question(project_id: int, session_id: str | None = None, db: Session = Depends(get_db)):
+def generate_diagnosis_question(
+    project_id: int,
+    session_id: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """현재 그래프 상태 기반으로 다음 진단 질문 생성"""
+    _get_project_or_403(project_id, current_user, db)
+
     try:
         result = diagnosis_service.generate_next_question(project_id, db, session_id=session_id)
     except ValueError as error:
@@ -57,8 +79,15 @@ def generate_diagnosis_question(project_id: int, session_id: str | None = None, 
 
 
 @router.post("/{project_id}/answers", response_model=None)
-def submit_answer(project_id: int, body: DiagnosisAnswerRequest, db: Session = Depends(get_db)):
+def submit_answer(
+    project_id: int,
+    body: DiagnosisAnswerRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """사용자 답변 저장 → AI score 계산 → affects 노드 전체 상태 갱신"""
+    _get_project_or_403(project_id, current_user, db)
+
     try:
         result = diagnosis_service.submit_answer(
             question_id=body.question_id,
@@ -97,25 +126,18 @@ def submit_answer(project_id: int, body: DiagnosisAnswerRequest, db: Session = D
 def create_diagnosis_report(
     project_id: int,
     body: DiagnosisReportRequest,
-    current_user: User | None = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """수준진단 결과를 채팅 리포트 메시지 2개로 생성"""
-    project = db.query(Project).filter(Project.project_id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-
-    if current_user and project.user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
-
-    user_id = current_user.user_id if current_user else body.user_id or project.user_id
+    _get_project_or_403(project_id, current_user, db)
 
     try:
         chats = create_diagnosis_report_chats(
             db=db,
             project_id=project_id,
             session_id=body.session_id,
-            user_id=user_id,
+            user_id=current_user.user_id,
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -140,22 +162,36 @@ def create_diagnosis_report(
 
 
 @router.get("/{project_id}/status", response_model=None)
-def get_diagnosis_status(project_id: int, session_id: str, db: Session = Depends(get_db)):
+def get_diagnosis_status(
+    project_id: int,
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """진단 진행률 반환 — session_id 쿼리 파라미터로 PDF 업로드 차수 구분
 
     예: GET /api/diagnosis/{project_id}/status?session_id=uuid-...
     """
+    _get_project_or_403(project_id, current_user, db)
+
     status = diagnosis_service.get_diagnosis_status(project_id, session_id, db)
     return {"success": True, "data": status, "message": ""}
 
 
 @router.get("/{project_id}/nodes", response_model=None)
-def get_diagnosis_nodes(project_id: int, question_id: str | None = None, db: Session = Depends(get_db)):
+def get_diagnosis_nodes(
+    project_id: int,
+    question_id: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """진단 개념 목록 반환 — 우측 패널용
 
     question_id 전달 시 해당 문제의 concept_id 노드를 '진행 중'으로 표시
     예: GET /api/diagnosis/{project_id}/nodes?question_id=uuid-...
     """
+    _get_project_or_403(project_id, current_user, db)
+
     nodes = diagnosis_service.get_diagnosis_node_list(project_id, question_id, db)
     return {
         "success": True,
