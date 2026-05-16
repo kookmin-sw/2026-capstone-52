@@ -31,7 +31,6 @@ def create_diagnosis_question(
     concept_id: str,
     difficulty: str,
     question_type: str,
-    affects: list[str],
     question: str,
     choices: list,
     correct_index: int,
@@ -41,13 +40,13 @@ def create_diagnosis_question(
     tag_group: str | None = None,
     reuse_key: str | None = None,
     diagnosis_purpose: str | None = None,
+    explanation: str | None = None,
 ) -> DiagnosisQuestion:
     """AI 모듈 결과로 진단 질문 생성 및 저장"""
     q = DiagnosisQuestion(
         concept_id=concept_id,
         difficulty=difficulty,
         question_type=question_type,
-        affects=json.dumps(affects),
         question=question,
         choices=json.dumps(choices, ensure_ascii=False),
         correct_index=correct_index,
@@ -56,6 +55,7 @@ def create_diagnosis_question(
         tag_group=tag_group,
         reuse_key=reuse_key,
         diagnosis_purpose=diagnosis_purpose,
+        explanation=explanation,
     )
     db.add(q)
     db.commit()
@@ -134,27 +134,14 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
         except DiagnosisAIError:
             raise
 
-        # AI가 반환한 affects(concept_id 목록)를 프로젝트 내 node_id로 변환
-        ai_concept_ids = teacher_question.get("affects") or []
-        if ai_concept_ids:
-            affected_nodes = db.query(ConceptNode).filter(
-                ConceptNode.project_id == project_id,
-                ConceptNode.concept_id.in_(ai_concept_ids),
-            ).all()
-            affects = [n.node_id for n in affected_nodes]
-            if target_node.node_id not in affects:
-                affects.append(target_node.node_id)
-        else:
-            affects = [target_node.node_id]
         teacher_choices = teacher_question["choices"]
         q = create_diagnosis_question(
             concept_id=target_node.node_id,
             difficulty=teacher_question["question_difficulty"],
             question_type=teacher_question["question_type"],
-            affects=affects,
             question=teacher_question["question_text"],
             choices=teacher_choices,
-            correct_index=0,  # legacy non-null column; multi-select grading uses correct_option_ids instead
+            correct_index=0,  # legacy non-null column — multi-select grading uses correct_option_ids
             db=db,
             correct_option_ids=teacher_question["correct_option_ids"],
             diagnostic_tags=teacher_question["diagnostic_tags"],
@@ -169,7 +156,6 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
             "difficulty": q.difficulty,
             "question_type": q.question_type,
             "diagnosis_purpose": q.diagnosis_purpose,
-            "affects": json.loads(q.affects) if q.affects else [],
             "question": q.question,
             "choices": [
                 {
@@ -195,7 +181,7 @@ def submit_answer(
     is_skipped: bool,
     db: Session,
 ) -> dict | None:
-    """답변 저장 → AI에 score 요청 → affects 노드 전체에 반영
+    """답변 저장 → AI에 score 요청 → concept 노드에 반영
 
     반환:
     {
@@ -220,11 +206,6 @@ def submit_answer(
         if not subject_id:
             raise ValueError(f"ConceptNode.subject_id is missing for node_id='{q.concept_id}'.")
 
-        affects = _json_loads_list(q.affects)
-        if q.concept_id not in affects:
-            affects.append(q.concept_id)
-            affects = sorted(set(affects))
-
         teacher_question = {
             "concept_id": q.concept_id,
             "concept_name": concept_name,
@@ -238,12 +219,10 @@ def submit_answer(
             "diagnostic_tags": _json_loads_list(q.diagnostic_tags),
             "tag_group": q.tag_group or "",
             "reuse_key": q.reuse_key or "",
-            "affects": affects,
         }
 
         if is_skipped:
             correct_option_ids = teacher_question["correct_option_ids"]
-            all_option_ids = [choice.get("option_id") for choice in teacher_question["choices"] if isinstance(choice, dict)]
             evaluation = {
                 "selected_option_ids": [],
                 "valid_selected_option_ids": [],
@@ -280,8 +259,8 @@ def submit_answer(
         db.add(answer)
         db.flush()
 
-        updated_nodes = _apply_evaluation_to_nodes(
-            node_ids=affects,
+        updated_nodes = apply_evaluation_to_nodes(
+            node_ids=[q.concept_id],
             answer_score=evaluation["answer_score"],
             db=db,
         )
@@ -314,13 +293,8 @@ def submit_answer(
     db.add(answer)
     db.flush()
 
-    affects: list[str] = json.loads(q.affects) if q.affects else []
-    # concept_id가 affects에 없으면 포함 (주 측정 개념은 항상 업데이트)
-    if q.concept_id not in affects:
-        affects = [q.concept_id] + affects
-
     updated_nodes = _apply_score_to_nodes(
-        node_ids=affects,
+        node_ids=[q.concept_id],
         concept_id=q.concept_id,
         difficulty=q.difficulty,
         question_type=q.question_type,
@@ -337,7 +311,7 @@ def submit_answer(
     }
 
 
-def _apply_evaluation_to_nodes(
+def apply_evaluation_to_nodes(
     node_ids: list[str],
     answer_score: float,
     db: Session,
@@ -378,7 +352,7 @@ def _apply_score_to_nodes(
     is_skipped: bool,
     db: Session,
 ) -> list[dict]:
-    """affects 노드 목록 전체에 AI가 결정한 score/status 적용 — 서비스는 저장만 담당"""
+    """concept 노드에 AI가 결정한 score/status 적용 — 서비스는 저장만 담당"""
     results = []
 
     for node_id in node_ids:
@@ -449,7 +423,7 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
     return result
 
 
-def get_diagnosis_status(project_id: int, session_id: str, db: Session) -> dict:
+def get_diagnosis_status(session_id: str, db: Session) -> dict:
     """session_id 기준 진단 진행률 반환 — 문제 12개 고정"""
     answered = (
         db.query(DiagnosisAnswer)
@@ -599,4 +573,129 @@ def _dedupe_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
         unique_nodes[node.node_id] = node
     return list(unique_nodes.values())
 
+
+def get_node_quiz_history(node_id: str, db: Session) -> list[dict]:
+    """노드에 출제된 모든 퀴즈 이력 반환 — 수준진단 + 미니퀴즈 통합"""
+    questions = (
+        db.query(DiagnosisQuestion)
+        .filter(DiagnosisQuestion.concept_id == node_id)
+        .order_by(DiagnosisQuestion.created_at.desc())
+        .all()
+    )
+    result = []
+    for q in questions:
+        answer = (
+            db.query(DiagnosisAnswer)
+            .filter(DiagnosisAnswer.question_id == q.question_id)
+            .order_by(DiagnosisAnswer.created_at.desc())
+            .first()
+        )
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer and answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct if answer else None,
+            "partial_score": answer.partial_score if answer else None,
+            "answer_score": answer.answer_score if answer else None,
+            "explanation": q.explanation,
+        })
+    return result
+
+
+def get_session_review(session_id: str, db: Session) -> list[dict]:
+    """세션의 모든 질문/답변/정답을 리뷰용으로 반환"""
+    answers = (
+        db.query(DiagnosisAnswer)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .order_by(DiagnosisAnswer.created_at)
+        .all()
+    )
+    result = []
+    for answer in answers:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == answer.question_id).first()
+        if not q:
+            continue
+
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct,
+            "partial_score": answer.partial_score,
+            "answer_score": answer.answer_score,
+            "explanation": q.explanation,
+        })
+    return result
+
+
+def get_questions_review(question_ids: list[str], db: Session) -> list[dict]:
+    """question_id 목록으로 리뷰 데이터 반환 — 미니 퀴즈용"""
+    result = []
+    for question_id in question_ids:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == question_id).first()
+        if not q:
+            continue
+
+        answer = (
+            db.query(DiagnosisAnswer)
+            .filter(DiagnosisAnswer.question_id == question_id)
+            .order_by(DiagnosisAnswer.created_at.desc())
+            .first()
+        )
+
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer and answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct if answer else None,
+            "partial_score": answer.partial_score if answer else None,
+            "answer_score": answer.answer_score if answer else None,
+            "explanation": q.explanation,
+        })
+    return result
 

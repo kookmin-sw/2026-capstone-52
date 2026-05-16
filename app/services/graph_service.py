@@ -28,17 +28,6 @@ def get_node_by_id(node_id: str, db: Session) -> ConceptNode | None:
     return db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
 
 
-def update_node_score(node_id: str, understanding_score: float, status: str, db: Session) -> ConceptNode | None:
-    """노드 score와 status 동시 업데이트 — score는 서비스 레이어에서 계산된 값을 받음"""
-    node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
-    if node:
-        node.understanding_score = understanding_score
-        node.status = status
-        db.commit()
-        db.refresh(node)
-    return node
-
-
 def get_related_nodes(node_id: str, db: Session) -> list[str]:
     """해당 노드와 엣지로 연결된 인접 노드 이름 목록 반환"""
     edges = db.query(ConceptEdge).filter(

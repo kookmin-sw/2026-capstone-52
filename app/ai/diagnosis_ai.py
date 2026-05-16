@@ -88,7 +88,7 @@ def generate_question(
         "Include explanation for every choice. "
         "Include diagnostic_tag for every choice. "
         "Include target_concept_id and misconception_type for every choice. "
-        "Include diagnostic_tags, tag_group, affects, and llm_reason. "
+        "Include diagnostic_tags, tag_group, and llm_reason. "
         "Do not build reuse_key."
     )
     user_prompt = json.dumps(
@@ -115,7 +115,6 @@ def generate_question(
                 ],
                 "diagnostic_tags": ["string"],
                 "tag_group": "string",
-                "affects": [concept_id],
                 "llm_reason": "string",
             },
         },
@@ -145,7 +144,6 @@ def generate_question(
         "correct_option_ids": llm_result.get("correct_option_ids"),
         "diagnostic_tags": llm_result.get("diagnostic_tags"),
         "tag_group": llm_result.get("tag_group"),
-        "affects": llm_result.get("affects"),
         "llm_reason": llm_result.get("llm_reason"),
     }
 
@@ -415,14 +413,6 @@ def validate_question_payload(
     if not normalized_diagnostic_tags:
         raise QuestionValidationError("diagnostic_tags must contain non-empty values.")
 
-    affects = question.get("affects")
-    if not isinstance(affects, list) or not affects:
-        affects = [concept_id]
-    normalized_affects = sorted({str(item).strip() for item in affects if str(item).strip()})
-    if concept_id not in normalized_affects:
-        normalized_affects.append(concept_id)
-        normalized_affects = sorted(set(normalized_affects))
-
     reuse_key = build_reuse_key(
         subject_id=subject_id,
         concept_id=concept_id,
@@ -446,7 +436,6 @@ def validate_question_payload(
         "diagnostic_tags": normalized_diagnostic_tags,
         "tag_group": tag_group,
         "reuse_key": reuse_key,
-        "affects": normalized_affects,
         "llm_reason": str(question.get("llm_reason", "")).strip(),
     }
 
