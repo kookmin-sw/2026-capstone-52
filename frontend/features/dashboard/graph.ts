@@ -2300,13 +2300,13 @@ export function buildBackendKnowledgeGraph(
 
 export function buildIntegratedKnowledgeGraph(projectGraphs: IntegratedProjectGraphInput[]) {
   const clusterCenters = [
-    { x: 0.28, y: 0.28 },
-    { x: 0.68, y: 0.28 },
-    { x: 0.3, y: 0.68 },
-    { x: 0.7, y: 0.68 },
+    { x: 0.32, y: 0.32 },
+    { x: 0.64, y: 0.32 },
+    { x: 0.34, y: 0.64 },
+    { x: 0.66, y: 0.64 },
     { x: 0.5, y: 0.5 },
-    { x: 0.18, y: 0.5 },
-    { x: 0.82, y: 0.5 },
+    { x: 0.24, y: 0.5 },
+    { x: 0.76, y: 0.5 },
   ];
   const clusterScale = projectGraphs.length > 4 ? 0.28 : 0.34;
   const nodes: ProjectKnowledgeGraphNode[] = [];

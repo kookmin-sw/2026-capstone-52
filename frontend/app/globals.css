@@ -6452,62 +6452,6 @@ a {
   }
 }
 
-.landing-step-card {
-  animation: landingStepFocus 9.6s cubic-bezier(0.22, 0.9, 0.24, 1) infinite;
-  animation-delay: calc(var(--landing-step-index, 0) * 2.4s);
-  will-change: transform, box-shadow, border-color;
-}
-
-.landing-step-card:nth-child(1) {
-  --landing-step-index: 0;
-}
-
-.landing-step-card:nth-child(2) {
-  --landing-step-index: 1;
-}
-
-.landing-step-card:nth-child(3) {
-  --landing-step-index: 2;
-}
-
-.landing-step-card:nth-child(4) {
-  --landing-step-index: 3;
-}
-
-@keyframes landingStepFocus {
-  0%,
-  28%,
-  100% {
-    border-color: #e8e5f2;
-    box-shadow: 0 24px 64px rgba(42, 38, 73, 0.06);
-    transform: translateY(0);
-  }
-
-  8% {
-    border-color: rgba(129, 124, 242, 0.35);
-    box-shadow: 0 28px 72px rgba(129, 124, 242, 0.11);
-    transform: translateY(-3px);
-  }
-
-  14% {
-    border-color: rgba(129, 124, 242, 0.58);
-    box-shadow: 0 32px 84px rgba(129, 124, 242, 0.18);
-    transform: translateY(-6px);
-  }
-
-  21% {
-    border-color: rgba(129, 124, 242, 0.34);
-    box-shadow: 0 28px 72px rgba(129, 124, 242, 0.1);
-    transform: translateY(-2px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-step-card {
-    animation: none;
-  }
-}
-
 /* Diagnosis flow v2 */
 .diagnosis-flow-shell {
   position: relative;

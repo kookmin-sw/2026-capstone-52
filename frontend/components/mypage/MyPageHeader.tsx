@@ -30,15 +30,15 @@ export default function MyPageHeader({ onOpenEdit }: MyPageHeaderProps) {
             onClick={onOpenEdit}
             className="inline-flex h-10 items-center justify-center rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
           >
-            프로필 수정
+            <span className="translate-y-[1px]">프로필 수정</span>
           </button>
           <button
             type="button"
             onClick={() => router.push("/login")}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
           >
-            ↪
-            로그아웃
+            <img src="/icons/mypage/logout.svg" alt="" aria-hidden="true" className="h-4 w-4" />
+            <span className="translate-y-[1px]">로그아웃</span>
           </button>
         </div>
       </div>

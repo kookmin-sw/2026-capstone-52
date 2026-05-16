@@ -12,6 +12,12 @@ from app.models.project import Project
 from app.models.user import User, UserProfile
 from app.ai.chat_ai import process_chat
 from app.services.chat_service import save_chat, get_chats_by_project
+from app.services.concept_quiz_counter_service import (
+    TURN_CHECK_INTERVAL,
+    get_project_turn_count,
+    get_quiz_ready_concepts,
+    record_ai_response_concept_counts,
+)
 from app.utils.response import success_response
 
 router = APIRouter()
@@ -97,6 +103,15 @@ def chat(
         ai_response=ai_reply,
         user_id=user_id,
     )
+    counted_concepts = record_ai_response_concept_counts(
+        db=db,
+        project_id=project_id,
+        ai_response=ai_reply,
+        chat_id=chat_log.chat_id,
+    )
+    turn_count = get_project_turn_count(db, project_id)
+    should_check_quiz = turn_count > 0 and turn_count % TURN_CHECK_INTERVAL == 0
+    quiz_ready_concepts = get_quiz_ready_concepts(db, project_id) if should_check_quiz else []
 
     data = {
         "chat_id": chat_log.chat_id,
@@ -106,6 +121,27 @@ def chat(
         "ai_response": chat_log.ai_response,
         "response_type": chat_log.response_type,
         "updated_nodes": updated_nodes,  # [{"node_id": str, "score": float, "status": str}, ...]
+        "concept_counting": {
+            "turn_count": turn_count,
+            "check_interval": TURN_CHECK_INTERVAL,
+            "should_check_quiz": should_check_quiz,
+            "counted_concepts": [
+                {
+                    "node_id": concept.node_id,
+                    "name": concept.name,
+                    "mention_count": concept.mention_count,
+                }
+                for concept in counted_concepts
+            ],
+            "quiz_ready_concepts": [
+                {
+                    "node_id": concept.node_id,
+                    "name": concept.name,
+                    "mention_count": concept.mention_count,
+                }
+                for concept in quiz_ready_concepts
+            ],
+        },
         "created_at": chat_log.created_at,
     }
 

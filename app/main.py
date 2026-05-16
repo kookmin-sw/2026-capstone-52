@@ -7,7 +7,7 @@ from app.db.base import Base
 from app.db.session import engine
 
 # 모델 파일을 import해야 Base.metadata에 테이블 정보가 등록됨
-from app.models import user, project, learning_log, chat, diagnosis, file, graph, project_memo
+from app.models import user, project, learning_log, chat, diagnosis, file, graph, project_memo, concept_quiz_counter
 
 # 백엔드1 담당 라우터
 from app.api.routes import users, projects, learning_logs, mypage, chat as chat_router, project_memos
