@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.security import get_optional_current_user
+from app.core.security import get_current_user, get_optional_current_user
 from app.db.session import get_db
 from app.schemas.chat import ChatRequest
 from app.models.chat import Chat
@@ -183,7 +183,17 @@ def chat(
 
 
 @router.get("/project/{project_id}")
-def get_project_chats(project_id: int, db: Session = Depends(get_db)):
+def get_project_chats(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    if project.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
+
     chats = get_chats_by_project(db, project_id)
 
     data = [
