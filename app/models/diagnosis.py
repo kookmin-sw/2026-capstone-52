@@ -30,10 +30,6 @@ class DiagnosisQuestion(Base):
     #   prerequisite_check → 선수 노드 score 하락 + 추가 진단 트리거
     question_type: Mapped[str] = mapped_column(String, nullable=False, default="concept_check")
 
-    # 정답/오답 시 동시에 score를 업데이트할 노드 목록 — JSON 배열로 저장
-    # 예: '["uuid-deadlock", "uuid-resource_allocation"]'
-    affects: Mapped[str] = mapped_column(Text, nullable=True)
-
     question: Mapped[str] = mapped_column(Text, nullable=False)
     choices: Mapped[str] = mapped_column(Text, nullable=False)       # JSON 배열 ["①..","②..","③..","④..","⑤.."]
     correct_index: Mapped[str] = mapped_column(String, nullable=False)  # 정답 인덱스 (0~4), 프론트에 미노출
@@ -42,6 +38,7 @@ class DiagnosisQuestion(Base):
     tag_group: Mapped[str] = mapped_column(String, nullable=True)
     reuse_key: Mapped[str] = mapped_column(String, nullable=True)
     diagnosis_purpose: Mapped[str] = mapped_column(String, nullable=True, default="concept_check")
+    explanation: Mapped[str] = mapped_column(Text, nullable=True)  # 문제 단위 해설 — 정답 이유 설명
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -70,5 +67,6 @@ class DiagnosisAnswer(Base):
     invalid_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)  # JSON 배열 ["Z"]
     missed_correct_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["C"]
     wrong_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["D"]
+    feedback_tags: Mapped[str] = mapped_column(Text, nullable=True)                # JSON 배열 ["missed:tag","wrong:type"]
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -2,23 +2,28 @@
 
 이 문서는 Codex가 나중에 프론트엔드와 백엔드 연동 상태를 빠르게 판단하고 수정할 수 있도록, 현재 코드 기준의 API 연결 구조와 계약을 정리한 것이다.
 
-## 2026-05-12 프론트 연동 수정 완료 내역
+## 2026-05-16 프론트 연동 수정 완료 내역 (최신)
 
-이번 수정은 `frontend/` 안의 코드만 변경했고, `app/` 백엔드 코드는 수정하지 않았다.
+이번 수정은 `frontend/` 안의 코드만 변경했고, `app/` 백엔드 코드는 수정하지 않았다. dev 브랜치에 머지된 mini-quiz / multi-select / report 변경에 맞춰 프론트를 갱신한다.
 
-- 진단 API 프론트를 백엔드의 현재 계약에 맞췄다.
-  - `POST /diagnosis/{project_id}/sessions`로 `session_id`를 먼저 발급받는다.
-  - 질문 응답은 `diagnosis_id`가 아니라 `question_id`, `concept_id`를 사용한다.
-  - 답변 제출 body는 `question_id`, `session_id`, `selected_index`, `is_skipped`로 보낸다.
-  - 상태 조회는 `GET /diagnosis/{project_id}/status?session_id=...` 형식으로 호출한다.
-- 프로필 수정 요청에서 백엔드 `UserProfileUpdate`가 받지 않는 필드를 제거했다.
-  - 프론트가 API로 보내는 필드는 `nickname`, `profile_image`, `preferred_explanation_style`만이다.
-  - `major`, `learning_fields`, `learning_goal`, `interest_field`는 현재 백엔드 PATCH 스키마가 받지 않으므로 API 요청에서 제외했다.
-  - 마이페이지 저장 후에는 백엔드 응답으로 로컬 프로필을 덮어쓰지 않고, 사용자가 입력한 프론트 상태를 유지한다.
-- 백엔드 모드 프로젝트 목록 정렬을 프론트에서 보완했다.
-  - `/projects/user/{user_id}`의 `last_accessed_at`만 믿지 않고, 각 프로젝트의 `/chat/project/{project_id}` 로그를 조회한다.
-  - 프로젝트 자체 시간과 최신 채팅 시간을 비교해 더 최신인 값으로 `updatedAt`을 계산하고 정렬한다.
-  - 따라서 백엔드가 `last_accessed_at`을 아직 갱신하지 않아도 프론트 목록은 최근 채팅한 프로젝트를 위로 올린다.
+- 진단 답변 API를 multi-select 응답에 맞췄다.
+  - `submitApiDiagnosisAnswer(projectId, sessionId, questionId, { selectedIndex, selectedOptionIds, isSkipped })` 시그니처로 변경.
+  - 응답의 `correct_option_ids`, `selected_option_ids`, `missed_correct_option_ids`, `wrong_selected_option_ids`, `is_fully_correct`, `partial_score`, `answer_score`, `answer_level` 필드를 프론트에서 사용한다.
+- 진단 완료 후 학습 플로우를 추가했다.
+  - 12문제 답변 완료 시 결과 화면에서 `풀이보기` / `학습하기` 버튼을 노출한다.
+  - `풀이보기`는 UI만 두고 동작은 추후 구현. (`GET /diagnosis/{project_id}/sessions/{session_id}/review`와 연결될 예정)
+  - `학습하기` 누르면 `POST /diagnosis/{project_id}/report`로 리포트 채팅 메시지 2개를 백엔드에 저장한 뒤, 해당 프로젝트의 채팅 화면으로 이동해 첫 메시지로 보여준다.
+- Mini-Quiz 플로우를 신규 연동했다.
+  - `POST /chat/{project_id}` 응답의 `concept_counting.quiz_ready_concepts`가 비어있지 않으면 채팅 말풍선에 "시험 준비됨" + `시험보기` / `나중에보기` 버튼을 그린다.
+  - `시험보기` 클릭 시 대시보드 위에 팝업 형태로 미니 퀴즈를 띄우고, 백엔드는 `POST /mini-quiz/{project_id}/generate?node_id=...` → `POST /mini-quiz/{project_id}/submit` 순서로 호출한다.
+  - UI는 수준진단 퀴즈 컴포넌트와 동일한 형태를 재사용한다.
+- 그래프 노드 상세에 풀이 이력 섹션을 추가했다.
+  - 노드 상세 패널 하단에서 `GET /graph/nodes/{node_id}/quiz-history`를 호출해 해당 개념의 수준진단/미니퀴즈 풀이 이력을 표시한다.
+
+## 2026-05-12 이전 변경 (요약)
+
+- 프로필 수정 요청에서 백엔드 `UserProfileUpdate`가 받지 않는 필드를 제거했다 — 프론트가 API로 보내는 필드는 `nickname`, `profile_image`, `preferred_explanation_style`만이다.
+- 백엔드 프로젝트 목록 정렬을 프론트에서 보완했다 — `/chat/project/{project_id}` 로그의 최신 시각도 함께 본다.
 
 ## 전체 연결 구조
 
@@ -194,6 +199,7 @@ Frontend receives Google ID token
 /api/graph          -> app/api/routes/graph.py
 /api/explanation    -> app/api/routes/explanation.py
 /api/diagnosis      -> app/api/routes/diagnosis.py
+/api/mini-quiz      -> app/api/routes/mini_quiz.py
 ```
 
 ## API 매핑
@@ -402,16 +408,28 @@ POST /api/chat/{project_id}
   "user_message": "질문",
   "ai_response": "응답",
   "response_type": "default",
-  "updated_nodes": [],
+  "concept_counting": {
+    "turn_count": 6,
+    "check_interval": 3,
+    "should_check_quiz": true,
+    "counted_concepts": [
+      { "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
+    ],
+    "quiz_ready_concepts": [
+      { "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
+    ]
+  },
   "created_at": "..."
 }
 ```
+
+`concept_counting.quiz_ready_concepts`가 비어있지 않을 때 프론트는 해당 채팅 말풍선에 미니퀴즈 트리거 UI를 렌더한다 (`시험보기` / `나중에보기`).
 
 ```http
 GET /api/chat/project/{project_id}
 ```
 
-응답 data는 chat log 배열이다.
+응답 data는 chat log 배열이다. (저장 시점 `concept_counting`은 응답에 포함되지 않으므로, 미니퀴즈 트리거 표시는 현재 세션의 마지막 응답에서만 사용한다.)
 
 프론트는 chat log 배열을 하나의 thread로 합쳐서 화면에 보여준다.
 
@@ -530,12 +548,33 @@ GET /api/graph/{project_id}
 ```http
 GET /api/graph/{project_id}/recent
 GET /api/graph/nodes/{node_id}
+GET /api/graph/nodes/{node_id}/quiz-history
+```
+
+`quiz-history` 응답 data는 `QuizQuestionReview` 배열이다:
+
+```json
+[
+  {
+    "question_id": "uuid",
+    "concept_id": "uuid",
+    "question": "...",
+    "choices": [
+      { "option_id": "A", "text": "...", "is_correct": true, "is_selected": true }
+    ],
+    "correct_option_ids": ["A"],
+    "selected_option_ids": ["A"],
+    "is_fully_correct": true,
+    "partial_score": 1.0,
+    "answer_score": 1.0,
+    "explanation": "..."
+  }
+]
 ```
 
 현재 주의점:
 
-- `GET /api/graph/me`는 미구현이며 현재 query parameter `user_id`를 직접 받는 형태다.
-- 코드 TODO에 JWT에서 user_id를 파싱하도록 변경 예정이라고 적혀 있다.
+- `GET /api/graph/me`는 미구현이다 (백엔드가 `null` 반환).
 
 ### Diagnosis
 
@@ -547,6 +586,7 @@ GET /api/graph/nodes/{node_id}
 
 - `app/api/routes/diagnosis.py`
 - `app/schemas/diagnosis.py`
+- `app/schemas/quiz_review.py`
 
 프론트 호출:
 
@@ -554,14 +594,23 @@ GET /api/graph/nodes/{node_id}
 createApiDiagnosisSession(projectId)
 -> POST /diagnosis/{project_id}/sessions
 
-createApiDiagnosisQuestion(projectId)
--> POST /diagnosis/{project_id}/questions
+createApiDiagnosisQuestion(projectId, sessionId?)
+-> POST /diagnosis/{project_id}/questions?session_id=...
 
-submitApiDiagnosisAnswer(projectId, sessionId, questionId, selectedIndex, isSkipped)
+submitApiDiagnosisAnswer(projectId, sessionId, questionId, { selectedIndex, selectedOptionIds, isSkipped })
 -> POST /diagnosis/{project_id}/answers
 
 getApiDiagnosisStatus(projectId, sessionId)
 -> GET /diagnosis/{project_id}/status?session_id=...
+
+createApiDiagnosisReport(projectId, sessionId)
+-> POST /diagnosis/{project_id}/report
+
+getApiDiagnosisNodes(projectId, questionId?)
+-> GET /diagnosis/{project_id}/nodes?question_id=...
+
+getApiDiagnosisReview(projectId, sessionId)
+-> GET /diagnosis/{project_id}/sessions/{session_id}/review
 ```
 
 백엔드 API:
@@ -579,7 +628,7 @@ POST /api/diagnosis/{project_id}/sessions
 ```
 
 ```http
-POST /api/diagnosis/{project_id}/questions
+POST /api/diagnosis/{project_id}/questions?session_id=uuid
 ```
 
 응답 data:
@@ -590,11 +639,16 @@ POST /api/diagnosis/{project_id}/questions
   "concept_id": "...",
   "difficulty": "easy",
   "question_type": "concept_check",
-  "affects": ["node-id"],
+  "diagnosis_purpose": "...",
   "question": "...",
-  "choices": ["...", "...", "...", "..."]
+  "choices": [
+    { "option_id": "A", "text": "..." },
+    { "option_id": "B", "text": "..." }
+  ]
 }
 ```
+
+`choices`는 객체 배열(`option_id`, `text`) 또는 legacy 문자열 배열일 수 있다. multi-select 문제(`question_type === "multi_select"`)는 객체 배열 형태로 내려온다.
 
 ```http
 POST /api/diagnosis/{project_id}/answers
@@ -607,9 +661,12 @@ POST /api/diagnosis/{project_id}/answers
   "question_id": "...",
   "session_id": "uuid",
   "selected_index": 0,
+  "selected_option_ids": ["A", "C"],
   "is_skipped": false
 }
 ```
+
+`selected_index`(legacy 단일 선택) 또는 `selected_option_ids`(복수 선택) 중 하나를 보낸다. multi-select 문제는 `selected_option_ids`만 보내면 된다.
 
 응답 data:
 
@@ -617,12 +674,17 @@ POST /api/diagnosis/{project_id}/answers
 {
   "is_correct": true,
   "correct_index": 0,
+  "is_fully_correct": true,
+  "partial_score": 1.0,
+  "answer_score": 1.0,
+  "answer_level": 3,
+  "correct_option_ids": ["A", "C"],
+  "selected_option_ids": ["A", "C"],
+  "missed_correct_option_ids": [],
+  "wrong_selected_option_ids": [],
+  "invalid_selected_option_ids": [],
   "updated_nodes": [
-    {
-      "node_id": "...",
-      "status": "MASTERED",
-      "understanding_score": 0.8
-    }
+    { "node_id": "...", "status": "MASTERED", "understanding_score": 0.8 }
   ]
 }
 ```
@@ -641,6 +703,128 @@ GET /api/diagnosis/{project_id}/status?session_id=uuid
   "progress_percent": 0
 }
 ```
+
+```http
+POST /api/diagnosis/{project_id}/report
+```
+
+요청:
+
+```json
+{ "session_id": "uuid" }
+```
+
+응답 data: 채팅 메시지 2개. 프론트는 `학습하기` 버튼 클릭 시 이 API를 호출해 백엔드 채팅에 리포트를 저장하고, 채팅 페이지로 이동한 뒤 `GET /chat/project/{project_id}` 결과의 첫 메시지로 노출한다.
+
+```json
+{
+  "messages": [
+    {
+      "chat_id": 1,
+      "project_id": 1,
+      "user_message": null,
+      "ai_response": "...",
+      "response_type": "diagnosis_report",
+      "created_at": "..."
+    }
+  ]
+}
+```
+
+```http
+GET /api/diagnosis/{project_id}/nodes?question_id=...
+```
+
+응답 data:
+
+```json
+[
+  { "node_id": "...", "name": "프로세스", "diagnosis_label": "진행 중" }
+]
+```
+
+```http
+GET /api/diagnosis/{project_id}/sessions/{session_id}/review
+```
+
+응답 data: `QuizQuestionReview` 배열. 현재 프론트의 `풀이보기` 버튼은 UI만 만들어 두었고 이 API 연결은 다음 작업으로 미뤘다.
+
+### Mini-Quiz
+
+프론트:
+
+- `frontend/features/mini-quiz/api-service.js`
+- `frontend/features/mini-quiz/MiniQuizPopup.jsx` (대시보드 위에 띄우는 팝업)
+- `frontend/features/dashboard/...` 채팅 메시지 안의 트리거 버튼
+
+백엔드:
+
+- `app/api/routes/mini_quiz.py`
+- `app/schemas/mini_quiz.py`
+- `app/schemas/quiz_review.py`
+
+프론트 호출:
+
+```text
+generateApiMiniQuizQuestion(projectId, nodeId)
+-> POST /mini-quiz/{project_id}/generate?node_id=...
+
+submitApiMiniQuizAnswer(projectId, questionId, { selectedOptionIds, isSkipped })
+-> POST /mini-quiz/{project_id}/submit
+
+getApiMiniQuizReview(projectId, questionIds[])
+-> GET /mini-quiz/{project_id}/review?question_ids=q1,q2
+```
+
+백엔드 API:
+
+```http
+POST /api/mini-quiz/{project_id}/generate?node_id=...
+```
+
+응답 data는 `DiagnosisQuestionResponse`와 같은 형식이다 (Diagnosis Question 섹션 참조).
+
+```http
+POST /api/mini-quiz/{project_id}/submit
+```
+
+요청:
+
+```json
+{
+  "question_id": "...",
+  "selected_option_ids": ["A"],
+  "is_skipped": false
+}
+```
+
+응답 data:
+
+```json
+{
+  "is_fully_correct": true,
+  "partial_score": 1.0,
+  "answer_score": 1.0,
+  "answer_level": 3,
+  "correct_option_ids": ["A"],
+  "selected_option_ids": ["A"],
+  "missed_correct_option_ids": [],
+  "wrong_selected_option_ids": [],
+  "invalid_selected_option_ids": [],
+  "updated_node": { "node_id": "...", "status": "MASTERED", "understanding_score": 0.85 }
+}
+```
+
+```http
+GET /api/mini-quiz/{project_id}/review?question_ids=q1,q2
+```
+
+응답 data: `QuizQuestionReview` 배열.
+
+트리거 조건:
+- `POST /chat/{project_id}` 응답의 `concept_counting.quiz_ready_concepts`가 비어있지 않은 경우.
+- 프론트는 채팅 말풍선 안에 "시험 준비됨" + `시험보기` / `나중에보기` 버튼을 그린다.
+- `시험보기` 클릭 → 첫 번째 `quiz_ready_concept.node_id`로 `generate` 호출 → 팝업 표시.
 
 ### Explanation
 

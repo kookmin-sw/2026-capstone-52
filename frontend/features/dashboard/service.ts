@@ -16,6 +16,7 @@ import type { Chat, DashboardChatStore, Project, ProjectCatalogOption, ProjectMe
 const DASHBOARD_CHAT_STORAGE_KEY = "eeum-dashboard-chats-v1";
 const DASHBOARD_CHAT_STORE_VERSION = 2;
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
+export const isDashboardBackendApiEnabled = isBackendApiEnabled;
 const MOCK_CHAT_RESPONSE_DELAY_MS = 5000;
 
 function delay(ms: number) {
@@ -93,7 +94,15 @@ type ApiChatLog = {
   project_id: number | string;
   user_message: string;
   ai_response?: string | null;
+  response_type?: string | null;
   created_at?: string | null;
+  concept_counting?: {
+    turn_count?: number;
+    check_interval?: number;
+    should_check_quiz?: boolean;
+    counted_concepts?: Array<{ node_id: string; name: string; mention_count?: number }>;
+    quiz_ready_concepts?: Array<{ node_id: string; name: string; mention_count?: number }>;
+  } | null;
 };
 
 type ApiProjectMemo = {
@@ -191,20 +200,33 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
     .slice()
     .sort((left, right) => Date.parse(normalizeApiDate(left.created_at)) - Date.parse(normalizeApiDate(right.created_at)));
   const messages = sortedLogs.flatMap((log) => {
-    const userMessage = {
-      id: `api-chat-${log.chat_id}-user`,
-      role: "user" as const,
-      text: log.user_message,
-    };
+    const isDiagnosisReport = typeof log.response_type === "string" && log.response_type.startsWith("diagnosis_report");
+    const userMessage = !isDiagnosisReport
+      ? {
+          id: `api-chat-${log.chat_id}-user`,
+          role: "user" as const,
+          text: log.user_message,
+        }
+      : null;
+    const quizReadyConcepts = Array.isArray(log.concept_counting?.quiz_ready_concepts)
+      ? log.concept_counting?.quiz_ready_concepts ?? []
+      : [];
     const assistantMessage = log.ai_response
       ? {
           id: `api-chat-${log.chat_id}-assistant`,
           role: "assistant" as const,
           text: log.ai_response,
+          variant: isDiagnosisReport ? ("diagnosis-report" as const) : undefined,
+          miniQuizReady: quizReadyConcepts.length
+            ? quizReadyConcepts.map((concept) => ({ nodeId: concept.node_id, name: concept.name }))
+            : undefined,
         }
       : null;
 
-    return assistantMessage ? [userMessage, assistantMessage] : [userMessage];
+    const parts: Array<NonNullable<typeof userMessage> | NonNullable<typeof assistantMessage>> = [];
+    if (userMessage) parts.push(userMessage);
+    if (assistantMessage) parts.push(assistantMessage);
+    return parts;
   });
   const latest = sortedLogs[sortedLogs.length - 1];
   const firstQuestion = sortedLogs.find((log) => log.user_message)?.user_message;
@@ -754,6 +776,41 @@ export async function getGraphNodeDetail(nodeId: string): Promise<ApiGraphNode |
   return apiRequest(`/graph/nodes/${encodeURIComponent(nodeId)}`, {
     method: "GET",
   });
+}
+
+export type GraphNodeQuizHistoryItem = {
+  question_id: string;
+  concept_id: string;
+  question: string;
+  choices: Array<{ option_id: string; text: string; is_correct: boolean; is_selected: boolean }>;
+  correct_option_ids: string[];
+  selected_option_ids: string[];
+  is_fully_correct?: boolean | null;
+  partial_score?: number | null;
+  answer_score?: number | null;
+  explanation?: string | null;
+  // 백엔드 합의: "mini_quiz" | "diagnosis" — quiz_review.py 스펙 참조.
+  // 누락 시 프론트는 일단 "diagnosis"로 처리 (legacy 호환).
+  source?: "mini_quiz" | "diagnosis" | null;
+};
+
+export async function getGraphNodeQuizHistory(
+  nodeId: string
+): Promise<GraphNodeQuizHistoryItem[]> {
+  if (!isBackendApiEnabled) {
+    return [];
+  }
+
+  const data = await apiRequest(`/graph/nodes/${encodeURIComponent(nodeId)}/quiz-history`, {
+    method: "GET",
+  });
+
+  if (!Array.isArray(data)) return [];
+
+  // "풀은 문제"만 풀이 이력에 노출. 백엔드가 unanswered 도 같이 내려주면 프론트가 한 번 더 가드.
+  return (data as GraphNodeQuizHistoryItem[]).filter(
+    (entry) => entry.is_fully_correct !== null && entry.is_fully_correct !== undefined
+  );
 }
 
 export async function createExplanation({
