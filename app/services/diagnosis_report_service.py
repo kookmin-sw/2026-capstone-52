@@ -289,8 +289,6 @@ def _collect_answered_node_ids(
             continue
 
         node_ids.add(question.concept_id)
-        for node_id in _json_loads_list(question.affects):
-            node_ids.add(node_id)
 
     return node_ids
 

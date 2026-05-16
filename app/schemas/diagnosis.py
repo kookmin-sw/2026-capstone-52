@@ -23,7 +23,6 @@ class DiagnosisQuestionResponse(BaseModel):
     difficulty: Optional[str] = None           # easy / medium / hard — 프론트에서 난이도 표시용
     question_type: str                         # concept_check / prerequisite_check / multi_select
     diagnosis_purpose: Optional[str] = None
-    affects: list[str]        # 정답/오답 시 동시에 score가 바뀔 node_id 목록
     question: str
     choices: list[str] | list[DiagnosisChoiceResponse]  # legacy 문자열 또는 학생용 선택지 객체
 
