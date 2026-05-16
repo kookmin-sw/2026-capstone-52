@@ -3,7 +3,7 @@ import json
 from sqlalchemy.orm import Session
 
 from app.models.concept_quiz_counter import ConceptQuizCounter
-from app.models.diagnosis import DiagnosisQuestion
+from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
 from app.models.graph import ConceptNode
 from app.ai.diagnosis_ai import (
     evaluate_answer,
@@ -156,6 +156,22 @@ def submit_mini_quiz_answer(
         db=db,
     )
     updated_node = updated_nodes[0] if updated_nodes else None
+
+    # 답변 저장 (리뷰 조회용)
+    answer = DiagnosisAnswer(
+        question_id=question_id,
+        session_id="mini_quiz",
+        is_correct=evaluation["is_fully_correct"],
+        is_skipped=is_skipped,
+        selected_option_ids=json.dumps(evaluation["selected_option_ids"], ensure_ascii=False),
+        partial_score=evaluation["partial_score"],
+        answer_score=evaluation["answer_score"],
+        is_fully_correct=evaluation["is_fully_correct"],
+        missed_correct_option_ids=json.dumps(evaluation["missed_correct_option_ids"], ensure_ascii=False),
+        wrong_selected_option_ids=json.dumps(evaluation["wrong_selected_option_ids"], ensure_ascii=False),
+        invalid_selected_option_ids=json.dumps(evaluation.get("invalid_selected_option_ids", []), ensure_ascii=False),
+    )
+    db.add(answer)
 
     # 카운터 초기화
     counter = db.query(ConceptQuizCounter).filter(

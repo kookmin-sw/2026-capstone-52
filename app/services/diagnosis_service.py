@@ -40,6 +40,7 @@ def create_diagnosis_question(
     tag_group: str | None = None,
     reuse_key: str | None = None,
     diagnosis_purpose: str | None = None,
+    explanation: str | None = None,
 ) -> DiagnosisQuestion:
     """AI 모듈 결과로 진단 질문 생성 및 저장"""
     q = DiagnosisQuestion(
@@ -54,6 +55,7 @@ def create_diagnosis_question(
         tag_group=tag_group,
         reuse_key=reuse_key,
         diagnosis_purpose=diagnosis_purpose,
+        explanation=explanation,
     )
     db.add(q)
     db.commit()
@@ -571,4 +573,86 @@ def _dedupe_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
         unique_nodes[node.node_id] = node
     return list(unique_nodes.values())
 
+
+def get_session_review(session_id: str, db: Session) -> list[dict]:
+    """세션의 모든 질문/답변/정답을 리뷰용으로 반환"""
+    answers = (
+        db.query(DiagnosisAnswer)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .order_by(DiagnosisAnswer.created_at)
+        .all()
+    )
+    result = []
+    for answer in answers:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == answer.question_id).first()
+        if not q:
+            continue
+
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct,
+            "partial_score": answer.partial_score,
+            "answer_score": answer.answer_score,
+            "explanation": q.explanation,
+        })
+    return result
+
+
+def get_questions_review(question_ids: list[str], db: Session) -> list[dict]:
+    """question_id 목록으로 리뷰 데이터 반환 — 미니 퀴즈용"""
+    result = []
+    for question_id in question_ids:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == question_id).first()
+        if not q:
+            continue
+
+        answer = (
+            db.query(DiagnosisAnswer)
+            .filter(DiagnosisAnswer.question_id == question_id)
+            .order_by(DiagnosisAnswer.created_at.desc())
+            .first()
+        )
+
+        choices = json.loads(q.choices) if q.choices else []
+        correct_ids = json.loads(q.correct_option_ids) if q.correct_option_ids else []
+        selected_ids = json.loads(answer.selected_option_ids) if answer and answer.selected_option_ids else []
+
+        result.append({
+            "question_id": q.question_id,
+            "concept_id": q.concept_id,
+            "question": q.question,
+            "choices": [
+                {
+                    "option_id": c["option_id"],
+                    "text": c["text"],
+                    "is_correct": c.get("is_correct", False),
+                    "is_selected": c["option_id"] in selected_ids,
+                }
+                for c in choices
+            ],
+            "correct_option_ids": correct_ids,
+            "selected_option_ids": selected_ids,
+            "is_fully_correct": answer.is_fully_correct if answer else None,
+            "partial_score": answer.partial_score if answer else None,
+            "answer_score": answer.answer_score if answer else None,
+            "explanation": q.explanation,
+        })
+    return result
 

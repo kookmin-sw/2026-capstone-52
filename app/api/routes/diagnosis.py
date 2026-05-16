@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.services import diagnosis_service
+from app.services.diagnosis_service import get_session_review
 from app.services.diagnosis_report_service import create_diagnosis_report_chats
+from app.schemas.quiz_review import QuizQuestionReview
 from app.schemas.diagnosis import (
     DiagnosisSessionCreateResponse,
     DiagnosisQuestionResponse,
@@ -196,5 +198,23 @@ def get_diagnosis_nodes(
     return {
         "success": True,
         "data": [DiagnosisNodeItem(**n) for n in nodes],
+        "message": "",
+    }
+
+
+@router.get("/{project_id}/sessions/{session_id}/review", response_model=None)
+def get_diagnosis_review(
+    project_id: int,
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """수준진단 세션 전체 리뷰 — 모든 문제 정답/사용자 답/해설 반환"""
+    _get_project_or_403(project_id, current_user, db)
+
+    reviews = get_session_review(session_id, db)
+    return {
+        "success": True,
+        "data": [QuizQuestionReview(**r) for r in reviews],
         "message": "",
     }

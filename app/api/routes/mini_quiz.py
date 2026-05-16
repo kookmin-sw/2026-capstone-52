@@ -9,7 +9,9 @@ from app.models.project import Project
 from app.models.user import User
 from app.schemas.mini_quiz import MiniQuizAnswerRequest, MiniQuizAnswerResponse
 from app.schemas.diagnosis import DiagnosisQuestionResponse
+from app.schemas.quiz_review import QuizQuestionReview
 from app.services import mini_quiz_service
+from app.services.diagnosis_service import get_questions_review
 from app.ai.diagnosis_ai import DiagnosisAIError, QuestionValidationError
 
 router = APIRouter()
@@ -71,3 +73,25 @@ def submit_mini_quiz(
         raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
 
     return {"success": True, "data": MiniQuizAnswerResponse(**result), "message": "미니 퀴즈 완료"}
+
+
+@router.get("/{project_id}/review", response_model=None)
+def get_mini_quiz_review(
+    project_id: int,
+    question_ids: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """미니 퀴즈 리뷰 — 쉼표로 구분된 question_ids로 정답/사용자 답/해설 반환
+
+    예: GET /api/mini-quiz/{project_id}/review?question_ids=uuid1,uuid2
+    """
+    _get_project_or_403(project_id, current_user, db)
+
+    ids = [qid.strip() for qid in question_ids.split(",") if qid.strip()]
+    reviews = get_questions_review(ids, db)
+    return {
+        "success": True,
+        "data": [QuizQuestionReview(**r) for r in reviews],
+        "message": "",
+    }

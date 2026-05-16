@@ -38,6 +38,7 @@ class DiagnosisQuestion(Base):
     tag_group: Mapped[str] = mapped_column(String, nullable=True)
     reuse_key: Mapped[str] = mapped_column(String, nullable=True)
     diagnosis_purpose: Mapped[str] = mapped_column(String, nullable=True, default="concept_check")
+    explanation: Mapped[str] = mapped_column(Text, nullable=True)  # 문제 단위 해설 — 정답 이유 설명
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
