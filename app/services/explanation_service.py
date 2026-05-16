@@ -186,7 +186,7 @@ def _build_recent_diagnosis(*, node: ConceptNode, db: Session) -> list[dict]:
                 "answer_score": answer.answer_score if answer.answer_score is not None else answer.partial_score,
                 "missed_correct_option_ids": _json_loads_list(answer.missed_correct_option_ids),
                 "wrong_selected_option_ids": _json_loads_list(answer.wrong_selected_option_ids),
-                "feedback_tags": [],
+                "feedback_tags": _json_loads_list(answer.feedback_tags),
             }
         )
     return result

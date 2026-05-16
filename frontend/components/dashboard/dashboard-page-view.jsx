@@ -2935,13 +2935,40 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           conceptNodeId={activeMiniQuiz.nodeId}
           conceptName={activeMiniQuiz.name}
           conceptQueue={activeMiniQuiz.queue}
-          onResult={({ nodeId, conceptName, reviewEntry }) => {
+          onResult={({ nodeId, conceptName, reviewEntry, resultMessage }) => {
             setMiniQuizResults((current) => {
               const dedup = current.filter(
                 (item) => item.review.question_id !== reviewEntry.question_id
               );
               return [...dedup, { nodeId, conceptName, review: reviewEntry, completedAt: Date.now() }];
             });
+
+            // 백엔드 mini-quiz submit 응답의 result_message 를 active chat 에 즉시 push.
+            // id 포맷은 buildApiThread 와 동일하게 맞춰서, 추후 getProjectChats 새로고침 시 자연스럽게 dedup 됨.
+            if (resultMessage && selectedProjectId) {
+              const threadId = `${selectedProjectId}-api-thread`;
+              const assistantId = `api-chat-${resultMessage.chat_id}-assistant`;
+              const updatedAt = resultMessage.created_at
+                ? new Date(resultMessage.created_at).toISOString()
+                : new Date().toISOString();
+              const assistantMessage = {
+                id: assistantId,
+                role: "assistant",
+                text: resultMessage.ai_response || "",
+              };
+
+              setRecentChats((currentChats) =>
+                currentChats.map((chat) => {
+                  if (chat.id !== threadId) return chat;
+                  if (chat.messages.some((message) => message.id === assistantId)) return chat;
+                  return {
+                    ...chat,
+                    updatedAt,
+                    messages: [...chat.messages, assistantMessage],
+                  };
+                })
+              );
+            }
           }}
           onClose={() => {
             const sourceId = activeMiniQuiz.sourceMessageId;

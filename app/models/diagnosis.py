@@ -67,5 +67,6 @@ class DiagnosisAnswer(Base):
     invalid_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)  # JSON 배열 ["Z"]
     missed_correct_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["C"]
     wrong_selected_option_ids: Mapped[str] = mapped_column(Text, nullable=True)    # JSON 배열 ["D"]
+    feedback_tags: Mapped[str] = mapped_column(Text, nullable=True)                # JSON 배열 ["missed:tag","wrong:type"]
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

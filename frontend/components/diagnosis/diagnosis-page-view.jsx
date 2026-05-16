@@ -132,20 +132,23 @@ function getSelectedChoiceIds(answer) {
 }
 
 function normalizeApiChoice(choice, index) {
+  // 백엔드 diagnosis 응답에 option_id 가 없는 케이스 대비 — 인덱스 기반으로 A/B/C/... 자동 부여.
+  // 백엔드 submit 은 selected_option_ids: ["A","C"] 형태를 기대하므로 항상 string id 가 채워져야 함.
+  const fallbackOptionId = String.fromCharCode(65 + index);
   if (choice && typeof choice === "object") {
-    const optionId = choice.option_id ?? choice.optionId ?? null;
+    const optionId = choice.option_id ?? choice.optionId ?? fallbackOptionId;
     const id = String(choice.id ?? optionId ?? choice.choice_id ?? choice.value ?? index);
     return {
       ...choice,
       id,
-      optionId: optionId !== null ? String(optionId) : null,
+      optionId: String(optionId),
       label: choice.label || choice.text || choice.name || choice.title || String(choice.value ?? index),
     };
   }
 
   return {
     id: String(index),
-    optionId: null,
+    optionId: fallbackOptionId,
     label: String(choice),
   };
 }
@@ -236,8 +239,7 @@ export default function DiagnosisPageView({ projectId }) {
             question.difficulty ??
             question.difficulty_level ??
             question.difficultyValue ??
-            question.level ??
-            status?.estimated_level,
+            question.level,
           order: 1,
         });
 
@@ -412,10 +414,6 @@ export default function DiagnosisPageView({ projectId }) {
       const selectedChoices = currentQuestion.choices.filter((choice) => selectedChoiceIds.includes(choice.id));
       const selectedOptionIds = selectedChoices.map((choice) => choice.optionId).filter(Boolean);
       const isSkipped = selectedChoiceIds.length === 1 && selectedChoiceIds[0] === unknownChoiceId;
-      const selectedIndex =
-        currentQuestion.type === "multiple-choice"
-          ? currentQuestion.choices.findIndex((choice) => choice.id === selectedChoiceIds[0])
-          : 0;
 
       setStep("analyzing");
 
@@ -425,8 +423,7 @@ export default function DiagnosisPageView({ projectId }) {
           session.id,
           currentQuestion.diagnosisId,
           {
-            selectedIndex: selectedOptionIds.length ? null : selectedIndex,
-            selectedOptionIds: selectedOptionIds.length ? selectedOptionIds : null,
+            selectedOptionIds,
             isSkipped,
           }
         );
@@ -461,7 +458,6 @@ export default function DiagnosisPageView({ projectId }) {
           measuredLevel:
             status?.measured_level ||
             status?.result_level ||
-            status?.estimated_level ||
             status?.level ||
             (wasCorrect ? "상급" : "초급"),
           summary: wasCorrect

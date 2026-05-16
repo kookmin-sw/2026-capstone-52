@@ -11,7 +11,6 @@ from app.models.diagnosis import DiagnosisQuestion, DiagnosisAnswer
 from app.ai.diagnosis_ai import (
     DiagnosisAIError,
     QuestionValidationError,
-    calculate_score,
     evaluate_answer,
     generate_question,
     score_to_level,
@@ -153,12 +152,14 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
         return {
             "question_id": q.question_id,
             "concept_id": q.concept_id,
+            "concept_name": target_node.name,
             "difficulty": q.difficulty,
             "question_type": q.question_type,
             "diagnosis_purpose": q.diagnosis_purpose,
             "question": q.question,
             "choices": [
                 {
+                    "id": choice["option_id"],
                     "option_id": choice["option_id"],
                     "text": choice["text"],
                 }
@@ -255,6 +256,7 @@ def submit_answer(
             invalid_selected_option_ids=_json_dumps(evaluation["invalid_selected_option_ids"]),
             missed_correct_option_ids=_json_dumps(evaluation["missed_correct_option_ids"]),
             wrong_selected_option_ids=_json_dumps(evaluation["wrong_selected_option_ids"]),
+            feedback_tags=_json_dumps(evaluation.get("feedback_tags", [])),
         )
         db.add(answer)
         db.flush()
@@ -281,34 +283,7 @@ def submit_answer(
             "updated_nodes": updated_nodes,
         }
 
-    is_correct = (not is_skipped) and (str(selected_index) == str(q.correct_index))
-
-    # 답변 저장 — score는 여기에 없고 아래에서 AI 호출 후 concept_nodes에 반영
-    answer = DiagnosisAnswer(
-        question_id=question_id,
-        session_id=session_id,
-        is_correct=is_correct,
-        is_skipped=is_skipped,
-    )
-    db.add(answer)
-    db.flush()
-
-    updated_nodes = _apply_score_to_nodes(
-        node_ids=[q.concept_id],
-        concept_id=q.concept_id,
-        difficulty=q.difficulty,
-        question_type=q.question_type,
-        is_correct=is_correct,
-        is_skipped=is_skipped,
-        db=db,
-    )
-
-    db.commit()
-    return {
-        "is_correct": is_correct,
-        "correct_index": q.correct_index,
-        "updated_nodes": updated_nodes,
-    }
+    raise ValueError("구형 단일 선택 문제 포맷은 지원하지 않습니다.")
 
 
 def apply_evaluation_to_nodes(
@@ -342,47 +317,6 @@ def apply_evaluation_to_nodes(
 
     return results
 
-
-def _apply_score_to_nodes(
-    node_ids: list[str],
-    concept_id: str,
-    difficulty: str,
-    question_type: str,
-    is_correct: bool,
-    is_skipped: bool,
-    db: Session,
-) -> list[dict]:
-    """concept 노드에 AI가 결정한 score/status 적용 — 서비스는 저장만 담당"""
-    results = []
-
-    for node_id in node_ids:
-        node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
-        if not node:
-            continue
-
-        current_score = node.understanding_score if node.understanding_score is not None else 0.5
-
-        ai_result = calculate_score(
-            node_id=node_id,
-            node_name=node.name,
-            current_score=current_score,
-            difficulty=difficulty,
-            question_type=question_type,
-            is_correct=is_correct,
-            is_skipped=is_skipped,
-            is_primary=(node_id == concept_id),
-        )
-
-        node.understanding_score = ai_result["score"]
-        node.status = ai_result["status"]
-
-        results.append({
-            "node_id": node.node_id,
-            "status": node.status,
-            "understanding_score": node.understanding_score,
-        })
-
-    return results
 
 
 # ── 진행 상태 ─────────────────────────────────────────────────────────────────

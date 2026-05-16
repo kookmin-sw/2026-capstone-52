@@ -201,7 +201,11 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
     .sort((left, right) => Date.parse(normalizeApiDate(left.created_at)) - Date.parse(normalizeApiDate(right.created_at)));
   const messages = sortedLogs.flatMap((log) => {
     const isDiagnosisReport = typeof log.response_type === "string" && log.response_type.startsWith("diagnosis_report");
-    const userMessage = !isDiagnosisReport
+    // diagnosis_report_summary 메시지에는 프론트 자체적으로 graph-preview attachment 부여 (mock UX 와 동일하게).
+    const isDiagnosisReportSummary = log.response_type === "diagnosis_report_summary";
+    // 미니퀴즈 결과 메시지는 user_message("미니퀴즈 결과")를 사용자 말풍선으로 노출하지 않음 — assistant 응답만 표시.
+    const isMiniQuizResult = log.response_type === "mini_quiz_result";
+    const userMessage = !isDiagnosisReport && !isMiniQuizResult
       ? {
           id: `api-chat-${log.chat_id}-user`,
           role: "user" as const,
@@ -217,6 +221,9 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
           role: "assistant" as const,
           text: log.ai_response,
           variant: isDiagnosisReport ? ("diagnosis-report" as const) : undefined,
+          attachment: isDiagnosisReportSummary
+            ? ({ type: "graph-preview" } as const)
+            : undefined,
           miniQuizReady: quizReadyConcepts.length
             ? quizReadyConcepts.map((concept) => ({ nodeId: concept.node_id, name: concept.name }))
             : undefined,

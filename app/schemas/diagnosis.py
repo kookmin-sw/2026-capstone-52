@@ -13,6 +13,7 @@ class DiagnosisSessionCreateResponse(BaseModel):
 
 class DiagnosisChoiceResponse(BaseModel):
     """학생 응답용 선택지 — 정답 여부나 해설은 포함하지 않음"""
+    id: str        # option_id와 동일 — 프론트 normalizeApiChoice 호환용
     option_id: str
     text: str
 
@@ -20,6 +21,7 @@ class DiagnosisQuestionResponse(BaseModel):
     """진단 질문 응답 — correct_index는 포함하지 않음"""
     question_id: str
     concept_id: str
+    concept_name: Optional[str] = None         # 개념 노드 이름 — 프론트 표시용
     difficulty: Optional[str] = None           # easy / medium / hard — 프론트에서 난이도 표시용
     question_type: str                         # concept_check / prerequisite_check / multi_select
     diagnosis_purpose: Optional[str] = None

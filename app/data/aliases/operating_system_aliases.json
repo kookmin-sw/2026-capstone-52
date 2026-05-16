@@ -2,64 +2,2266 @@
   "subject_id": "operating_system",
   "concepts": [
     {
-      "concept_id": "os_process",
-      "canonical_name": "Process",
-      "korean_name": "프로세스",
-      "aliases": ["process", "프로세스", "program in execution", "running program"],
-      "group": "Process Management",
-      "description": "A program in execution with its own state, memory space, and system resources.",
-      "importance": 5,
-      "concept_difficulty": 2
+      "concept_id": "os_operating_system",
+      "canonical_name": "Operating System",
+      "korean_name": "운영체제",
+      "aliases": [
+        "operating system",
+        "OS",
+        "os",
+        "운영체제",
+        "오에스"
+      ],
+      "group": "Operating System Foundations",
+      "description": "System software that manages hardware resources and provides abstractions to applications.",
+      "importance": 0.98,
+      "concept_difficulty": 0.25
     },
     {
-      "concept_id": "os_thread",
-      "canonical_name": "Thread",
-      "korean_name": "스레드",
-      "aliases": ["thread", "스레드", "lightweight process", "execution thread"],
-      "group": "Process Management",
-      "description": "The smallest unit of CPU execution within a process that can run concurrently.",
-      "importance": 5,
-      "concept_difficulty": 3
+      "concept_id": "os_virtualization",
+      "canonical_name": "Virtualization",
+      "korean_name": "가상화",
+      "aliases": [
+        "virtualization",
+        "virtualisation",
+        "가상화",
+        "resource virtualization",
+        "자원 가상화"
+      ],
+      "group": "Operating System Foundations",
+      "description": "The OS technique of creating convenient virtual forms of physical resources.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
     },
     {
-      "concept_id": "os_synchronization",
-      "canonical_name": "Synchronization",
-      "korean_name": "동기화",
-      "aliases": ["synchronization", "동기화", "process synchronization", "thread synchronization"],
-      "group": "Process Synchronization",
-      "description": "Techniques used to coordinate concurrent execution and protect shared resources.",
-      "importance": 5,
-      "concept_difficulty": 4
+      "concept_id": "os_concurrency",
+      "canonical_name": "Concurrency",
+      "korean_name": "병행성",
+      "aliases": [
+        "concurrency",
+        "concurrent execution",
+        "병행성",
+        "동시성",
+        "concurrent programming",
+        "병행 프로그래밍"
+      ],
+      "group": "Operating System Foundations",
+      "description": "The set of problems and techniques involved when multiple activities execute at overlapping times.",
+      "importance": 0.95,
+      "concept_difficulty": 0.45
     },
     {
-      "concept_id": "os_deadlock",
-      "canonical_name": "Deadlock",
-      "korean_name": "교착상태",
-      "aliases": ["deadlock", "dead lock", "교착상태", "교착 상태", "process deadlock", "deadlock state"],
-      "group": "Process Synchronization",
-      "description": "A state where processes wait indefinitely for resources held by each other.",
-      "importance": 5,
-      "concept_difficulty": 4
+      "concept_id": "os_persistence",
+      "canonical_name": "Persistence",
+      "korean_name": "영속성",
+      "aliases": [
+        "persistence",
+        "persistent storage",
+        "영속성",
+        "지속성",
+        "영구 저장",
+        "영속 저장"
+      ],
+      "group": "Operating System Foundations",
+      "description": "The OS support for keeping data intact across crashes, power loss, and program termination.",
+      "importance": 0.92,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_resource_manager",
+      "canonical_name": "Resource Manager",
+      "korean_name": "자원 관리자",
+      "aliases": [
+        "resource manager",
+        "resource management",
+        "자원 관리자",
+        "자원 관리"
+      ],
+      "group": "Operating System Foundations",
+      "description": "The role of an OS in allocating and coordinating CPU, memory, storage, and devices.",
+      "importance": 0.8,
+      "concept_difficulty": 0.3
     },
     {
       "concept_id": "os_resource_allocation",
       "canonical_name": "Resource Allocation",
       "korean_name": "자원 할당",
-      "aliases": ["resource allocation", "resourceallocation", "자원 할당", "자원할당", "resource management"],
-      "group": "Process Synchronization",
-      "description": "The assignment and management of resources among competing processes.",
-      "importance": 4,
-      "concept_difficulty": 3
+      "aliases": [
+        "Resource Allocation",
+        "resource allocation",
+        "resource allocation policy",
+        "allocation of resources",
+        "자원 할당",
+        "자원 배분",
+        "운영체제 자원 할당"
+      ],
+      "group": "Operating System Foundations",
+      "description": "The operating system activity of assigning limited resources such as CPU time, memory, and I/O devices to processes or threads.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
     },
     {
-      "concept_id": "os_virtual_memory",
-      "canonical_name": "Virtual Memory",
-      "korean_name": "가상 메모리",
-      "aliases": ["virtual memory", "virtualmemory", "가상 메모리", "가상메모리", "paging memory"],
-      "group": "Memory Management",
-      "description": "A memory management technique that gives processes the illusion of a large contiguous memory space.",
-      "importance": 5,
-      "concept_difficulty": 4
+      "concept_id": "os_system_call",
+      "canonical_name": "System Call",
+      "korean_name": "시스템 콜",
+      "aliases": [
+        "system call",
+        "system calls",
+        "syscall",
+        "syscalls",
+        "시스템 콜",
+        "시스템 호출"
+      ],
+      "group": "Operating System Foundations",
+      "description": "A controlled interface through which user programs request OS services.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_api",
+      "canonical_name": "Application Programming Interface",
+      "korean_name": "API",
+      "aliases": [
+        "API",
+        "application programming interface",
+        "programming interface",
+        "응용 프로그래밍 인터페이스",
+        "프로그래밍 인터페이스"
+      ],
+      "group": "Operating System Foundations",
+      "description": "A defined interface used by programs to request services from software such as the OS.",
+      "importance": 0.65,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "os_user_mode",
+      "canonical_name": "User Mode",
+      "korean_name": "사용자 모드",
+      "aliases": [
+        "user mode",
+        "user-level mode",
+        "사용자 모드",
+        "유저 모드"
+      ],
+      "group": "Protection and Privilege",
+      "description": "A restricted CPU execution mode used for ordinary application code.",
+      "importance": 0.8,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_kernel_mode",
+      "canonical_name": "Kernel Mode",
+      "korean_name": "커널 모드",
+      "aliases": [
+        "kernel mode",
+        "supervisor mode",
+        "privileged mode",
+        "커널 모드",
+        "슈퍼바이저 모드",
+        "특권 모드"
+      ],
+      "group": "Protection and Privilege",
+      "description": "A privileged CPU execution mode that allows the OS to execute protected instructions.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_trap",
+      "canonical_name": "Trap",
+      "korean_name": "트랩",
+      "aliases": [
+        "trap",
+        "trap instruction",
+        "software trap",
+        "트랩",
+        "트랩 명령어"
+      ],
+      "group": "Protection and Privilege",
+      "description": "A controlled transfer from user mode to the kernel, often used to implement system calls.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_interrupt",
+      "canonical_name": "Interrupt",
+      "korean_name": "인터럽트",
+      "aliases": [
+        "interrupt",
+        "interrupts",
+        "hardware interrupt",
+        "timer interrupt",
+        "인터럽트",
+        "하드웨어 인터럽트",
+        "타이머 인터럽트"
+      ],
+      "group": "Protection and Privilege",
+      "description": "An event that causes the CPU to transfer control to the OS or an interrupt handler.",
+      "importance": 0.95,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_exception",
+      "canonical_name": "Exception",
+      "korean_name": "예외",
+      "aliases": [
+        "exception",
+        "processor exception",
+        "fault exception",
+        "예외",
+        "프로세서 예외"
+      ],
+      "group": "Protection and Privilege",
+      "description": "A synchronous event caused by executing an instruction, often requiring OS handling.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_policy",
+      "canonical_name": "Policy",
+      "korean_name": "정책",
+      "aliases": [
+        "policy",
+        "policies",
+        "OS policy",
+        "정책",
+        "운영체제 정책"
+      ],
+      "group": "Operating System Design",
+      "description": "A high-level algorithm or rule used by the OS to make decisions.",
+      "importance": 0.7,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_mechanism",
+      "canonical_name": "Mechanism",
+      "korean_name": "메커니즘",
+      "aliases": [
+        "mechanism",
+        "mechanisms",
+        "OS mechanism",
+        "메커니즘",
+        "기법",
+        "운영체제 기법"
+      ],
+      "group": "Operating System Design",
+      "description": "A low-level method or implementation technique used to provide a system function.",
+      "importance": 0.7,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_abstraction",
+      "canonical_name": "Abstraction",
+      "korean_name": "추상화",
+      "aliases": [
+        "abstraction",
+        "abstract interface",
+        "추상화",
+        "추상 인터페이스"
+      ],
+      "group": "Operating System Design",
+      "description": "A simplified interface that hides lower-level implementation details.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_cpu_virtualization",
+      "canonical_name": "CPU Virtualization",
+      "korean_name": "CPU 가상화",
+      "aliases": [
+        "CPU virtualization",
+        "virtualizing the CPU",
+        "processor virtualization",
+        "CPU 가상화",
+        "프로세서 가상화"
+      ],
+      "group": "CPU Virtualization",
+      "description": "The OS illusion that many programs each have their own CPU despite limited physical CPUs.",
+      "importance": 0.95,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_process",
+      "canonical_name": "Process",
+      "korean_name": "프로세스",
+      "aliases": [
+        "process",
+        "processes",
+        "프로세스",
+        "실행 중인 프로그램",
+        "running program"
+      ],
+      "group": "Processes",
+      "description": "An executing program along with its address space, registers, and OS-managed state.",
+      "importance": 0.98,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_program",
+      "canonical_name": "Program",
+      "korean_name": "프로그램",
+      "aliases": [
+        "program",
+        "programs",
+        "프로그램",
+        "executable program",
+        "실행 파일"
+      ],
+      "group": "Processes",
+      "description": "A passive set of instructions and static data that becomes a process when executed.",
+      "importance": 0.75,
+      "concept_difficulty": 0.2
+    },
+    {
+      "concept_id": "os_process_state",
+      "canonical_name": "Process State",
+      "korean_name": "프로세스 상태",
+      "aliases": [
+        "process state",
+        "process states",
+        "프로세스 상태",
+        "프로세스 상태 전이",
+        "process state transition"
+      ],
+      "group": "Processes",
+      "description": "The current scheduling or execution condition of a process such as running, ready, or blocked.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_running_state",
+      "canonical_name": "Running State",
+      "korean_name": "실행 상태",
+      "aliases": [
+        "running state",
+        "running process",
+        "실행 상태",
+        "실행 중 상태"
+      ],
+      "group": "Processes",
+      "description": "The state in which a process is currently executing on a CPU.",
+      "importance": 0.7,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "os_ready_state",
+      "canonical_name": "Ready State",
+      "korean_name": "준비 상태",
+      "aliases": [
+        "ready state",
+        "runnable state",
+        "ready process",
+        "준비 상태",
+        "실행 가능 상태",
+        "runnable"
+      ],
+      "group": "Processes",
+      "description": "The state in which a process is ready to run but not currently selected by the scheduler.",
+      "importance": 0.7,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "os_blocked_state",
+      "canonical_name": "Blocked State",
+      "korean_name": "대기 상태",
+      "aliases": [
+        "blocked state",
+        "waiting state",
+        "blocked process",
+        "대기 상태",
+        "블록 상태",
+        "blocked"
+      ],
+      "group": "Processes",
+      "description": "The state in which a process cannot run until an event such as I/O completion occurs.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_process_control_block",
+      "canonical_name": "Process Control Block",
+      "korean_name": "프로세스 제어 블록",
+      "aliases": [
+        "process control block",
+        "PCB",
+        "pcb",
+        "프로세스 제어 블록",
+        "프로세스 제어 블럭"
+      ],
+      "group": "Processes",
+      "description": "An OS data structure that stores the state and metadata of a process.",
+      "importance": 0.9,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_context_switch",
+      "canonical_name": "Context Switch",
+      "korean_name": "문맥 교환",
+      "aliases": [
+        "context switch",
+        "context switching",
+        "context swap",
+        "문맥 교환",
+        "문맥 전환",
+        "컨텍스트 스위치"
+      ],
+      "group": "Processes",
+      "description": "The OS mechanism of saving one execution context and restoring another.",
+      "importance": 0.95,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_scheduler",
+      "canonical_name": "Scheduler",
+      "korean_name": "스케줄러",
+      "aliases": [
+        "scheduler",
+        "cpu scheduler",
+        "OS scheduler",
+        "process scheduler",
+        "CPU scheduling",
+        "cpu scheduling",
+        "process scheduling",
+        "스케줄러",
+        "CPU 스케줄링",
+        "운영체제 스케줄러",
+        "프로세스 스케줄러",
+        "프로세스 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The OS component that selects which ready process or thread should run next.",
+      "importance": 0.95,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_scheduling_policy",
+      "canonical_name": "Scheduling Policy",
+      "korean_name": "스케줄링 정책",
+      "aliases": [
+        "scheduling",
+        "scheduling policy",
+        "scheduling policies",
+        "scheduling algorithm",
+        "CPU scheduling policy",
+        "cpu scheduling policy",
+        "processor scheduling",
+        "스케줄링",
+        "스케줄링 정책",
+        "스케줄링 알고리즘",
+        "CPU 스케줄링 정책"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The decision rule used by the scheduler to choose the next job or process.",
+      "importance": 0.9,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_time_sharing",
+      "canonical_name": "Time Sharing",
+      "korean_name": "시분할",
+      "aliases": [
+        "time sharing",
+        "time-sharing",
+        "time slice sharing",
+        "시분할",
+        "시간 분할"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A technique that rapidly switches the CPU among tasks to create the illusion of simultaneity.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_space_sharing",
+      "canonical_name": "Space Sharing",
+      "korean_name": "공간 분할",
+      "aliases": [
+        "space sharing",
+        "space-sharing",
+        "공간 분할",
+        "공간 공유"
+      ],
+      "group": "Resource Management",
+      "description": "A technique that partitions a resource spatially among users or objects.",
+      "importance": 0.55,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_multiprogramming",
+      "canonical_name": "Multiprogramming",
+      "korean_name": "멀티프로그래밍",
+      "aliases": [
+        "multiprogramming",
+        "multi-programming",
+        "멀티프로그래밍",
+        "다중 프로그래밍"
+      ],
+      "group": "CPU Scheduling",
+      "description": "Keeping multiple programs in memory and switching among them to improve CPU utilization.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_batch_processing",
+      "canonical_name": "Batch Processing",
+      "korean_name": "일괄 처리",
+      "aliases": [
+        "batch processing",
+        "batch computing",
+        "batch system",
+        "일괄 처리",
+        "배치 처리"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A computing mode in which jobs are collected and run without interactive user control.",
+      "importance": 0.55,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_interactivity",
+      "canonical_name": "Interactivity",
+      "korean_name": "대화식 이용",
+      "aliases": [
+        "interactivity",
+        "interactive computing",
+        "interactive system",
+        "대화식 이용",
+        "상호작용성"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The responsiveness of a system to user input and ongoing interaction.",
+      "importance": 0.55,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_turnaround_time",
+      "canonical_name": "Turnaround Time",
+      "korean_name": "반환 시간",
+      "aliases": [
+        "turnaround time",
+        "completion time metric",
+        "반환 시간",
+        "완료 시간"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The total time from job arrival to completion.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_response_time",
+      "canonical_name": "Response Time",
+      "korean_name": "응답 시간",
+      "aliases": [
+        "response time",
+        "응답 시간",
+        "first response time"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The time from job arrival or request submission until the first response.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_throughput",
+      "canonical_name": "Throughput",
+      "korean_name": "처리량",
+      "aliases": [
+        "throughput",
+        "system throughput",
+        "처리량",
+        "스루풋"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The amount of work completed per unit time.",
+      "importance": 0.7,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_fifo_scheduling",
+      "canonical_name": "FIFO Scheduling",
+      "korean_name": "FIFO 스케줄링",
+      "aliases": [
+        "FIFO scheduling",
+        "first come first served",
+        "FCFS",
+        "fcfs",
+        "first-in first-out scheduling",
+        "FIFO 스케줄링",
+        "선입선출 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A scheduling policy that runs jobs in arrival order.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_sjf_scheduling",
+      "canonical_name": "Shortest Job First",
+      "korean_name": "최단 작업 우선",
+      "aliases": [
+        "shortest job first",
+        "SJF",
+        "sjf",
+        "shortest-job-first",
+        "최단 작업 우선",
+        "최단 작업 우선 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A scheduling policy that runs the job with the shortest expected run time first.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_stcf_scheduling",
+      "canonical_name": "Shortest Time-to-Completion First",
+      "korean_name": "최소 잔여 시간 우선",
+      "aliases": [
+        "shortest time-to-completion first",
+        "STCF",
+        "stcf",
+        "shortest remaining time first",
+        "SRTF",
+        "srtf",
+        "최소 잔여 시간 우선",
+        "최단 잔여 시간 우선"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A preemptive scheduling policy that runs the job with the least remaining time.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_round_robin",
+      "canonical_name": "Round Robin",
+      "korean_name": "라운드 로빈",
+      "aliases": [
+        "round robin",
+        "round-robin",
+        "RR scheduling",
+        "rr scheduling",
+        "라운드 로빈",
+        "라운드 로빈 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A preemptive scheduling policy that cycles through ready tasks using a time quantum.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_time_slice",
+      "canonical_name": "Time Slice",
+      "korean_name": "타임 슬라이스",
+      "aliases": [
+        "time slice",
+        "time quantum",
+        "quantum",
+        "타임 슬라이스",
+        "타임 퀀텀",
+        "시간 할당량"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The fixed CPU interval assigned to a task before preemption may occur.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_mlfq",
+      "canonical_name": "Multi-Level Feedback Queue",
+      "korean_name": "다단계 피드백 큐",
+      "aliases": [
+        "multi-level feedback queue",
+        "multilevel feedback queue",
+        "MLFQ",
+        "mlfq",
+        "다단계 피드백 큐",
+        "다중 레벨 피드백 큐"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A scheduler that uses multiple priority queues and changes priorities based on observed behavior.",
+      "importance": 0.85,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_priority_scheduling",
+      "canonical_name": "Priority Scheduling",
+      "korean_name": "우선순위 스케줄링",
+      "aliases": [
+        "priority scheduling",
+        "priority scheduler",
+        "우선순위 스케줄링",
+        "우선순위 기반 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "A scheduling approach that selects tasks according to priority values.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_preemption",
+      "canonical_name": "Preemption",
+      "korean_name": "선점",
+      "aliases": [
+        "preemption",
+        "preemptive scheduling",
+        "preemptive",
+        "선점",
+        "선점형 스케줄링"
+      ],
+      "group": "CPU Scheduling",
+      "description": "The ability of the OS to interrupt a running task and switch to another task.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_fork",
+      "canonical_name": "Fork",
+      "korean_name": "fork",
+      "aliases": [
+        "fork",
+        "fork()",
+        "process fork",
+        "fork system call",
+        "fork 시스템 콜",
+        "프로세스 복제"
+      ],
+      "group": "Process API",
+      "description": "A Unix system call that creates a new process by duplicating the calling process.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_exec",
+      "canonical_name": "Exec",
+      "korean_name": "exec",
+      "aliases": [
+        "exec",
+        "exec()",
+        "exec system call",
+        "execve",
+        "exec 시스템 콜",
+        "프로그램 실행 교체"
+      ],
+      "group": "Process API",
+      "description": "A Unix system call family that replaces the current process image with a new program.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_wait",
+      "canonical_name": "Wait",
+      "korean_name": "wait",
+      "aliases": [
+        "wait",
+        "wait()",
+        "wait system call",
+        "waitpid",
+        "wait 시스템 콜",
+        "자식 프로세스 대기"
+      ],
+      "group": "Process API",
+      "description": "A Unix system call used by a parent process to wait for a child process to change state or exit.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_zombie_process",
+      "canonical_name": "Zombie Process",
+      "korean_name": "좀비 프로세스",
+      "aliases": [
+        "zombie process",
+        "zombie",
+        "zombie state",
+        "좀비 프로세스",
+        "좀비 상태"
+      ],
+      "group": "Processes",
+      "description": "A terminated process that still has an entry because its parent has not collected its exit status.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_memory_virtualization",
+      "canonical_name": "Memory Virtualization",
+      "korean_name": "메모리 가상화",
+      "aliases": [
+        "memory virtualization",
+        "virtual memory",
+        "VM",
+        "vm",
+        "VM system",
+        "virtualizing memory",
+        "메모리 가상화",
+        "가상 메모리",
+        "메모리 가상화 시스템"
+      ],
+      "group": "Memory Virtualization",
+      "description": "The OS and hardware mechanism that gives each process a private virtual address space.",
+      "importance": 0.98,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_address_space",
+      "canonical_name": "Address Space",
+      "korean_name": "주소 공간",
+      "aliases": [
+        "address space",
+        "virtual address space",
+        "주소 공간",
+        "가상 주소 공간"
+      ],
+      "group": "Memory Virtualization",
+      "description": "The memory abstraction containing a process's code, stack, heap, and other memory regions.",
+      "importance": 0.98,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_virtual_address",
+      "canonical_name": "Virtual Address",
+      "korean_name": "가상 주소",
+      "aliases": [
+        "virtual address",
+        "VA",
+        "virtual addresses",
+        "가상 주소"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An address generated by a program before translation to a physical address.",
+      "importance": 0.9,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_physical_address",
+      "canonical_name": "Physical Address",
+      "korean_name": "물리 주소",
+      "aliases": [
+        "physical address",
+        "PA",
+        "physical addresses",
+        "물리 주소"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An address used to access actual physical memory hardware.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_address_translation",
+      "canonical_name": "Address Translation",
+      "korean_name": "주소 변환",
+      "aliases": [
+        "address translation",
+        "virtual-to-physical translation",
+        "주소 변환",
+        "가상 주소 변환",
+        "주소 매핑"
+      ],
+      "group": "Memory Virtualization",
+      "description": "The process of converting a virtual address into a physical address.",
+      "importance": 0.95,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_base_and_bounds",
+      "canonical_name": "Base and Bounds",
+      "korean_name": "베이스와 바운드",
+      "aliases": [
+        "base and bounds",
+        "base/bounds",
+        "base-bound",
+        "베이스와 바운드",
+        "베이스-바운드"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A simple dynamic relocation mechanism using base and bounds registers.",
+      "importance": 0.8,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_segmentation",
+      "canonical_name": "Segmentation",
+      "korean_name": "세그멘테이션",
+      "aliases": [
+        "segmentation",
+        "segments",
+        "memory segmentation",
+        "세그멘테이션",
+        "세그먼트",
+        "분할 방식"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A memory virtualization technique that divides an address space into variable-sized segments.",
+      "importance": 0.82,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_paging",
+      "canonical_name": "Paging",
+      "korean_name": "페이징",
+      "aliases": [
+        "paging",
+        "page-based memory",
+        "페이징",
+        "페이지 방식"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A memory management technique that divides virtual memory into fixed-size pages.",
+      "importance": 0.98,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_page",
+      "canonical_name": "Page",
+      "korean_name": "페이지",
+      "aliases": [
+        "page",
+        "pages",
+        "virtual page",
+        "페이지",
+        "가상 페이지"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A fixed-size block of virtual memory used in paging.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_page_frame",
+      "canonical_name": "Page Frame",
+      "korean_name": "페이지 프레임",
+      "aliases": [
+        "page frame",
+        "physical frame",
+        "frame",
+        "page frames",
+        "페이지 프레임",
+        "물리 프레임",
+        "프레임"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A fixed-size block of physical memory that can hold a virtual page.",
+      "importance": 0.82,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_page_table",
+      "canonical_name": "Page Table",
+      "korean_name": "페이지 테이블",
+      "aliases": [
+        "page table",
+        "page tables",
+        "페이지 테이블"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A per-process data structure that maps virtual pages to physical frames.",
+      "importance": 0.98,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_page_table_entry",
+      "canonical_name": "Page Table Entry",
+      "korean_name": "페이지 테이블 항목",
+      "aliases": [
+        "page table entry",
+        "PTE",
+        "pte",
+        "페이지 테이블 항목",
+        "페이지 테이블 엔트리"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An entry in a page table that records translation and protection metadata.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_tlb",
+      "canonical_name": "Translation Lookaside Buffer",
+      "korean_name": "TLB",
+      "aliases": [
+        "translation lookaside buffer",
+        "TLB",
+        "tlb",
+        "주소 변환 캐시",
+        "변환 색인 버퍼"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A hardware cache that speeds up virtual-to-physical address translation.",
+      "importance": 0.95,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_tlb_miss",
+      "canonical_name": "TLB Miss",
+      "korean_name": "TLB 미스",
+      "aliases": [
+        "TLB miss",
+        "tlb miss",
+        "translation miss",
+        "TLB 미스",
+        "티엘비 미스"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An event in which a translation is not found in the TLB and must be resolved.",
+      "importance": 0.8,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_asid",
+      "canonical_name": "Address Space Identifier",
+      "korean_name": "주소 공간 식별자",
+      "aliases": [
+        "address space identifier",
+        "ASID",
+        "asid",
+        "주소 공간 식별자"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A hardware tag that lets TLB entries from multiple address spaces coexist safely.",
+      "importance": 0.65,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_multi_level_page_table",
+      "canonical_name": "Multi-Level Page Table",
+      "korean_name": "멀티 레벨 페이지 테이블",
+      "aliases": [
+        "multi-level page table",
+        "multilevel page table",
+        "hierarchical page table",
+        "멀티 레벨 페이지 테이블",
+        "다단계 페이지 테이블"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A page table organization that reduces memory overhead by using multiple levels of tables.",
+      "importance": 0.8,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "os_page_fault",
+      "canonical_name": "Page Fault",
+      "korean_name": "페이지 폴트",
+      "aliases": [
+        "page fault",
+        "page faults",
+        "페이지 폴트",
+        "페이지 부재"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An exception raised when a referenced virtual page is not currently mapped or resident.",
+      "importance": 0.9,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_swap",
+      "canonical_name": "Swapping",
+      "korean_name": "스와핑",
+      "aliases": [
+        "swapping",
+        "swap",
+        "swap space",
+        "스와핑",
+        "스왑",
+        "스왑 공간"
+      ],
+      "group": "Memory Virtualization",
+      "description": "Moving pages or processes between memory and storage to manage limited physical memory.",
+      "importance": 0.8,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_demand_paging",
+      "canonical_name": "Demand Paging",
+      "korean_name": "요구 페이징",
+      "aliases": [
+        "demand paging",
+        "lazy paging",
+        "요구 페이징",
+        "수요 페이징"
+      ],
+      "group": "Memory Virtualization",
+      "description": "Loading pages into physical memory only when they are actually accessed.",
+      "importance": 0.8,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_page_replacement",
+      "canonical_name": "Page Replacement",
+      "korean_name": "페이지 교체",
+      "aliases": [
+        "page replacement",
+        "replacement policy",
+        "페이지 교체",
+        "페이지 교체 정책"
+      ],
+      "group": "Memory Virtualization",
+      "description": "The policy for choosing which memory page to evict when physical memory is full.",
+      "importance": 0.85,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_lru",
+      "canonical_name": "Least Recently Used",
+      "korean_name": "LRU",
+      "aliases": [
+        "least recently used",
+        "LRU",
+        "lru",
+        "LRU replacement",
+        "최근 최소 사용",
+        "최소 최근 사용"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A replacement policy that evicts the page that has not been used for the longest time.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_fifo_replacement",
+      "canonical_name": "FIFO Page Replacement",
+      "korean_name": "FIFO 페이지 교체",
+      "aliases": [
+        "FIFO page replacement",
+        "first-in first-out page replacement",
+        "FIFO replacement",
+        "FIFO 페이지 교체",
+        "선입선출 페이지 교체"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A page replacement policy that evicts pages in the order they entered memory.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_clock_algorithm",
+      "canonical_name": "Clock Algorithm",
+      "korean_name": "클럭 알고리즘",
+      "aliases": [
+        "clock algorithm",
+        "clock replacement",
+        "second chance algorithm",
+        "클럭 알고리즘",
+        "시계 알고리즘",
+        "세컨드 찬스 알고리즘"
+      ],
+      "group": "Memory Virtualization",
+      "description": "An approximate LRU page replacement algorithm using reference bits.",
+      "importance": 0.7,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_thrashing",
+      "canonical_name": "Thrashing",
+      "korean_name": "스래싱",
+      "aliases": [
+        "thrashing",
+        "memory thrashing",
+        "스래싱",
+        "쓰래싱"
+      ],
+      "group": "Memory Virtualization",
+      "description": "A state where excessive paging causes severe performance degradation.",
+      "importance": 0.7,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_internal_fragmentation",
+      "canonical_name": "Internal Fragmentation",
+      "korean_name": "내부 단편화",
+      "aliases": [
+        "internal fragmentation",
+        "내부 단편화"
+      ],
+      "group": "Memory Virtualization",
+      "description": "Wasted space inside an allocated fixed-size block such as a page.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_external_fragmentation",
+      "canonical_name": "External Fragmentation",
+      "korean_name": "외부 단편화",
+      "aliases": [
+        "external fragmentation",
+        "외부 단편화"
+      ],
+      "group": "Memory Virtualization",
+      "description": "Wasted free space split into small pieces between allocated regions.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_heap",
+      "canonical_name": "Heap Memory",
+      "korean_name": "힙 메모리",
+      "aliases": [
+        "heap memory",
+        "heap",
+        "dynamic memory",
+        "힙 메모리",
+        "힙",
+        "동적 메모리"
+      ],
+      "group": "Memory Management API",
+      "description": "A process memory region used for dynamically allocated objects.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_stack_memory",
+      "canonical_name": "Stack Memory",
+      "korean_name": "스택 메모리",
+      "aliases": [
+        "stack memory",
+        "runtime stack",
+        "run-time stack",
+        "스택 메모리",
+        "실행시간 스택",
+        "런타임 스택"
+      ],
+      "group": "Memory Management API",
+      "description": "A process or thread memory region used for call frames, local variables, and return addresses.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_malloc",
+      "canonical_name": "Malloc",
+      "korean_name": "malloc",
+      "aliases": [
+        "malloc",
+        "malloc()",
+        "memory allocation",
+        "malloc 함수",
+        "메모리 할당"
+      ],
+      "group": "Memory Management API",
+      "description": "A C library call that requests heap memory allocation.",
+      "importance": 0.65,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_free",
+      "canonical_name": "Free",
+      "korean_name": "free",
+      "aliases": [
+        "free",
+        "free()",
+        "memory deallocation",
+        "free 함수",
+        "메모리 해제"
+      ],
+      "group": "Memory Management API",
+      "description": "A C library call that releases previously allocated heap memory.",
+      "importance": 0.65,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_memory_leak",
+      "canonical_name": "Memory Leak",
+      "korean_name": "메모리 누수",
+      "aliases": [
+        "memory leak",
+        "memory leaks",
+        "메모리 누수"
+      ],
+      "group": "Memory Management API",
+      "description": "A bug where allocated memory is no longer useful but is not released.",
+      "importance": 0.7,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_buffer_overflow",
+      "canonical_name": "Buffer Overflow",
+      "korean_name": "버퍼 오버플로우",
+      "aliases": [
+        "buffer overflow",
+        "buffer overrun",
+        "버퍼 오버플로우",
+        "버퍼 오버런"
+      ],
+      "group": "Memory Management API",
+      "description": "A bug where a program writes beyond the bounds of an allocated buffer.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_dangling_pointer",
+      "canonical_name": "Dangling Pointer",
+      "korean_name": "댕글링 포인터",
+      "aliases": [
+        "dangling pointer",
+        "dangling reference",
+        "댕글링 포인터",
+        "허상 포인터"
+      ],
+      "group": "Memory Management API",
+      "description": "A pointer that refers to memory that has already been freed or invalidated.",
+      "importance": 0.6,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_thread",
+      "canonical_name": "Thread",
+      "korean_name": "쓰레드",
+      "aliases": [
+        "thread",
+        "threads",
+        "쓰레드",
+        "스레드",
+        "execution thread"
+      ],
+      "group": "Concurrency",
+      "description": "An independent execution stream within a process that shares the process address space.",
+      "importance": 0.98,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_multithreading",
+      "canonical_name": "Multithreading",
+      "korean_name": "멀티쓰레딩",
+      "aliases": [
+        "multithreading",
+        "multi-threading",
+        "multithreaded program",
+        "멀티쓰레딩",
+        "멀티 스레딩",
+        "멀티 쓰레드"
+      ],
+      "group": "Concurrency",
+      "description": "A programming model where multiple threads execute within one process.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_thread_control_block",
+      "canonical_name": "Thread Control Block",
+      "korean_name": "쓰레드 제어 블록",
+      "aliases": [
+        "thread control block",
+        "TCB",
+        "tcb",
+        "쓰레드 제어 블록",
+        "스레드 제어 블록"
+      ],
+      "group": "Concurrency",
+      "description": "An OS or runtime data structure that stores a thread's execution state.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_thread_local_storage",
+      "canonical_name": "Thread-Local Storage",
+      "korean_name": "쓰레드 로컬 저장소",
+      "aliases": [
+        "thread-local storage",
+        "TLS",
+        "thread local storage",
+        "쓰레드 로컬 저장소",
+        "스레드 로컬 저장소"
+      ],
+      "group": "Concurrency",
+      "description": "Storage that is private to each thread even within a shared address space.",
+      "importance": 0.6,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_pthread",
+      "canonical_name": "POSIX Threads",
+      "korean_name": "Pthreads",
+      "aliases": [
+        "pthread",
+        "pthreads",
+        "POSIX threads",
+        "pthread_create",
+        "pthread_join",
+        "Pthread",
+        "피스레드",
+        "POSIX 쓰레드"
+      ],
+      "group": "Concurrency API",
+      "description": "The POSIX threading API used to create and synchronize threads.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_race_condition",
+      "canonical_name": "Race Condition",
+      "korean_name": "경쟁 조건",
+      "aliases": [
+        "race condition",
+        "race conditions",
+        "data race",
+        "경쟁 조건",
+        "레이스 컨디션",
+        "데이터 레이스"
+      ],
+      "group": "Concurrency",
+      "description": "A bug where program results depend on uncontrolled timing between concurrent executions.",
+      "importance": 0.98,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_critical_section",
+      "canonical_name": "Critical Section",
+      "korean_name": "임계 영역",
+      "aliases": [
+        "critical section",
+        "critical region",
+        "임계 영역",
+        "크리티컬 섹션"
+      ],
+      "group": "Concurrency",
+      "description": "A code region that accesses shared state and must not be executed concurrently by multiple threads.",
+      "importance": 0.98,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_mutual_exclusion",
+      "canonical_name": "Mutual Exclusion",
+      "korean_name": "상호 배제",
+      "aliases": [
+        "mutual exclusion",
+        "mutex property",
+        "상호 배제",
+        "뮤텍스 성질"
+      ],
+      "group": "Concurrency",
+      "description": "The property that at most one thread can execute a critical section at a time.",
+      "importance": 0.98,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_atomicity",
+      "canonical_name": "Atomicity",
+      "korean_name": "원자성",
+      "aliases": [
+        "atomicity",
+        "atomic operation",
+        "atomic operations",
+        "원자성",
+        "원자적 연산",
+        "원자적 실행"
+      ],
+      "group": "Concurrency",
+      "description": "The property that an operation appears to execute all at once or not at all.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_synchronization",
+      "canonical_name": "Synchronization",
+      "korean_name": "동기화",
+      "aliases": [
+        "synchronization",
+        "synchronisation",
+        "synchronization primitives",
+        "동기화",
+        "동기화 함수",
+        "동기화 기법"
+      ],
+      "group": "Concurrency",
+      "description": "Techniques for coordinating concurrent threads or processes.",
+      "importance": 0.95,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_lock",
+      "canonical_name": "Lock",
+      "korean_name": "락",
+      "aliases": [
+        "lock",
+        "locks",
+        "락",
+        "잠금",
+        "mutex lock",
+        "뮤텍스 락"
+      ],
+      "group": "Concurrency",
+      "description": "A synchronization primitive used to enforce mutual exclusion.",
+      "importance": 0.98,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_mutex",
+      "canonical_name": "Mutex",
+      "korean_name": "뮤텍스",
+      "aliases": [
+        "mutex",
+        "mutexes",
+        "mutual exclusion lock",
+        "뮤텍스",
+        "상호 배제 락"
+      ],
+      "group": "Concurrency",
+      "description": "A lock-like synchronization object that allows one thread to enter a critical section.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_spinlock",
+      "canonical_name": "Spinlock",
+      "korean_name": "스핀락",
+      "aliases": [
+        "spinlock",
+        "spin lock",
+        "스핀락",
+        "스핀 락"
+      ],
+      "group": "Concurrency",
+      "description": "A lock that repeatedly checks until it becomes available instead of sleeping.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_condition_variable",
+      "canonical_name": "Condition Variable",
+      "korean_name": "조건 변수",
+      "aliases": [
+        "condition variable",
+        "conditional variable",
+        "condition variables",
+        "조건 변수",
+        "컨디션 변수"
+      ],
+      "group": "Concurrency",
+      "description": "A synchronization primitive that lets threads sleep until a condition becomes true.",
+      "importance": 0.9,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_monitor",
+      "canonical_name": "Monitor",
+      "korean_name": "모니터",
+      "aliases": [
+        "Monitor",
+        "monitor",
+        "monitors",
+        "monitor synchronization",
+        "monitor lock",
+        "monitor pattern",
+        "모니터",
+        "모니터 동기화",
+        "모니터 락"
+      ],
+      "group": "Concurrency",
+      "description": "A synchronization abstraction that combines mutual exclusion with condition-based waiting.",
+      "importance": 0.75,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_semaphore",
+      "canonical_name": "Semaphore",
+      "korean_name": "세마포어",
+      "aliases": [
+        "semaphore",
+        "semaphores",
+        "세마포어"
+      ],
+      "group": "Concurrency",
+      "description": "A synchronization primitive with a counter used for mutual exclusion or ordering.",
+      "importance": 0.9,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_deadlock",
+      "canonical_name": "Deadlock",
+      "korean_name": "교착 상태",
+      "aliases": [
+        "deadlock",
+        "deadlocks",
+        "dead lock",
+        "교착 상태",
+        "데드락"
+      ],
+      "group": "Concurrency",
+      "description": "A state in which a set of threads or processes wait forever for one another.",
+      "importance": 0.95,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_livelock",
+      "canonical_name": "Livelock",
+      "korean_name": "라이브락",
+      "aliases": [
+        "livelock",
+        "live lock",
+        "라이브락",
+        "무한반복 상태"
+      ],
+      "group": "Concurrency",
+      "description": "A state in which tasks keep changing state in response to each other but make no progress.",
+      "importance": 0.6,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_starvation",
+      "canonical_name": "Starvation",
+      "korean_name": "기아 상태",
+      "aliases": [
+        "starvation",
+        "starving process",
+        "기아 상태",
+        "스타베이션"
+      ],
+      "group": "Concurrency",
+      "description": "A condition where a process or thread waits indefinitely because resources are repeatedly given to others.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_producer_consumer",
+      "canonical_name": "Producer-Consumer Problem",
+      "korean_name": "생산자-소비자 문제",
+      "aliases": [
+        "producer-consumer problem",
+        "producer consumer",
+        "bounded buffer problem",
+        "생산자-소비자 문제",
+        "유한 버퍼 문제"
+      ],
+      "group": "Concurrency",
+      "description": "A classic synchronization problem involving producers adding items and consumers removing them.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_reader_writer_lock",
+      "canonical_name": "Reader-Writer Lock",
+      "korean_name": "읽기-쓰기 락",
+      "aliases": [
+        "reader-writer lock",
+        "read-write lock",
+        "readers-writers problem",
+        "읽기-쓰기 락",
+        "독자-저자 문제",
+        "리더-라이터 락"
+      ],
+      "group": "Concurrency",
+      "description": "A synchronization mechanism allowing multiple readers or one writer.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_test_and_set",
+      "canonical_name": "Test-and-Set",
+      "korean_name": "테스트-앤-셋",
+      "aliases": [
+        "test-and-set",
+        "test and set",
+        "TAS",
+        "tas",
+        "테스트-앤-셋",
+        "테스트 앤 셋"
+      ],
+      "group": "Concurrency Hardware",
+      "description": "An atomic hardware instruction commonly used to implement locks.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_compare_and_swap",
+      "canonical_name": "Compare-and-Swap",
+      "korean_name": "비교 후 교환",
+      "aliases": [
+        "compare-and-swap",
+        "compare and swap",
+        "CAS",
+        "cas",
+        "compare-and-exchange",
+        "비교 후 교환",
+        "비교와 교환"
+      ],
+      "group": "Concurrency Hardware",
+      "description": "An atomic instruction that updates a value only if it still equals an expected value.",
+      "importance": 0.75,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_io_device",
+      "canonical_name": "I/O Device",
+      "korean_name": "입출력 장치",
+      "aliases": [
+        "I/O device",
+        "IO device",
+        "input/output device",
+        "입출력 장치",
+        "I/O 장치"
+      ],
+      "group": "I/O and Devices",
+      "description": "Hardware that provides input, output, or storage services to the computer system.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_device_driver",
+      "canonical_name": "Device Driver",
+      "korean_name": "디바이스 드라이버",
+      "aliases": [
+        "device driver",
+        "drivers",
+        "디바이스 드라이버",
+        "장치 드라이버"
+      ],
+      "group": "I/O and Devices",
+      "description": "Kernel software that encapsulates device-specific control logic behind a common interface.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_polling",
+      "canonical_name": "Polling",
+      "korean_name": "폴링",
+      "aliases": [
+        "polling",
+        "device polling",
+        "폴링",
+        "장치 폴링"
+      ],
+      "group": "I/O and Devices",
+      "description": "Repeatedly checking device status until it is ready or an event occurs.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_programmed_io",
+      "canonical_name": "Programmed I/O",
+      "korean_name": "PIO",
+      "aliases": [
+        "programmed I/O",
+        "programmed IO",
+        "PIO",
+        "pio",
+        "프로그램드 I/O",
+        "프로그램드 입출력"
+      ],
+      "group": "I/O and Devices",
+      "description": "A data transfer method where the CPU explicitly moves data to or from a device.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_dma",
+      "canonical_name": "Direct Memory Access",
+      "korean_name": "DMA",
+      "aliases": [
+        "direct memory access",
+        "DMA",
+        "dma",
+        "직접 메모리 접근",
+        "DMA 컨트롤러"
+      ],
+      "group": "I/O and Devices",
+      "description": "A mechanism that lets devices transfer data to or from memory without CPU copying.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_interrupt_handler",
+      "canonical_name": "Interrupt Handler",
+      "korean_name": "인터럽트 핸들러",
+      "aliases": [
+        "interrupt handler",
+        "interrupt service routine",
+        "ISR",
+        "isr",
+        "인터럽트 핸들러",
+        "인터럽트 서비스 루틴"
+      ],
+      "group": "I/O and Devices",
+      "description": "Kernel code that runs in response to an interrupt.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_memory_mapped_io",
+      "canonical_name": "Memory-Mapped I/O",
+      "korean_name": "메모리 맵 I/O",
+      "aliases": [
+        "memory-mapped I/O",
+        "memory mapped IO",
+        "MMIO",
+        "mmio",
+        "메모리 맵 I/O",
+        "메모리 매핑 입출력"
+      ],
+      "group": "I/O and Devices",
+      "description": "A device communication method that exposes device registers as memory addresses.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_device_register",
+      "canonical_name": "Device Register",
+      "korean_name": "장치 레지스터",
+      "aliases": [
+        "device register",
+        "device registers",
+        "status register",
+        "command register",
+        "data register",
+        "장치 레지스터",
+        "상태 레지스터",
+        "명령 레지스터",
+        "데이터 레지스터"
+      ],
+      "group": "I/O and Devices",
+      "description": "A hardware register through which software observes or controls a device.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_hard_disk_drive",
+      "canonical_name": "Hard Disk Drive",
+      "korean_name": "하드 디스크 드라이브",
+      "aliases": [
+        "hard disk drive",
+        "hard drive",
+        "HDD",
+        "hdd",
+        "하드 디스크 드라이브",
+        "하드 드라이브",
+        "디스크 드라이브"
+      ],
+      "group": "Storage Devices",
+      "description": "A persistent storage device that stores data magnetically on rotating platters.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_ssd",
+      "canonical_name": "Solid-State Drive",
+      "korean_name": "SSD",
+      "aliases": [
+        "solid-state drive",
+        "solid state drive",
+        "SSD",
+        "ssd",
+        "솔리드 스테이트 드라이브"
+      ],
+      "group": "Storage Devices",
+      "description": "A persistent storage device based on flash memory rather than rotating media.",
+      "importance": 0.7,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_sector",
+      "canonical_name": "Sector",
+      "korean_name": "섹터",
+      "aliases": [
+        "sector",
+        "disk sector",
+        "섹터",
+        "디스크 섹터"
+      ],
+      "group": "Storage Devices",
+      "description": "A small addressable unit of disk storage, traditionally 512 bytes.",
+      "importance": 0.65,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_track",
+      "canonical_name": "Track",
+      "korean_name": "트랙",
+      "aliases": [
+        "track",
+        "disk track",
+        "트랙",
+        "디스크 트랙"
+      ],
+      "group": "Storage Devices",
+      "description": "A circular path on a disk platter that contains sectors.",
+      "importance": 0.55,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_seek_time",
+      "canonical_name": "Seek Time",
+      "korean_name": "탐색 시간",
+      "aliases": [
+        "seek time",
+        "seek",
+        "disk seek",
+        "탐색 시간",
+        "탐색",
+        "디스크 탐색"
+      ],
+      "group": "Storage Devices",
+      "description": "The time needed to move a disk head to the required track.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_rotational_delay",
+      "canonical_name": "Rotational Delay",
+      "korean_name": "회전 지연",
+      "aliases": [
+        "rotational delay",
+        "rotation delay",
+        "rotational latency",
+        "회전 지연",
+        "회전 대기 시간"
+      ],
+      "group": "Storage Devices",
+      "description": "The time spent waiting for the desired disk sector to rotate under the head.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_disk_scheduling",
+      "canonical_name": "Disk Scheduling",
+      "korean_name": "디스크 스케줄링",
+      "aliases": [
+        "disk scheduling",
+        "disk scheduler",
+        "디스크 스케줄링",
+        "디스크 스케줄러"
+      ],
+      "group": "Storage Devices",
+      "description": "Policies that order disk requests to improve performance.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_raid",
+      "canonical_name": "RAID",
+      "korean_name": "RAID",
+      "aliases": [
+        "RAID",
+        "raid",
+        "redundant array of inexpensive disks",
+        "redundant array of independent disks",
+        "레이드"
+      ],
+      "group": "Storage Devices",
+      "description": "A storage technique that combines multiple disks for performance, capacity, or reliability.",
+      "importance": 0.7,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_file_system",
+      "canonical_name": "File System",
+      "korean_name": "파일 시스템",
+      "aliases": [
+        "file system",
+        "filesystem",
+        "file systems",
+        "파일 시스템"
+      ],
+      "group": "File Systems",
+      "description": "OS software that organizes, names, stores, and retrieves persistent files and directories.",
+      "importance": 0.98,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_file",
+      "canonical_name": "File",
+      "korean_name": "파일",
+      "aliases": [
+        "file",
+        "files",
+        "파일"
+      ],
+      "group": "File Systems",
+      "description": "A named collection of persistent data managed by a file system.",
+      "importance": 0.85,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "os_directory",
+      "canonical_name": "Directory",
+      "korean_name": "디렉터리",
+      "aliases": [
+        "directory",
+        "directories",
+        "folder",
+        "디렉터리",
+        "디렉토리",
+        "폴더"
+      ],
+      "group": "File Systems",
+      "description": "A file system object that maps names to files or other directories.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_pathname",
+      "canonical_name": "Pathname",
+      "korean_name": "경로명",
+      "aliases": [
+        "pathname",
+        "path name",
+        "file path",
+        "경로명",
+        "파일 경로",
+        "경로"
+      ],
+      "group": "File Systems",
+      "description": "A string that identifies a file or directory location in a namespace.",
+      "importance": 0.65,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "os_file_descriptor",
+      "canonical_name": "File Descriptor",
+      "korean_name": "파일 디스크립터",
+      "aliases": [
+        "file descriptor",
+        "file descriptors",
+        "FD",
+        "fd",
+        "파일 디스크립터",
+        "파일 서술자"
+      ],
+      "group": "File Systems",
+      "description": "A per-process integer handle used by Unix-like systems to refer to an open file.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_open_close",
+      "canonical_name": "Open and Close",
+      "korean_name": "open/close",
+      "aliases": [
+        "open",
+        "close",
+        "open()",
+        "close()",
+        "file open",
+        "file close",
+        "파일 열기",
+        "파일 닫기"
+      ],
+      "group": "File Systems",
+      "description": "The system call operations for obtaining and releasing access to a file.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_read_write",
+      "canonical_name": "Read and Write",
+      "korean_name": "read/write",
+      "aliases": [
+        "read",
+        "write",
+        "read()",
+        "write()",
+        "file read",
+        "file write",
+        "파일 읽기",
+        "파일 쓰기"
+      ],
+      "group": "File Systems",
+      "description": "System call operations for transferring data between files and process memory.",
+      "importance": 0.8,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "os_inode",
+      "canonical_name": "Inode",
+      "korean_name": "아이노드",
+      "aliases": [
+        "inode",
+        "inodes",
+        "i-node",
+        "아이노드",
+        "아이노드 번호"
+      ],
+      "group": "File Systems",
+      "description": "A file system metadata object that records attributes and block pointers for a file.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_data_block",
+      "canonical_name": "Data Block",
+      "korean_name": "데이터 블록",
+      "aliases": [
+        "data block",
+        "disk block",
+        "file block",
+        "데이터 블록",
+        "디스크 블록",
+        "파일 블록"
+      ],
+      "group": "File Systems",
+      "description": "A fixed-size storage unit used by a file system to hold file data or metadata.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_bitmap",
+      "canonical_name": "Bitmap",
+      "korean_name": "비트맵",
+      "aliases": [
+        "bitmap",
+        "free-space bitmap",
+        "free bitmap",
+        "비트맵",
+        "빈 공간 비트맵"
+      ],
+      "group": "File Systems",
+      "description": "A compact metadata structure used to track free or allocated blocks or inodes.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "os_free_space_management",
+      "canonical_name": "Free Space Management",
+      "korean_name": "빈 공간 관리",
+      "aliases": [
+        "free space management",
+        "free-space management",
+        "free list",
+        "빈 공간 관리",
+        "자유 공간 관리",
+        "빈 공간 리스트"
+      ],
+      "group": "File Systems",
+      "description": "The file system task of tracking which storage blocks or inodes are available.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "os_mount",
+      "canonical_name": "Mount",
+      "korean_name": "마운트",
+      "aliases": [
+        "mount",
+        "mounting",
+        "mounted file system",
+        "마운트",
+        "마운팅"
+      ],
+      "group": "File Systems",
+      "description": "The operation of attaching a file system to a point in a single directory tree.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "os_file_system_consistency",
+      "canonical_name": "File System Consistency",
+      "korean_name": "파일 시스템 일관성",
+      "aliases": [
+        "file system consistency",
+        "filesystem consistency",
+        "metadata consistency",
+        "파일 시스템 일관성",
+        "메타데이터 일관성"
+      ],
+      "group": "File Systems",
+      "description": "The property that on-disk file system structures agree after updates or crashes.",
+      "importance": 0.85,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_crash_consistency",
+      "canonical_name": "Crash Consistency",
+      "korean_name": "크래시 일관성",
+      "aliases": [
+        "crash consistency",
+        "crash-consistency",
+        "crash recovery consistency",
+        "크래시 일관성",
+        "장애 일관성"
+      ],
+      "group": "File Systems",
+      "description": "Ensuring a file system remains recoverable and consistent after a crash.",
+      "importance": 0.9,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_journaling",
+      "canonical_name": "Journaling",
+      "korean_name": "저널링",
+      "aliases": [
+        "journaling",
+        "journaled file system",
+        "write-ahead logging",
+        "저널링",
+        "저널 파일 시스템",
+        "쓰기 전 로그"
+      ],
+      "group": "File Systems",
+      "description": "A crash-consistency technique that records intended updates in a journal before applying them.",
+      "importance": 0.9,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_copy_on_write",
+      "canonical_name": "Copy-on-Write",
+      "korean_name": "쓰기 시 복사",
+      "aliases": [
+        "copy-on-write",
+        "copy on write",
+        "COW",
+        "cow",
+        "쓰기 시 복사",
+        "쓰기-시-복사"
+      ],
+      "group": "File Systems",
+      "description": "A technique that writes modified data to new locations before redirecting references.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_fsck",
+      "canonical_name": "File System Checker",
+      "korean_name": "파일 시스템 검사기",
+      "aliases": [
+        "file system checker",
+        "fsck",
+        "FSCK",
+        "파일 시스템 검사기",
+        "파일 시스템 검사"
+      ],
+      "group": "File Systems",
+      "description": "A tool that checks and repairs file system inconsistencies after an unclean shutdown.",
+      "importance": 0.7,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "os_nfs",
+      "canonical_name": "Network File System",
+      "korean_name": "NFS",
+      "aliases": [
+        "network file system",
+        "NFS",
+        "nfs",
+        "네트워크 파일 시스템",
+        "NFS 프로토콜"
+      ],
+      "group": "Distributed File Systems",
+      "description": "A stateless network file system protocol originally developed by Sun.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "os_afs",
+      "canonical_name": "Andrew File System",
+      "korean_name": "AFS",
+      "aliases": [
+        "Andrew File System",
+        "AFS",
+        "afs",
+        "앤드류 파일 시스템"
+      ],
+      "group": "Distributed File Systems",
+      "description": "A distributed file system using client caching and server-managed callbacks.",
+      "importance": 0.55,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "os_file_handle",
+      "canonical_name": "File Handle",
+      "korean_name": "파일 핸들",
+      "aliases": [
+        "file handle",
+        "NFS file handle",
+        "파일 핸들"
+      ],
+      "group": "Distributed File Systems",
+      "description": "A protocol-level identifier used to refer to a file or directory in a network file system.",
+      "importance": 0.5,
+      "concept_difficulty": 0.5
     }
   ]
 }

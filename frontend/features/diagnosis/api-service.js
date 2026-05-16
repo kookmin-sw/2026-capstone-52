@@ -19,7 +19,7 @@ export async function submitApiDiagnosisAnswer(
   projectId,
   sessionId,
   questionId,
-  { selectedIndex = null, selectedOptionIds = null, isSkipped = false } = {}
+  { selectedOptionIds = null, isSkipped = false } = {}
 ) {
   const body = {
     question_id: questionId,
@@ -29,9 +29,6 @@ export async function submitApiDiagnosisAnswer(
 
   if (Array.isArray(selectedOptionIds) && selectedOptionIds.length > 0) {
     body.selected_option_ids = selectedOptionIds;
-  }
-  if (selectedIndex !== null && selectedIndex !== undefined && selectedIndex >= 0) {
-    body.selected_index = selectedIndex;
   }
 
   return apiRequest(`/diagnosis/${encodeURIComponent(projectId)}/answers`, {

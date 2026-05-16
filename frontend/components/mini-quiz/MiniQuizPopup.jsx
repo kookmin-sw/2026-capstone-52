@@ -151,7 +151,12 @@ export default function MiniQuizPopup({
           // 백엔드 QuizQuestionReview.source 와 동일 값 — 추후 백엔드 응답으로 대체될 수 있음.
           source: "mini_quiz",
         };
-        onResult({ nodeId: currentTarget.nodeId, conceptName: currentTarget.name, reviewEntry });
+        onResult({
+          nodeId: currentTarget.nodeId,
+          conceptName: currentTarget.name,
+          reviewEntry,
+          resultMessage: data?.result_message || null,
+        });
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "미니퀴즈 제출에 실패했습니다.");

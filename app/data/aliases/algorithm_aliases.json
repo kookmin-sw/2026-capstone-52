@@ -2,84 +2,1383 @@
   "subject_id": "algorithm",
   "concepts": [
     {
-      "concept_id": "algo_time_complexity",
-      "canonical_name": "Time Complexity",
-      "korean_name": "시간 복잡도",
-      "aliases": ["time complexity", "시간 복잡도", "시간복잡도", "running time complexity"],
-      "group": "Algorithm Analysis",
-      "description": "A measure of how the running time of an algorithm grows with input size.",
-      "importance": 5,
-      "concept_difficulty": 3
+      "concept_id": "algo_algorithm",
+      "canonical_name": "Algorithm",
+      "korean_name": "알고리즘",
+      "aliases": [
+        "algorithm",
+        "algorithms",
+        "computational procedure",
+        "mechanically executable procedure",
+        "알고리즘",
+        "계산 절차"
+      ],
+      "group": "Foundations",
+      "description": "A precise computational procedure that transforms input into output to solve a problem.",
+      "importance": 0.95,
+      "concept_difficulty": 0.2
     },
     {
-      "concept_id": "algo_sorting",
-      "canonical_name": "Sorting",
-      "korean_name": "정렬",
-      "aliases": ["sorting", "정렬", "sort algorithm", "sorting algorithm"],
-      "group": "Fundamental Algorithms",
-      "description": "Algorithms that reorder elements according to a comparison or key rule.",
-      "importance": 5,
-      "concept_difficulty": 2
+      "concept_id": "algo_correctness",
+      "canonical_name": "Algorithm Correctness",
+      "korean_name": "알고리즘 정확성",
+      "aliases": [
+        "algorithm correctness",
+        "correctness proof",
+        "proof of correctness",
+        "correct algorithm",
+        "알고리즘 정확성",
+        "정확성 증명"
+      ],
+      "group": "Foundations",
+      "description": "The property that an algorithm produces the required output for every valid input.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
     },
     {
-      "concept_id": "algo_binary_search",
-      "canonical_name": "Binary Search",
-      "korean_name": "이진 탐색",
-      "aliases": ["binary search", "binarysearch", "이진 탐색", "이진탐색"],
-      "group": "Search Algorithms",
-      "description": "A logarithmic-time search algorithm for sorted data.",
-      "importance": 5,
-      "concept_difficulty": 2
+      "concept_id": "algo_loop_invariant",
+      "canonical_name": "Loop Invariant",
+      "korean_name": "루프 불변식",
+      "aliases": [
+        "loop invariant",
+        "loop invariants",
+        "invariant",
+        "initialization maintenance termination",
+        "루프 불변식",
+        "반복문 불변식"
+      ],
+      "group": "Foundations",
+      "description": "A condition used to prove loop correctness by showing initialization, maintenance, and termination.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
     },
     {
-      "concept_id": "algo_dfs",
-      "canonical_name": "Depth-First Search",
-      "korean_name": "깊이 우선 탐색",
-      "aliases": ["dfs", "depth first search", "깊이 우선 탐색", "깊이우선탐색"],
-      "group": "Graph Algorithms",
-      "description": "A graph traversal strategy that explores as far as possible before backtracking.",
-      "importance": 5,
-      "concept_difficulty": 3
+      "concept_id": "algo_running_time",
+      "canonical_name": "Running Time",
+      "korean_name": "실행 시간",
+      "aliases": [
+        "running time",
+        "runtime",
+        "run time",
+        "time complexity",
+        "computational time",
+        "실행 시간",
+        "시간 복잡도"
+      ],
+      "group": "Analysis",
+      "description": "A measure of the number of primitive operations an algorithm performs as input size grows.",
+      "importance": 0.95,
+      "concept_difficulty": 0.3
     },
     {
-      "concept_id": "algo_bfs",
-      "canonical_name": "Breadth-First Search",
-      "korean_name": "너비 우선 탐색",
-      "aliases": ["bfs", "breadth first search", "너비 우선 탐색", "너비우선탐색"],
-      "group": "Graph Algorithms",
-      "description": "A graph traversal strategy that visits nodes level by level.",
-      "importance": 5,
-      "concept_difficulty": 3
+      "concept_id": "algo_space_complexity",
+      "canonical_name": "Space Complexity",
+      "korean_name": "공간 복잡도",
+      "aliases": [
+        "space complexity",
+        "memory complexity",
+        "memory usage",
+        "auxiliary space",
+        "공간 복잡도",
+        "메모리 사용량"
+      ],
+      "group": "Analysis",
+      "description": "A measure of the memory resources required by an algorithm.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
     },
     {
-      "concept_id": "algo_greedy",
-      "canonical_name": "Greedy Algorithm",
-      "korean_name": "그리디 알고리즘",
-      "aliases": ["greedy", "greedy algorithm", "그리디", "그리디 알고리즘"],
-      "group": "Design Paradigms",
-      "description": "A strategy that makes the locally optimal choice at each step.",
-      "importance": 4,
-      "concept_difficulty": 3
+      "concept_id": "algo_asymptotic_notation",
+      "canonical_name": "Asymptotic Notation",
+      "korean_name": "점근 표기법",
+      "aliases": [
+        "asymptotic notation",
+        "big o notation",
+        "big-oh notation",
+        "big theta",
+        "theta notation",
+        "omega notation",
+        "점근 표기법",
+        "빅오 표기법",
+        "세타 표기법",
+        "오메가 표기법"
+      ],
+      "group": "Analysis",
+      "description": "Notation for describing the growth rate of algorithmic cost while ignoring constants and lower-order terms.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "algo_worst_case_analysis",
+      "canonical_name": "Worst-Case Analysis",
+      "korean_name": "최악 경우 분석",
+      "aliases": [
+        "worst-case analysis",
+        "worst case analysis",
+        "worst-case running time",
+        "worst case running time",
+        "최악 경우 분석",
+        "최악 시간"
+      ],
+      "group": "Analysis",
+      "description": "Analysis that bounds the maximum running time over all inputs of a given size.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "algo_average_case_analysis",
+      "canonical_name": "Average-Case Analysis",
+      "korean_name": "평균 경우 분석",
+      "aliases": [
+        "average-case analysis",
+        "average case analysis",
+        "expected running time",
+        "average running time",
+        "평균 경우 분석",
+        "기대 실행 시간"
+      ],
+      "group": "Analysis",
+      "description": "Analysis of expected algorithmic cost under a probability distribution over inputs or random choices.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_ram_model",
+      "canonical_name": "RAM Model",
+      "korean_name": "RAM 모델",
+      "aliases": [
+        "RAM model",
+        "random-access machine",
+        "random access machine",
+        "machine model",
+        "RAM 모델",
+        "랜덤 접근 기계"
+      ],
+      "group": "Analysis",
+      "description": "A simplified computation model where basic instructions take constant time.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "algo_recurrence",
+      "canonical_name": "Recurrence",
+      "korean_name": "점화식",
+      "aliases": [
+        "recurrence",
+        "recurrence relation",
+        "recurrence equation",
+        "recursive running time",
+        "점화식",
+        "재귀식"
+      ],
+      "group": "Analysis",
+      "description": "An equation that describes a recursive algorithm's cost in terms of smaller input sizes.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_recursion_tree",
+      "canonical_name": "Recursion Tree",
+      "korean_name": "재귀 트리",
+      "aliases": [
+        "recursion tree",
+        "recursive tree",
+        "recurrence tree",
+        "재귀 트리",
+        "점화식 트리"
+      ],
+      "group": "Analysis",
+      "description": "A tree-based method for expanding and summing the costs of a recurrence.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_master_theorem",
+      "canonical_name": "Master Theorem",
+      "korean_name": "마스터 정리",
+      "aliases": [
+        "master theorem",
+        "master method",
+        "master theorem for recurrences",
+        "마스터 정리",
+        "마스터 방법"
+      ],
+      "group": "Analysis",
+      "description": "A theorem for solving common divide-and-conquer recurrences.",
+      "importance": 0.85,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_recursion",
+      "canonical_name": "Recursion",
+      "korean_name": "재귀",
+      "aliases": [
+        "recursion",
+        "recursive algorithm",
+        "recursive algorithms",
+        "recursive procedure",
+        "재귀",
+        "재귀 알고리즘"
+      ],
+      "group": "Design Techniques",
+      "description": "A technique where an algorithm solves a problem by calling itself on smaller subproblems.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "algo_divide_and_conquer",
+      "canonical_name": "Divide and Conquer",
+      "korean_name": "분할 정복",
+      "aliases": [
+        "divide and conquer",
+        "divide-and-conquer",
+        "divide conquer",
+        "divide/conquer",
+        "분할 정복",
+        "분할정복"
+      ],
+      "group": "Design Techniques",
+      "description": "A design technique that divides a problem, solves subproblems recursively, and combines their solutions.",
+      "importance": 0.95,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_backtracking",
+      "canonical_name": "Backtracking",
+      "korean_name": "백트래킹",
+      "aliases": [
+        "backtracking",
+        "backtracking algorithm",
+        "search with backtracking",
+        "백트래킹",
+        "되추적"
+      ],
+      "group": "Design Techniques",
+      "description": "A search technique that incrementally builds candidates and abandons invalid partial solutions.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
     },
     {
       "concept_id": "algo_dynamic_programming",
       "canonical_name": "Dynamic Programming",
       "korean_name": "동적 계획법",
-      "aliases": ["dynamic programming", "동적 계획법", "동적계획법", "dp"],
-      "group": "Design Paradigms",
-      "description": "A technique that solves overlapping subproblems and stores intermediate results.",
-      "importance": 5,
-      "concept_difficulty": 4
+      "aliases": [
+        "dynamic programming",
+        "DP",
+        "dp",
+        "memoization",
+        "memoisation",
+        "동적 계획법",
+        "동적 프로그래밍",
+        "메모이제이션"
+      ],
+      "group": "Design Techniques",
+      "description": "A technique that solves overlapping subproblems and stores results to avoid repeated computation.",
+      "importance": 0.95,
+      "concept_difficulty": 0.6
     },
     {
-      "concept_id": "algo_dijkstra",
-      "canonical_name": "Dijkstra Algorithm",
-      "korean_name": "다익스트라 알고리즘",
-      "aliases": ["dijkstra", "dijkstra algorithm", "다익스트라", "다익스트라 알고리즘"],
+      "concept_id": "algo_overlapping_subproblems",
+      "canonical_name": "Overlapping Subproblems",
+      "korean_name": "중복 부분 문제",
+      "aliases": [
+        "overlapping subproblems",
+        "overlapping subproblem",
+        "repeated subproblems",
+        "중복 부분 문제",
+        "중복되는 부분 문제"
+      ],
+      "group": "Dynamic Programming",
+      "description": "The property that the same smaller subproblems appear repeatedly in a recursive formulation.",
+      "importance": 0.8,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_optimal_substructure",
+      "canonical_name": "Optimal Substructure",
+      "korean_name": "최적 부분 구조",
+      "aliases": [
+        "optimal substructure",
+        "principle of optimality",
+        "최적 부분 구조",
+        "최적성 원리"
+      ],
+      "group": "Dynamic Programming",
+      "description": "The property that an optimal solution can be built from optimal solutions to subproblems.",
+      "importance": 0.85,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_greedy_algorithm",
+      "canonical_name": "Greedy Algorithm",
+      "korean_name": "그리디 알고리즘",
+      "aliases": [
+        "greedy algorithm",
+        "greedy algorithms",
+        "greedy strategy",
+        "greedy method",
+        "greedy choice",
+        "그리디 알고리즘",
+        "탐욕 알고리즘",
+        "탐욕법"
+      ],
+      "group": "Design Techniques",
+      "description": "A design strategy that repeatedly makes a locally optimal choice hoping to reach a global optimum.",
+      "importance": 0.95,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_greedy_choice_property",
+      "canonical_name": "Greedy Choice Property",
+      "korean_name": "그리디 선택 속성",
+      "aliases": [
+        "greedy choice property",
+        "greedy-choice property",
+        "safe choice",
+        "그리디 선택 속성",
+        "탐욕 선택 속성",
+        "안전한 선택"
+      ],
+      "group": "Greedy Algorithms",
+      "description": "The property that a locally optimal choice can be part of some globally optimal solution.",
+      "importance": 0.8,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_amortized_analysis",
+      "canonical_name": "Amortized Analysis",
+      "korean_name": "상각 분석",
+      "aliases": [
+        "amortized analysis",
+        "aggregate analysis",
+        "accounting method",
+        "potential method",
+        "상각 분석",
+        "집계 분석",
+        "회계 방법",
+        "퍼텐셜 방법"
+      ],
+      "group": "Analysis",
+      "description": "A method for bounding the average cost per operation over a worst-case sequence of operations.",
+      "importance": 0.75,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_randomized_algorithm",
+      "canonical_name": "Randomized Algorithm",
+      "korean_name": "랜덤화 알고리즘",
+      "aliases": [
+        "randomized algorithm",
+        "randomized algorithms",
+        "random algorithm",
+        "probabilistic algorithm",
+        "랜덤화 알고리즘",
+        "확률적 알고리즘"
+      ],
+      "group": "Design Techniques",
+      "description": "An algorithm whose behavior depends on random choices made during execution.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_sorting",
+      "canonical_name": "Sorting",
+      "korean_name": "정렬",
+      "aliases": [
+        "sorting",
+        "sort",
+        "sorting algorithm",
+        "sorting algorithms",
+        "comparison sorting",
+        "comparison sort",
+        "정렬",
+        "정렬 알고리즘",
+        "비교 정렬"
+      ],
+      "group": "Sorting Algorithms",
+      "description": "A class of algorithms that rearrange input elements into a specified order.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "algo_insertion_sort",
+      "canonical_name": "Insertion Sort",
+      "korean_name": "삽입 정렬",
+      "aliases": [
+        "insertion sort",
+        "insertion sorting",
+        "INSERTION-SORT",
+        "삽입 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A simple sorting algorithm that inserts each element into its correct position in a sorted prefix.",
+      "importance": 0.75,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "algo_merge_sort",
+      "canonical_name": "Merge Sort",
+      "korean_name": "병합 정렬",
+      "aliases": [
+        "merge sort",
+        "mergesort",
+        "merge-sort",
+        "MERGE-SORT",
+        "병합 정렬",
+        "합병 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A divide-and-conquer sorting algorithm that recursively sorts halves and merges them.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_quick_sort",
+      "canonical_name": "Quicksort",
+      "korean_name": "퀵 정렬",
+      "aliases": [
+        "quicksort",
+        "quick sort",
+        "quick-sort",
+        "randomized quicksort",
+        "퀵 정렬",
+        "퀵소트"
+      ],
+      "group": "Sorting",
+      "description": "A divide-and-conquer sorting algorithm that partitions around a pivot.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_heap_sort",
+      "canonical_name": "Heapsort",
+      "korean_name": "힙 정렬",
+      "aliases": [
+        "heapsort",
+        "heap sort",
+        "heap-sort",
+        "HEAPSORT",
+        "힙 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A sorting algorithm that uses a heap to repeatedly extract the next largest or smallest element.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_counting_sort",
+      "canonical_name": "Counting Sort",
+      "korean_name": "계수 정렬",
+      "aliases": [
+        "counting sort",
+        "counting-sort",
+        "linear time sorting",
+        "계수 정렬",
+        "카운팅 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A linear-time sorting algorithm for keys drawn from a small integer range.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_radix_sort",
+      "canonical_name": "Radix Sort",
+      "korean_name": "기수 정렬",
+      "aliases": [
+        "radix sort",
+        "radix-sort",
+        "digit sort",
+        "기수 정렬",
+        "래딕스 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A sorting algorithm that processes keys digit by digit using a stable subroutine sort.",
+      "importance": 0.65,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_bucket_sort",
+      "canonical_name": "Bucket Sort",
+      "korean_name": "버킷 정렬",
+      "aliases": [
+        "bucket sort",
+        "bucket-sort",
+        "bucket sorting",
+        "버킷 정렬"
+      ],
+      "group": "Sorting",
+      "description": "A sorting algorithm that distributes elements into buckets and sorts or scans the buckets.",
+      "importance": 0.6,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_selection",
+      "canonical_name": "Selection Algorithm",
+      "korean_name": "선택 알고리즘",
+      "aliases": [
+        "selection algorithm",
+        "order statistic",
+        "order statistics",
+        "minimum and maximum",
+        "median selection",
+        "linear-time selection",
+        "quickselect",
+        "선택 알고리즘",
+        "순서 통계량",
+        "중앙값 선택"
+      ],
+      "group": "Selection and Order Statistics",
+      "description": "An algorithmic problem of finding the element with a specified rank, such as the minimum, maximum, or median.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_binary_search",
+      "canonical_name": "Binary Search",
+      "korean_name": "이진 탐색",
+      "aliases": [
+        "binary search",
+        "binary-search",
+        "bisection search",
+        "이진 탐색",
+        "이분 탐색"
+      ],
+      "group": "Searching",
+      "description": "A search algorithm that repeatedly halves a sorted search interval.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "algo_linear_search",
+      "canonical_name": "Linear Search",
+      "korean_name": "선형 탐색",
+      "aliases": [
+        "linear search",
+        "sequential search",
+        "linear scan",
+        "선형 탐색",
+        "순차 탐색"
+      ],
+      "group": "Searching",
+      "description": "A search algorithm that scans elements one by one until a target is found or the input ends.",
+      "importance": 0.55,
+      "concept_difficulty": 0.2
+    },
+    {
+      "concept_id": "algo_graph_algorithm",
+      "canonical_name": "Graph Algorithm",
+      "korean_name": "그래프 알고리즘",
+      "aliases": [
+        "graph algorithm",
+        "graph algorithms",
+        "algorithm on graphs",
+        "그래프 알고리즘"
+      ],
       "group": "Graph Algorithms",
-      "description": "A shortest-path algorithm for graphs with non-negative edge weights.",
-      "importance": 5,
-      "concept_difficulty": 4
+      "description": "An algorithm for solving problems modeled using vertices and edges.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_graph_traversal",
+      "canonical_name": "Graph Traversal",
+      "korean_name": "그래프 탐색",
+      "aliases": [
+        "graph traversal",
+        "graph traversals",
+        "graph search",
+        "graph searching",
+        "traversing a graph",
+        "그래프 탐색",
+        "그래프 순회",
+        "그래프 탐색 알고리즘"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A family of algorithms that visit vertices and edges of a graph systematically.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_breadth_first_search",
+      "canonical_name": "Breadth-First Search",
+      "korean_name": "너비 우선 탐색",
+      "aliases": [
+        "breadth-first search",
+        "breadth first search",
+        "BFS",
+        "bfs",
+        "queue-based search",
+        "level-order search",
+        "너비 우선 탐색",
+        "너비우선탐색",
+        "BFS 탐색"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A graph traversal algorithm that visits vertices in increasing distance from a source using a queue.",
+      "importance": 0.9,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "algo_depth_first_search",
+      "canonical_name": "Depth-First Search",
+      "korean_name": "깊이 우선 탐색",
+      "aliases": [
+        "depth-first search",
+        "depth first search",
+        "DFS",
+        "dfs",
+        "stack-based search",
+        "recursive graph search",
+        "깊이 우선 탐색",
+        "깊이우선탐색",
+        "DFS 탐색"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A graph traversal algorithm that explores as far as possible along each branch before backtracking.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_topological_sort",
+      "canonical_name": "Topological Sort",
+      "korean_name": "위상 정렬",
+      "aliases": [
+        "topological sort",
+        "topological sorting",
+        "topological order",
+        "toposort",
+        "topological ordering",
+        "위상 정렬"
+      ],
+      "group": "Graph Algorithms",
+      "description": "An ordering of vertices in a directed acyclic graph such that every edge goes from earlier to later.",
+      "importance": 0.8,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_strongly_connected_components",
+      "canonical_name": "Strongly Connected Components",
+      "korean_name": "강결합 요소",
+      "aliases": [
+        "strongly connected components",
+        "strongly connected component",
+        "SCC",
+        "SCCs",
+        "strong components",
+        "강결합 요소",
+        "강한 연결 요소",
+        "강연결 요소"
+      ],
+      "group": "Graph Algorithms",
+      "description": "Maximal vertex sets in a directed graph where every vertex is reachable from every other vertex in the set.",
+      "importance": 0.75,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_minimum_spanning_tree",
+      "canonical_name": "Minimum Spanning Tree",
+      "korean_name": "최소 신장 트리",
+      "aliases": [
+        "minimum spanning tree",
+        "minimum spanning trees",
+        "MST",
+        "mst",
+        "minimum-weight spanning tree",
+        "최소 신장 트리",
+        "최소 스패닝 트리"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A minimum-weight set of edges connecting all vertices in a connected undirected graph.",
+      "importance": 0.85,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_kruskal_algorithm",
+      "canonical_name": "Kruskal's Algorithm",
+      "korean_name": "크루스칼 알고리즘",
+      "aliases": [
+        "Kruskal's algorithm",
+        "Kruskal algorithm",
+        "kruskals algorithm",
+        "크루스칼 알고리즘"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A greedy algorithm for minimum spanning trees that repeatedly adds the lightest safe edge.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_prim_algorithm",
+      "canonical_name": "Prim's Algorithm",
+      "korean_name": "프림 알고리즘",
+      "aliases": [
+        "Prim's algorithm",
+        "Prim algorithm",
+        "Jarnik algorithm",
+        "Jarník algorithm",
+        "프림 알고리즘",
+        "야르니크 알고리즘"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A greedy algorithm for minimum spanning trees that grows a tree from a starting vertex.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_shortest_path",
+      "canonical_name": "Shortest Path",
+      "korean_name": "최단 경로",
+      "aliases": [
+        "shortest path",
+        "shortest paths",
+        "shortest path problem",
+        "최단 경로",
+        "최단경로 문제"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A graph problem of finding a path with minimum total length or cost.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_single_source_shortest_path",
+      "canonical_name": "Single-Source Shortest Path",
+      "korean_name": "단일 출발점 최단 경로",
+      "aliases": [
+        "single-source shortest path",
+        "single source shortest path",
+        "SSSP",
+        "sssp",
+        "단일 출발점 최단 경로",
+        "단일 시작점 최단 경로"
+      ],
+      "group": "Graph Algorithms",
+      "description": "The problem of finding shortest paths from one source vertex to all reachable vertices.",
+      "importance": 0.85,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_dijkstra_algorithm",
+      "canonical_name": "Dijkstra's Algorithm",
+      "korean_name": "다익스트라 알고리즘",
+      "aliases": [
+        "Dijkstra",
+        "dijkstra",
+        "Dijkstra's algorithm",
+        "Dijkstra algorithm",
+        "dijkstras algorithm",
+        "best-first Dijkstra",
+        "다익스트라",
+        "다익스트라 알고리즘",
+        "다익스트라 최단 경로"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A shortest-path algorithm for graphs with nonnegative edge weights.",
+      "importance": 0.9,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_bellman_ford_algorithm",
+      "canonical_name": "Bellman-Ford Algorithm",
+      "korean_name": "벨만-포드 알고리즘",
+      "aliases": [
+        "Bellman-Ford algorithm",
+        "Bellman Ford algorithm",
+        "Bellman-Ford",
+        "벨만-포드 알고리즘",
+        "벨만 포드 알고리즘"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A shortest-path algorithm that handles negative edge weights and detects reachable negative cycles.",
+      "importance": 0.8,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_floyd_warshall_algorithm",
+      "canonical_name": "Floyd-Warshall Algorithm",
+      "korean_name": "플로이드-워셜 알고리즘",
+      "aliases": [
+        "Floyd-Warshall algorithm",
+        "Floyd Warshall algorithm",
+        "Floyd-Warshall",
+        "all-pairs shortest paths",
+        "APSP",
+        "플로이드-워셜 알고리즘",
+        "플로이드 워셜 알고리즘",
+        "모든 쌍 최단 경로"
+      ],
+      "group": "Graph Algorithms",
+      "description": "A dynamic programming algorithm for computing shortest paths between all pairs of vertices.",
+      "importance": 0.8,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_johnson_algorithm",
+      "canonical_name": "Johnson's Algorithm",
+      "korean_name": "존슨 알고리즘",
+      "aliases": [
+        "Johnson's algorithm",
+        "Johnson algorithm",
+        "johnsons algorithm",
+        "Johnson's all-pairs algorithm",
+        "존슨 알고리즘"
+      ],
+      "group": "Graph Algorithms",
+      "description": "An all-pairs shortest-path algorithm for sparse graphs using reweighting and single-source shortest paths.",
+      "importance": 0.55,
+      "concept_difficulty": 0.7
+    },
+    {
+      "concept_id": "algo_relaxation",
+      "canonical_name": "Relaxation",
+      "korean_name": "완화",
+      "aliases": [
+        "relaxation",
+        "edge relaxation",
+        "relax an edge",
+        "relax edges",
+        "완화",
+        "간선 완화"
+      ],
+      "group": "Graph Algorithms",
+      "description": "An operation that improves a tentative shortest-path estimate using an edge.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "algo_maximum_flow",
+      "canonical_name": "Maximum Flow",
+      "korean_name": "최대 유량",
+      "aliases": [
+        "maximum flow",
+        "max flow",
+        "max-flow",
+        "flow network",
+        "flow networks",
+        "최대 유량",
+        "유량 네트워크"
+      ],
+      "group": "Flow Algorithms",
+      "description": "A network optimization problem of sending as much flow as possible from a source to a sink.",
+      "importance": 0.8,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_minimum_cut",
+      "canonical_name": "Minimum Cut",
+      "korean_name": "최소 컷",
+      "aliases": [
+        "minimum cut",
+        "min cut",
+        "min-cut",
+        "s-t cut",
+        "cut capacity",
+        "최소 컷",
+        "최소 절단"
+      ],
+      "group": "Flow Algorithms",
+      "description": "A cut of minimum capacity separating the source and sink in a flow network.",
+      "importance": 0.7,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_ford_fulkerson_method",
+      "canonical_name": "Ford-Fulkerson Method",
+      "korean_name": "포드-풀커슨 방법",
+      "aliases": [
+        "Ford-Fulkerson method",
+        "Ford Fulkerson algorithm",
+        "Ford-Fulkerson algorithm",
+        "augmenting path algorithm",
+        "포드-풀커슨 방법",
+        "증가 경로 알고리즘"
+      ],
+      "group": "Flow Algorithms",
+      "description": "A method for maximum flow that repeatedly augments flow along source-to-sink paths in the residual network.",
+      "importance": 0.75,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_bipartite_matching",
+      "canonical_name": "Bipartite Matching",
+      "korean_name": "이분 매칭",
+      "aliases": [
+        "bipartite matching",
+        "maximum bipartite matching",
+        "matching in bipartite graphs",
+        "이분 매칭",
+        "이분 그래프 매칭"
+      ],
+      "group": "Flow Applications",
+      "description": "A matching problem on bipartite graphs often reducible to maximum flow.",
+      "importance": 0.65,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_huffman_coding",
+      "canonical_name": "Huffman Coding",
+      "korean_name": "허프만 코딩",
+      "aliases": [
+        "Huffman coding",
+        "Huffman codes",
+        "Huffman algorithm",
+        "Huffman tree",
+        "허프만 코딩",
+        "허프만 코드"
+      ],
+      "group": "Greedy Algorithms",
+      "description": "A greedy algorithm for constructing optimal prefix codes from symbol frequencies.",
+      "importance": 0.7,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_activity_selection",
+      "canonical_name": "Activity Selection",
+      "korean_name": "활동 선택 문제",
+      "aliases": [
+        "activity selection",
+        "activity-selection problem",
+        "interval scheduling",
+        "scheduling classes",
+        "활동 선택 문제",
+        "구간 스케줄링"
+      ],
+      "group": "Greedy Algorithms",
+      "description": "A scheduling problem often used to illustrate greedy choice and optimal substructure.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_stable_matching",
+      "canonical_name": "Stable Matching",
+      "korean_name": "안정 매칭",
+      "aliases": [
+        "stable matching",
+        "stable marriage",
+        "Gale-Shapley algorithm",
+        "Gale Shapley algorithm",
+        "안정 매칭",
+        "안정 결혼 문제",
+        "게일-셰플리 알고리즘"
+      ],
+      "group": "Greedy Algorithms",
+      "description": "A matching problem seeking a pairing with no blocking pair, often solved by the Gale-Shapley algorithm.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_longest_common_subsequence",
+      "canonical_name": "Longest Common Subsequence",
+      "korean_name": "최장 공통 부분 수열",
+      "aliases": [
+        "longest common subsequence",
+        "LCS",
+        "lcs",
+        "common subsequence",
+        "최장 공통 부분 수열",
+        "최장 공통 부분열"
+      ],
+      "group": "Dynamic Programming",
+      "description": "A dynamic programming problem of finding the longest sequence that appears in two sequences in order.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_longest_increasing_subsequence",
+      "canonical_name": "Longest Increasing Subsequence",
+      "korean_name": "최장 증가 부분 수열",
+      "aliases": [
+        "longest increasing subsequence",
+        "LIS",
+        "lis",
+        "increasing subsequence",
+        "최장 증가 부분 수열",
+        "최장 증가 부분열"
+      ],
+      "group": "Dynamic Programming",
+      "description": "A problem of finding the longest subsequence whose elements are strictly increasing.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_edit_distance",
+      "canonical_name": "Edit Distance",
+      "korean_name": "편집 거리",
+      "aliases": [
+        "edit distance",
+        "Levenshtein distance",
+        "sequence alignment",
+        "string edit distance",
+        "편집 거리",
+        "레벤슈타인 거리"
+      ],
+      "group": "Dynamic Programming",
+      "description": "A dynamic programming problem measuring the minimum number of edits needed to transform one string into another.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_matrix_chain_multiplication",
+      "canonical_name": "Matrix-Chain Multiplication",
+      "korean_name": "행렬 곱셈 순서",
+      "aliases": [
+        "matrix-chain multiplication",
+        "matrix chain multiplication",
+        "matrix-chain order",
+        "matrix chain order",
+        "행렬 곱셈 순서",
+        "행렬 체인 곱셈"
+      ],
+      "group": "Dynamic Programming",
+      "description": "A dynamic programming problem of finding the cheapest parenthesization for multiplying a chain of matrices.",
+      "importance": 0.7,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_knapsack_problem",
+      "canonical_name": "Knapsack Problem",
+      "korean_name": "배낭 문제",
+      "aliases": [
+        "knapsack problem",
+        "0/1 knapsack",
+        "zero-one knapsack",
+        "unbounded knapsack",
+        "배낭 문제",
+        "냅색 문제"
+      ],
+      "group": "Dynamic Programming",
+      "description": "An optimization problem of selecting items under a capacity constraint to maximize value.",
+      "importance": 0.7,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_subset_sum",
+      "canonical_name": "Subset Sum",
+      "korean_name": "부분집합 합",
+      "aliases": [
+        "subset sum",
+        "subset-sum problem",
+        "subset sum problem",
+        "부분집합 합",
+        "부분합 문제"
+      ],
+      "group": "Dynamic Programming",
+      "description": "A decision problem asking whether some subset of numbers sums to a target value.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_n_queens",
+      "canonical_name": "N-Queens",
+      "korean_name": "N-퀸 문제",
+      "aliases": [
+        "N Queens",
+        "N-Queens",
+        "N queens problem",
+        "n-queens problem",
+        "N-퀸",
+        "N퀸 문제"
+      ],
+      "group": "Backtracking",
+      "description": "A classic backtracking problem of placing queens on a chessboard so that none attack each other.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "algo_np_completeness",
+      "canonical_name": "NP-Completeness",
+      "korean_name": "NP-완전성",
+      "aliases": [
+        "NP-completeness",
+        "NP completeness",
+        "NP-complete",
+        "NP complete",
+        "NP-complete problem",
+        "NP-완전성",
+        "NP 완전",
+        "NP-완전 문제"
+      ],
+      "group": "Computational Complexity",
+      "description": "A theory identifying problems that are in NP and as hard as every problem in NP under polynomial reductions.",
+      "importance": 0.85,
+      "concept_difficulty": 0.75
+    },
+    {
+      "concept_id": "algo_np_hardness",
+      "canonical_name": "NP-Hardness",
+      "korean_name": "NP-난해성",
+      "aliases": [
+        "NP-hardness",
+        "NP hardness",
+        "NP-hard",
+        "NP hard",
+        "NP-hard problem",
+        "NP-난해성",
+        "NP 난해"
+      ],
+      "group": "Computational Complexity",
+      "description": "A property of problems at least as hard as every problem in NP under polynomial reductions.",
+      "importance": 0.8,
+      "concept_difficulty": 0.75
+    },
+    {
+      "concept_id": "algo_reduction",
+      "canonical_name": "Reduction",
+      "korean_name": "환원",
+      "aliases": [
+        "reduction",
+        "reductions",
+        "polynomial-time reduction",
+        "many-one reduction",
+        "problem reduction",
+        "환원",
+        "다항 시간 환원"
+      ],
+      "group": "Computational Complexity",
+      "description": "A method of transforming one problem into another to relate their difficulty.",
+      "importance": 0.85,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_p_vs_np",
+      "canonical_name": "P versus NP",
+      "korean_name": "P 대 NP 문제",
+      "aliases": [
+        "P versus NP",
+        "P vs NP",
+        "P/NP",
+        "P and NP",
+        "P 대 NP",
+        "P와 NP"
+      ],
+      "group": "Computational Complexity",
+      "description": "The central complexity question asking whether every efficiently verifiable problem is efficiently solvable.",
+      "importance": 0.75,
+      "concept_difficulty": 0.8
+    },
+    {
+      "concept_id": "algo_approximation_algorithm",
+      "canonical_name": "Approximation Algorithm",
+      "korean_name": "근사 알고리즘",
+      "aliases": [
+        "approximation algorithm",
+        "approximation algorithms",
+        "approximation ratio",
+        "approximation factor",
+        "근사 알고리즘",
+        "근사 비율"
+      ],
+      "group": "Approximation Algorithms",
+      "description": "An efficient algorithm that returns a solution provably close to optimal for hard optimization problems.",
+      "importance": 0.7,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_traveling_salesman_problem",
+      "canonical_name": "Traveling Salesman Problem",
+      "korean_name": "외판원 문제",
+      "aliases": [
+        "traveling salesman problem",
+        "travelling salesman problem",
+        "TSP",
+        "tsp",
+        "외판원 문제",
+        "순회 판매원 문제"
+      ],
+      "group": "NP-Complete Problems",
+      "description": "A classic hard optimization problem of finding a shortest tour visiting all given vertices.",
+      "importance": 0.65,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_vertex_cover",
+      "canonical_name": "Vertex Cover",
+      "korean_name": "정점 커버",
+      "aliases": [
+        "vertex cover",
+        "vertex-cover problem",
+        "minimum vertex cover",
+        "정점 커버",
+        "꼭짓점 덮개"
+      ],
+      "group": "NP-Complete Problems",
+      "description": "A graph problem of selecting vertices that cover every edge.",
+      "importance": 0.55,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_clique",
+      "canonical_name": "Clique",
+      "korean_name": "클리크",
+      "aliases": [
+        "clique",
+        "clique problem",
+        "maximum clique",
+        "클리크",
+        "완전 부분 그래프"
+      ],
+      "group": "NP-Complete Problems",
+      "description": "A graph concept or problem involving a set of vertices all pairwise connected.",
+      "importance": 0.55,
+      "concept_difficulty": 0.65
+    },
+    {
+      "concept_id": "algo_sat",
+      "canonical_name": "Boolean Satisfiability",
+      "korean_name": "불리언 만족 가능성",
+      "aliases": [
+        "Boolean satisfiability",
+        "satisfiability",
+        "SAT",
+        "3SAT",
+        "3-SAT",
+        "CircuitSAT",
+        "불리언 만족 가능성",
+        "충족 가능성 문제"
+      ],
+      "group": "NP-Complete Problems",
+      "description": "A decision problem asking whether a Boolean formula has a satisfying assignment.",
+      "importance": 0.7,
+      "concept_difficulty": 0.7
+    },
+    {
+      "concept_id": "algo_string_matching",
+      "canonical_name": "String Matching",
+      "korean_name": "문자열 매칭",
+      "aliases": [
+        "string matching",
+        "pattern matching",
+        "text matching",
+        "문자열 매칭",
+        "문자열 검색",
+        "패턴 매칭"
+      ],
+      "group": "String Algorithms",
+      "description": "The problem of finding occurrences of a pattern within a text.",
+      "importance": 0.65,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_rabin_karp_algorithm",
+      "canonical_name": "Rabin-Karp Algorithm",
+      "korean_name": "라빈-카프 알고리즘",
+      "aliases": [
+        "Rabin-Karp algorithm",
+        "Rabin Karp algorithm",
+        "Rabin-Karp",
+        "rolling hash string matching",
+        "라빈-카프 알고리즘",
+        "라빈 카프 알고리즘"
+      ],
+      "group": "String Algorithms",
+      "description": "A string matching algorithm that uses hashing to compare pattern and text windows.",
+      "importance": 0.5,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_knuth_morris_pratt_algorithm",
+      "canonical_name": "Knuth-Morris-Pratt Algorithm",
+      "korean_name": "KMP 알고리즘",
+      "aliases": [
+        "Knuth-Morris-Pratt algorithm",
+        "Knuth Morris Pratt algorithm",
+        "KMP",
+        "KMP algorithm",
+        "failure function",
+        "prefix function",
+        "KMP 알고리즘",
+        "접두사 함수"
+      ],
+      "group": "String Algorithms",
+      "description": "A linear-time string matching algorithm that reuses prefix information after mismatches.",
+      "importance": 0.6,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_fast_fourier_transform",
+      "canonical_name": "Fast Fourier Transform",
+      "korean_name": "고속 푸리에 변환",
+      "aliases": [
+        "fast Fourier transform",
+        "FFT",
+        "fft",
+        "DFT",
+        "discrete Fourier transform",
+        "고속 푸리에 변환",
+        "이산 푸리에 변환"
+      ],
+      "group": "Numerical Algorithms",
+      "description": "An efficient algorithm for computing the discrete Fourier transform and related polynomial operations.",
+      "importance": 0.45,
+      "concept_difficulty": 0.75
+    },
+    {
+      "concept_id": "algo_modular_arithmetic",
+      "canonical_name": "Modular Arithmetic",
+      "korean_name": "모듈러 산술",
+      "aliases": [
+        "modular arithmetic",
+        "modular operation",
+        "modulo arithmetic",
+        "modular exponentiation",
+        "모듈러 산술",
+        "나머지 연산",
+        "모듈러 거듭제곱"
+      ],
+      "group": "Number-Theoretic Algorithms",
+      "description": "Arithmetic over remainders, frequently used in number-theoretic and cryptographic algorithms.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "algo_gcd_algorithm",
+      "canonical_name": "Greatest Common Divisor Algorithm",
+      "korean_name": "최대공약수 알고리즘",
+      "aliases": [
+        "greatest common divisor",
+        "GCD",
+        "Euclidean algorithm",
+        "gcd algorithm",
+        "최대공약수",
+        "유클리드 알고리즘"
+      ],
+      "group": "Number-Theoretic Algorithms",
+      "description": "An algorithmic problem of computing the greatest integer that divides two integers.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "algo_convex_hull",
+      "canonical_name": "Convex Hull",
+      "korean_name": "볼록 껍질",
+      "aliases": [
+        "convex hull",
+        "convex hull problem",
+        "finding the convex hull",
+        "볼록 껍질",
+        "컨벡스 헐"
+      ],
+      "group": "Computational Geometry",
+      "description": "A computational geometry problem of finding the smallest convex polygon containing a set of points.",
+      "importance": 0.45,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "algo_line_segment_intersection",
+      "canonical_name": "Line-Segment Intersection",
+      "korean_name": "선분 교차",
+      "aliases": [
+        "line-segment intersection",
+        "line segment intersection",
+        "segment intersection",
+        "선분 교차",
+        "선분 교차 판정"
+      ],
+      "group": "Computational Geometry",
+      "description": "A computational geometry problem of determining whether line segments intersect.",
+      "importance": 0.4,
+      "concept_difficulty": 0.55
     }
   ]
 }
