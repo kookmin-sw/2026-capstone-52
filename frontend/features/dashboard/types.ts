@@ -1,3 +1,8 @@
+export type MiniQuizReadyConcept = {
+  nodeId: string;
+  name: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: "assistant" | "user";
@@ -7,6 +12,7 @@ export type ChatMessage = {
   attachment?: {
     type: "graph-preview";
   };
+  miniQuizReady?: MiniQuizReadyConcept[];
 };
 
 export type Chat = {

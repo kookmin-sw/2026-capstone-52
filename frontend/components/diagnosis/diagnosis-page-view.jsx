@@ -16,6 +16,7 @@ import {
 import {
   createApiDiagnosisSession,
   createApiDiagnosisQuestion,
+  createApiDiagnosisReport,
   getApiProjectGraph,
   getApiDiagnosisStatus,
   isDiagnosisBackendApiEnabled,
@@ -132,15 +133,19 @@ function getSelectedChoiceIds(answer) {
 
 function normalizeApiChoice(choice, index) {
   if (choice && typeof choice === "object") {
+    const optionId = choice.option_id ?? choice.optionId ?? null;
+    const id = String(choice.id ?? optionId ?? choice.choice_id ?? choice.value ?? index);
     return {
       ...choice,
-      id: String(choice.id ?? choice.choice_id ?? choice.value ?? index),
+      id,
+      optionId: optionId !== null ? String(optionId) : null,
       label: choice.label || choice.text || choice.name || choice.title || String(choice.value ?? index),
     };
   }
 
   return {
     id: String(index),
+    optionId: null,
     label: String(choice),
   };
 }
@@ -192,7 +197,7 @@ export default function DiagnosisPageView({ projectId }) {
         }
 
         const [question, status, graphData] = await Promise.all([
-          createApiDiagnosisQuestion(projectId),
+          createApiDiagnosisQuestion(projectId, sessionId),
           getApiDiagnosisStatus(projectId, sessionId).catch(() => null),
           getApiProjectGraph(projectId).catch(() => null),
         ]);
@@ -213,6 +218,8 @@ export default function DiagnosisPageView({ projectId }) {
           id: question.question_id,
           diagnosisId: question.question_id,
           type: "multiple-choice",
+          questionType: question.question_type || null,
+          isMultiSelect: question.question_type === "multi_select",
           node_id: question.concept_id || question.node_id,
           node_name: question.node_name || question.concept_name || "진단 대상 개념",
           conceptIds: question.conceptIds ||
@@ -356,6 +363,12 @@ export default function DiagnosisPageView({ projectId }) {
     saveWorkspaceState(nextWorkspaceState);
 
     try {
+      if (isDiagnosisBackendApiEnabled && session?.id) {
+        await createApiDiagnosisReport(targetProjectId, session.id);
+        router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
+        return;
+      }
+
       const targetChat = await createDiagnosisReportChat(targetProjectId);
       const params = new URLSearchParams({ projectId: targetChat?.projectId || targetProjectId });
 
@@ -368,6 +381,11 @@ export default function DiagnosisPageView({ projectId }) {
       console.error(error);
       router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
     }
+  }
+
+  function handleViewReview() {
+    // 풀이보기 - 기능 미구현 (UI placeholder)
+    // 추후: GET /diagnosis/{project_id}/sessions/{session_id}/review 연결
   }
 
   async function handleAdvance(nextAnswer = null) {
@@ -390,19 +408,43 @@ export default function DiagnosisPageView({ projectId }) {
     setDraftAnswer(createEmptyDraftAnswer(currentQuestion));
 
     if (isDiagnosisBackendApiEnabled && currentQuestion.diagnosisId) {
+      const selectedChoiceIds = getSelectedChoiceIds(resolvedAnswer);
+      const selectedChoices = currentQuestion.choices.filter((choice) => selectedChoiceIds.includes(choice.id));
+      const selectedOptionIds = selectedChoices.map((choice) => choice.optionId).filter(Boolean);
+      const isSkipped = selectedChoiceIds.length === 1 && selectedChoiceIds[0] === unknownChoiceId;
       const selectedIndex =
         currentQuestion.type === "multiple-choice"
-          ? currentQuestion.choices.findIndex((choice) => choice.id === getSelectedChoiceIds(resolvedAnswer)[0])
+          ? currentQuestion.choices.findIndex((choice) => choice.id === selectedChoiceIds[0])
           : 0;
 
       setStep("analyzing");
 
       try {
-        const result = await submitApiDiagnosisAnswer(projectId, session.id, currentQuestion.diagnosisId, selectedIndex);
+        const result = await submitApiDiagnosisAnswer(
+          projectId,
+          session.id,
+          currentQuestion.diagnosisId,
+          {
+            selectedIndex: selectedOptionIds.length ? null : selectedIndex,
+            selectedOptionIds: selectedOptionIds.length ? selectedOptionIds : null,
+            isSkipped,
+          }
+        );
         const status = await getApiDiagnosisStatus(projectId, session.id).catch(() => null);
+        const correctOptionIds = Array.isArray(result.correct_option_ids) ? result.correct_option_ids : [];
+        const correctChoiceIdsFromOptions = correctOptionIds.length
+          ? currentQuestion.choices
+              .filter((choice) => choice.optionId && correctOptionIds.includes(choice.optionId))
+              .map((choice) => choice.id)
+          : [];
+        const wasCorrect = result.is_fully_correct ?? result.is_correct;
         const checkedQuestion = {
           ...currentQuestion,
-          correctChoiceIds: result.is_correct ? getSelectedChoiceIds(resolvedAnswer) : [],
+          correctChoiceIds: correctChoiceIdsFromOptions.length
+            ? correctChoiceIdsFromOptions
+            : wasCorrect
+              ? getSelectedChoiceIds(resolvedAnswer)
+              : [],
         };
         const checkedSession = {
           ...session,
@@ -415,20 +457,20 @@ export default function DiagnosisPageView({ projectId }) {
           true
         );
         const nextAssessment = {
-          levelTitle: result.is_correct ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
+          levelTitle: wasCorrect ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
           measuredLevel:
             status?.measured_level ||
             status?.result_level ||
             status?.estimated_level ||
             status?.level ||
-            (result.is_correct ? "상급" : "초급"),
-          summary: result.is_correct
+            (wasCorrect ? "상급" : "초급"),
+          summary: wasCorrect
             ? `${session.projectTitle} 기준 진단 질문에 정답 처리되었습니다.`
             : `${session.projectTitle} 기준 추가 학습이 필요한 개념이 확인되었습니다.`,
           missingConcepts: conceptStatuses
             .filter((concept) => concept.tone === diagnosisStatusMap.needsReview.tone)
             .map((concept) => concept.label),
-          roadmap: result.is_correct ? ["응용 질문으로 개념 연결 확장"] : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
+          roadmap: wasCorrect ? ["응용 질문으로 개념 연결 확장"] : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
           conceptStatuses,
         };
         const workspaceState = loadWorkspaceState();
@@ -620,9 +662,18 @@ export default function DiagnosisPageView({ projectId }) {
             <CelebrationMark />
             <h1>준비됐어요!</h1>
             <p>이제 대화할 때마다 딱 맞는 설명을 드릴게요</p>
-            <button type="button" className="diagnosis-flow-start-button" onClick={handleStartLearning}>
-              학습 시작하기 <span>→</span>
-            </button>
+            <div className="diagnosis-flow-ready-actions">
+              <button
+                type="button"
+                className="diagnosis-flow-start-button"
+                onClick={handleViewReview}
+              >
+                풀이보기 <span>→</span>
+              </button>
+              <button type="button" className="diagnosis-flow-start-button" onClick={handleStartLearning}>
+                학습하기 <span>→</span>
+              </button>
+            </div>
           </div>
         </section>
       ) : null}
