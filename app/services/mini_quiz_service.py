@@ -1,8 +1,10 @@
 import json
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from app.models.chat import Chat
+from app.models.deferred_mini_quiz import DeferredMiniQuiz
 from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
 from app.models.graph import ConceptNode
 from app.ai.diagnosis_ai import (
@@ -102,15 +104,66 @@ def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> d
     return {
         "question_id": q.question_id,
         "concept_id": q.concept_id,
+        "concept_name": node.name,
         "difficulty": q.difficulty,
         "question_type": q.question_type,
         "diagnosis_purpose": q.diagnosis_purpose,
         "question": q.question,
         "choices": [
-            {"option_id": choice["option_id"], "text": choice["text"]}
+            {"id": choice["option_id"], "option_id": choice["option_id"], "text": choice["text"]}
             for choice in teacher_choices
         ],
     }
+
+
+def defer_mini_quiz_question(project_id: int, node_id: str, db: Session) -> dict:
+    """나중에 풀기 — 문제 생성 후 deferred_mini_quizzes에 저장, 카운터 초기화"""
+    result = generate_mini_quiz_question(project_id, node_id, db)
+
+    deferred = DeferredMiniQuiz(
+        project_id=project_id,
+        node_id=node_id,
+        question_id=result["question_id"],
+        status="PENDING",
+    )
+    db.add(deferred)
+
+    reset_concept_quiz_counter(db, project_id, node_id)
+
+    db.commit()
+    db.refresh(deferred)
+
+    return {**result, "deferred_id": deferred.id}
+
+
+def get_deferred_mini_quizzes(project_id: int, db: Session) -> list[dict]:
+    """프로젝트의 미뤄둔 퀴즈 목록 반환 (PENDING 상태만)"""
+    rows = (
+        db.query(DeferredMiniQuiz, DiagnosisQuestion, ConceptNode)
+        .join(DiagnosisQuestion, DiagnosisQuestion.question_id == DeferredMiniQuiz.question_id)
+        .join(ConceptNode, ConceptNode.node_id == DeferredMiniQuiz.node_id)
+        .filter(
+            DeferredMiniQuiz.project_id == project_id,
+            DeferredMiniQuiz.status == "PENDING",
+        )
+        .order_by(DeferredMiniQuiz.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for deferred, question, node in rows:
+        choices = json.loads(question.choices) if question.choices else []
+        result.append({
+            "deferred_id": deferred.id,
+            "question_id": question.question_id,
+            "node_id": node.node_id,
+            "node_name": node.name,
+            "question": question.question,
+            "choices": [{"option_id": c["option_id"], "text": c["text"]} for c in choices],
+            "deferred_at": deferred.created_at,
+        })
+
+    return result
 
 
 def submit_mini_quiz_answer(
@@ -191,6 +244,7 @@ def submit_mini_quiz_answer(
         missed_correct_option_ids=json.dumps(evaluation["missed_correct_option_ids"], ensure_ascii=False),
         wrong_selected_option_ids=json.dumps(evaluation["wrong_selected_option_ids"], ensure_ascii=False),
         invalid_selected_option_ids=json.dumps(evaluation.get("invalid_selected_option_ids", []), ensure_ascii=False),
+        feedback_tags=json.dumps(evaluation.get("feedback_tags", []), ensure_ascii=False),
     )
     db.add(answer)
 
@@ -204,6 +258,15 @@ def submit_mini_quiz_answer(
         previous_level=previous_level,
         is_fully_correct=evaluation["is_fully_correct"],
     )
+
+    # 미뤄둔 퀴즈였으면 완료 처리
+    deferred = db.query(DeferredMiniQuiz).filter(
+        DeferredMiniQuiz.question_id == question_id,
+        DeferredMiniQuiz.status == "PENDING",
+    ).first()
+    if deferred:
+        deferred.status = "COMPLETED"
+        deferred.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(result_message)
