@@ -14,6 +14,8 @@ export default function QuizReviewPopup({ entry, onClose }) {
   if (!entry) return null;
 
   const choices = Array.isArray(entry.choices) ? entry.choices : [];
+  // 백엔드는 정답 truth를 correct_option_ids로 별도 제공 — choice.is_correct 만 의존하면 비어 보일 수 있어 보정.
+  const correctIdSet = new Set(Array.isArray(entry.correct_option_ids) ? entry.correct_option_ids : []);
 
   function handleBackdropClick(event) {
     if (event.target === event.currentTarget) {
@@ -35,7 +37,8 @@ export default function QuizReviewPopup({ entry, onClose }) {
 
           <div className="quiz-review-popup-choices">
             {choices.map((choice, index) => {
-              const tone = choice.is_correct
+              const isCorrect = correctIdSet.has(choice.option_id) || choice.is_correct;
+              const tone = isCorrect
                 ? "quiz-review-popup-choice-correct"
                 : choice.is_selected
                   ? "quiz-review-popup-choice-wrong"
@@ -45,17 +48,17 @@ export default function QuizReviewPopup({ entry, onClose }) {
                   <span className="quiz-review-popup-choice-index">{String.fromCharCode(65 + index)}</span>
                   <span className="quiz-review-popup-choice-text">{choice.text}</span>
                   <span className="quiz-review-popup-choice-tags">
-                    {choice.is_correct ? (
+                    {isCorrect ? (
                       <span className="quiz-review-popup-tag quiz-review-popup-tag-correct">정답</span>
                     ) : null}
-                    {choice.is_selected && !choice.is_correct ? (
+                    {choice.is_selected && !isCorrect ? (
                       <span className="quiz-review-popup-tag quiz-review-popup-tag-wrong">내 답</span>
                     ) : null}
                   </span>
                 </div>
               );
             })}
-          </div>
+        </div>
         </div>
       </div>
     </div>

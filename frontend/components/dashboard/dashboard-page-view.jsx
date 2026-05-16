@@ -38,12 +38,79 @@ import MiniQuizPopup from "@/components/mini-quiz/MiniQuizPopup";
 import QuizReviewPopup from "./QuizReviewPopup";
 import { isDashboardBackendApiEnabled } from "../../features/dashboard/service";
 import { MOCK_MINI_QUIZ_READY_CONCEPTS } from "../../features/mini-quiz/mock-data";
+import {
+  deferApiMiniQuizQuestion,
+  getApiDeferredMiniQuizzes,
+  isMiniQuizBackendApiEnabled,
+} from "../../features/mini-quiz/api-service";
 
 const projectDotColors = ["#817cf2", "#2bbf8a", "#f29f45", "#e36b7f", "#3a9eea", "#b36bea"];
 const rootKnowledgeColor = "#f5d38a";
 const knowledgeStageLabels = ["진단 전", "입문", "기초", "심화", "마스터"];
 const knowledgeStageColors = ["#fb923c", "#f9a8d4", "#a78bfa", "#60a5fa", "#34d399"];
 const fallbackKnowledgeStageCycle = [1, 2, 3, 4, 1, 2, 3, 4, 0];
+const MINI_QUIZ_READY_STORAGE_KEY = "eeum-mini-quiz-ready-v1";
+
+function canUseBrowserStorage() {
+  return typeof window !== "undefined";
+}
+
+function normalizeMiniQuizReadyTargets(targets) {
+  if (!Array.isArray(targets)) return [];
+
+  return targets
+    .map((target) => {
+      if (!target) return null;
+      const nodeId = target.nodeId ?? target.node_id ?? null;
+      if (!nodeId) return null;
+      return {
+        nodeId: String(nodeId),
+        name: target.name ?? target.node_name ?? target.nodeName ?? "미니퀴즈",
+      };
+    })
+    .filter(Boolean);
+}
+
+function loadMiniQuizReadyStore() {
+  if (!canUseBrowserStorage()) return {};
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(MINI_QUIZ_READY_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function loadProjectMiniQuizReady(projectId) {
+  if (!projectId) return {};
+
+  const projectStore = loadMiniQuizReadyStore()[String(projectId)];
+  if (!projectStore || typeof projectStore !== "object" || Array.isArray(projectStore)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(projectStore).map(([messageId, targets]) => [
+      messageId,
+      normalizeMiniQuizReadyTargets(targets),
+    ])
+  );
+}
+
+function saveProjectMiniQuizReady(projectId, readyByMessage) {
+  if (!projectId || !canUseBrowserStorage()) return;
+
+  const normalized = Object.fromEntries(
+    Object.entries(readyByMessage || {}).map(([messageId, targets]) => [
+      messageId,
+      normalizeMiniQuizReadyTargets(targets),
+    ])
+  );
+  const store = loadMiniQuizReadyStore();
+  store[String(projectId)] = normalized;
+  window.localStorage.setItem(MINI_QUIZ_READY_STORAGE_KEY, JSON.stringify(store));
+}
 
 function getKnowledgeStageColor(stageIndex) {
   const maxStageIndex = Math.max(knowledgeStageLabels.length - 1, 1);
@@ -701,6 +768,42 @@ function getSelectedCatalogOptionIds(projects) {
   return projects.map((project) => CATALOG_OPTION_ID_BY_PROJECT_DOMAIN[project.domain] || project.id);
 }
 
+function normalizeDeferredMiniQuizItem(item, projectId) {
+  if (!item) return null;
+  const deferredId = item.deferred_id ?? item.deferredId ?? null;
+  const nodeId = item.node_id ?? item.nodeId ?? null;
+  if (!nodeId) return null;
+  const id = deferredId !== null ? `deferred-${deferredId}` : `deferred-${nodeId}`;
+  const choices = Array.isArray(item.choices)
+    ? item.choices.map((choice) => ({
+        option_id: String(choice.option_id ?? choice.optionId ?? ""),
+        text: choice.text ?? choice.label ?? "",
+      }))
+    : [];
+  const presetQuestion =
+    item.question_id || item.questionId
+      ? {
+          question_id: String(item.question_id ?? item.questionId),
+          concept_id: String(nodeId),
+          concept_name: item.node_name ?? item.nodeName ?? null,
+          question: item.question ?? "",
+          // 백엔드 미니퀴즈는 multi_select 기준으로 채점됨 — DeferredMiniQuizItem 응답에 question_type 필드가 없어
+          // 프론트에서 단일선택으로 잘못 처리되지 않도록 강제로 multi_select로 지정.
+          question_type: item.question_type ?? item.questionType ?? "multi_select",
+          choices,
+        }
+      : null;
+  return {
+    id,
+    deferredId,
+    nodeId: String(nodeId),
+    name: item.node_name ?? item.nodeName ?? null,
+    projectId,
+    deferredAt: item.deferred_at ?? item.deferredAt ?? Date.now(),
+    presetQuestion,
+  };
+}
+
 function formatUpdatedAt(isoString) {
   if (!isoString || Number.isNaN(Date.parse(isoString))) {
     return "방금 업데이트";
@@ -887,12 +990,25 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [selectedReportGraphNodeId, setSelectedReportGraphNodeId] = useState(null);
   const [composerText, setComposerText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [miniQuizReadyByMessage, setMiniQuizReadyByMessage] = useState({});
+  const [miniQuizReadyByMessage, setMiniQuizReadyByMessage] = useState(() =>
+    loadProjectMiniQuizReady(initialProjectId)
+  );
   const [activeMiniQuiz, setActiveMiniQuiz] = useState(null);
   const [deferredMiniQuizzes, setDeferredMiniQuizzes] = useState([]);
   const [isDeferredMiniQuizListOpen, setIsDeferredMiniQuizListOpen] = useState(false);
   const [miniQuizFloatOffset, setMiniQuizFloatOffset] = useState({ x: 0, y: 0 });
   const miniQuizFloatDragRef = useRef(null);
+
+  function updateMiniQuizReadyByMessage(updater) {
+    const projectId = selectedProjectId;
+    setMiniQuizReadyByMessage((current) => {
+      const next = typeof updater === "function" ? updater(current) : updater;
+      if (projectId) {
+        saveProjectMiniQuizReady(projectId, next);
+      }
+      return next;
+    });
+  }
 
   function handleMiniQuizFloatPointerDown(event) {
     if (event.button !== undefined && event.button !== 0) return;
@@ -1139,13 +1255,32 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       return null;
     }
 
+    if (isDashboardBackendApiEnabled) {
+      // 백엔드 모드: 로컬 catalog fallback 사용하지 않고 projects state에서 직접 구성.
+      const backendProject = projects.find((project) => project.id === selectedProjectId);
+      if (!backendProject) {
+        return null;
+      }
+      return {
+        projectId: backendProject.id,
+        title: backendProject.title,
+        materials: [],
+        chatMessages: [],
+        graphNodes: [],
+      };
+    }
+
     return getProjectData(selectedProjectId, workspaceState);
-  }, [selectedProjectId, workspaceState]);
+  }, [selectedProjectId, projects, workspaceState]);
 
   const activeChat = useMemo(
     () => recentChats.find((chat) => chat.id === selectedChatId) || null,
     [recentChats, selectedChatId]
   );
+
+  useEffect(() => {
+    setMiniQuizReadyByMessage(loadProjectMiniQuizReady(selectedProjectId));
+  }, [selectedProjectId]);
 
   const rawActiveChatMessages = activeChat?.messages || [];
 
@@ -1174,6 +1309,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     return [...rawActiveChatMessages, syntheticMessage];
   }, [rawActiveChatMessages, activeChat?.id]);
 
+  const visibleDeferredMiniQuizzes = useMemo(() => {
+    if (!selectedProjectId) return [];
+    return deferredMiniQuizzes.filter((item) => String(item.projectId) === String(selectedProjectId));
+  }, [deferredMiniQuizzes, selectedProjectId]);
+
   const activeChatLastMessage = activeChatMessages[activeChatMessages.length - 1] || null;
   const activeChatScrollKey = `${activeChatMessages.length}:${activeChatLastMessage?.id || ""}:${
     activeChatLastMessage?.text || ""
@@ -1187,9 +1327,17 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           }
         : null;
 
-      const baseGraph = backendGraph
-        ? buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats)
-        : buildProjectKnowledgeGraph(projectInput, recentChats);
+      let baseGraph;
+      if (isDashboardBackendApiEnabled) {
+        // 백엔드 모드에서는 mock/preset 그래프로 fallback하지 않음 — 진단 전 노드 없으면 빈 그래프 유지.
+        baseGraph = buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats, {
+          strictBackend: true,
+        });
+      } else if (backendGraph) {
+        baseGraph = buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats);
+      } else {
+        baseGraph = buildProjectKnowledgeGraph(projectInput, recentChats);
+      }
 
       return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState);
     },
@@ -1382,6 +1530,35 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     return () => window.cancelAnimationFrame(frameId);
   }, [activeChatScrollKey, activeTab, selectedChatId, selectedProjectId]);
+
+  useEffect(() => {
+    if (!isMiniQuizBackendApiEnabled || !selectedProjectId) {
+      setDeferredMiniQuizzes([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setDeferredMiniQuizzes([]);
+
+    (async () => {
+      try {
+        const items = await getApiDeferredMiniQuizzes(selectedProjectId);
+        if (cancelled) return;
+        const normalized = (Array.isArray(items) ? items : [])
+          .map((item) => normalizeDeferredMiniQuizItem(item, selectedProjectId))
+          .filter(Boolean);
+        setDeferredMiniQuizzes(normalized);
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (!updatedConcepts.length) {
@@ -1654,7 +1831,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
       if (quizReady.length && sendResponse?.chat_id !== undefined) {
         const assistantMessageId = `api-chat-${sendResponse.chat_id}-assistant`;
-        setMiniQuizReadyByMessage((current) => ({
+        updateMiniQuizReadyByMessage((current) => ({
           ...current,
           [assistantMessageId]: quizReady.map((concept) => ({
             nodeId: concept.node_id,
@@ -2174,24 +2351,78 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                     <button
                                       type="button"
                                       className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
-                                      onClick={() => {
-                                        setDeferredMiniQuizzes((current) => {
-                                          const existingIds = new Set(current.map((item) => item.nodeId));
-                                          const additions = triggers
-                                            .filter((target) => !existingIds.has(target.nodeId))
-                                            .map((target) => ({
-                                              id: `${message.id}-${target.nodeId}`,
-                                              nodeId: target.nodeId,
-                                              name: target.name,
-                                              projectId: selectedProjectId,
-                                              deferredAt: Date.now(),
+                                      onClick={async () => {
+                                        const messageId = message.id;
+
+                                        if (isMiniQuizBackendApiEnabled && selectedProjectId) {
+                                          // 백엔드 ground truth — defer가 실패한 항목은 로컬에도 추가하지 않는다.
+                                          // 실패 시 trigger 버튼도 그대로 유지해 재시도할 수 있도록 한다.
+                                          const results = await Promise.all(
+                                            triggers.map((target) =>
+                                              deferApiMiniQuizQuestion(selectedProjectId, target.nodeId)
+                                                .then((response) => ({ target, response, error: null }))
+                                                .catch((error) => ({ target, response: null, error }))
+                                            )
+                                          );
+
+                                          const successResults = results.filter((entry) => !entry.error && entry.response);
+                                          const failedTargets = results
+                                            .filter((entry) => entry.error || !entry.response)
+                                            .map((entry) => entry.target);
+
+                                          if (successResults.length) {
+                                            setDeferredMiniQuizzes((current) => {
+                                              const existingNodeIds = new Set(current.map((item) => item.nodeId));
+                                              const additions = successResults
+                                                .map(({ target, response }) =>
+                                                  normalizeDeferredMiniQuizItem(
+                                                    {
+                                                      ...response,
+                                                      node_id: response.node_id || target.nodeId,
+                                                      node_name: response.node_name || target.name,
+                                                    },
+                                                    selectedProjectId
+                                                  )
+                                                )
+                                                .filter((item) => item && !existingNodeIds.has(item.nodeId));
+                                              return [...current, ...additions];
+                                            });
+                                          }
+
+                                          if (failedTargets.length) {
+                                            // 실패한 노드는 trigger에 남겨 사용자가 재시도하도록 한다.
+                                            updateMiniQuizReadyByMessage((current) => ({
+                                              ...current,
+                                              [messageId]: failedTargets,
                                             }));
-                                          return [...current, ...additions];
-                                        });
-                                        setMiniQuizReadyByMessage((current) => ({
-                                          ...current,
-                                          [message.id]: [],
-                                        }));
+                                          } else {
+                                            updateMiniQuizReadyByMessage((current) => ({
+                                              ...current,
+                                              [messageId]: [],
+                                            }));
+                                          }
+                                        } else {
+                                          // mock 모드: 백엔드 의존이 없으므로 로컬에 그대로 적재.
+                                          setDeferredMiniQuizzes((current) => {
+                                            const existingNodeIds = new Set(current.map((item) => item.nodeId));
+                                            const additions = triggers
+                                              .map((target) => ({
+                                                id: `${messageId}-${target.nodeId}`,
+                                                deferredId: null,
+                                                nodeId: target.nodeId,
+                                                name: target.name,
+                                                projectId: selectedProjectId,
+                                                deferredAt: Date.now(),
+                                                presetQuestion: null,
+                                              }))
+                                              .filter((item) => !existingNodeIds.has(item.nodeId));
+                                            return [...current, ...additions];
+                                          });
+                                          updateMiniQuizReadyByMessage((current) => ({
+                                            ...current,
+                                            [messageId]: [],
+                                          }));
+                                        }
                                       }}
                                     >
                                       나중에 보기
@@ -2231,7 +2462,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
               ))}
             </div>
 
-            {deferredMiniQuizzes.length > 0 ? (
+            {visibleDeferredMiniQuizzes.length > 0 ? (
               <div
                 className="workspace-mini-quiz-float-wrap"
                 style={{ transform: `translate(${miniQuizFloatOffset.x}px, ${miniQuizFloatOffset.y}px)` }}
@@ -2246,7 +2477,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   <span className="workspace-mini-quiz-float-icon" aria-hidden="true">
                     Q
                   </span>
-                  <span className="workspace-mini-quiz-float-count">{deferredMiniQuizzes.length}</span>
+                  <span className="workspace-mini-quiz-float-count">{visibleDeferredMiniQuizzes.length}</span>
                 </button>
 
                 {isDeferredMiniQuizListOpen ? (
@@ -2257,10 +2488,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   >
                     <div className="workspace-mini-quiz-deferred-head">
                       <strong>미뤄둔 미니퀴즈</strong>
-                      <span>{deferredMiniQuizzes.length}개</span>
+                      <span>{visibleDeferredMiniQuizzes.length}개</span>
                     </div>
                     <ul className="workspace-mini-quiz-deferred-list">
-                      {deferredMiniQuizzes.map((item, index) => (
+                      {visibleDeferredMiniQuizzes.map((item, index) => (
                         <li
                           key={item.id}
                           className="workspace-mini-quiz-deferred-list-row"
@@ -2274,6 +2505,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                 projectId: item.projectId || selectedProjectId,
                                 nodeId: item.nodeId,
                                 name: item.name,
+                                queue: [
+                                  {
+                                    nodeId: item.nodeId,
+                                    name: item.name,
+                                    presetQuestion: item.presetQuestion || null,
+                                  },
+                                ],
                                 sourceMessageId: null,
                                 deferredId: item.id,
                               });
@@ -2567,7 +2805,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                               );
                             }
 
-                            // 백엔드 quiz-history 와 로컬 미니퀴즈 결과 dedup (백엔드가 source=mini_quiz 로 포함하기 시작하면 이 dedup 이 효과 발휘)
+                            // 백엔드 quiz-history 와 프론트에서 즉시 합성한 미니퀴즈 결과 dedup.
                             const backendQuestionIds = new Set(
                               graphNodeQuizHistory.map((entry) => entry.question_id)
                             );
@@ -2585,8 +2823,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                               const selectedTexts = entry.choices
                                 .filter((choice) => choice.is_selected)
                                 .map((choice) => choice.text);
+                              const correctIdSet = new Set(
+                                Array.isArray(entry.correct_option_ids) ? entry.correct_option_ids : []
+                              );
                               const correctTexts = entry.choices
-                                .filter((choice) => choice.is_correct)
+                                .filter(
+                                  (choice) =>
+                                    correctIdSet.has(choice.option_id) || choice.is_correct
+                                )
                                 .map((choice) => choice.text);
                               const isMiniQuiz = entry.source === "mini_quiz";
                               return (
@@ -2935,68 +3179,58 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           conceptNodeId={activeMiniQuiz.nodeId}
           conceptName={activeMiniQuiz.name}
           conceptQueue={activeMiniQuiz.queue}
-          onResult={({ nodeId, conceptName, reviewEntry, resultMessage }) => {
+          onResult={({ nodeId, conceptName, reviewEntry }) => {
             setMiniQuizResults((current) => {
               const dedup = current.filter(
                 (item) => item.review.question_id !== reviewEntry.question_id
               );
               return [...dedup, { nodeId, conceptName, review: reviewEntry, completedAt: Date.now() }];
             });
-
-            // 백엔드 mini-quiz submit 응답의 result_message 를 active chat 에 즉시 push.
-            // id 포맷은 buildApiThread 와 동일하게 맞춰서, 추후 getProjectChats 새로고침 시 자연스럽게 dedup 됨.
-            if (resultMessage && selectedProjectId) {
-              const threadId = `${selectedProjectId}-api-thread`;
-              const assistantId = `api-chat-${resultMessage.chat_id}-assistant`;
-              const updatedAt = resultMessage.created_at
-                ? new Date(resultMessage.created_at).toISOString()
-                : new Date().toISOString();
-              const assistantMessage = {
-                id: assistantId,
-                role: "assistant",
-                text: resultMessage.ai_response || "",
-              };
-
-              setRecentChats((currentChats) =>
-                currentChats.map((chat) => {
-                  if (chat.id !== threadId) return chat;
-                  if (chat.messages.some((message) => message.id === assistantId)) return chat;
-                  return {
-                    ...chat,
-                    updatedAt,
-                    messages: [...chat.messages, assistantMessage],
-                  };
-                })
-              );
-            }
           }}
-          onClose={() => {
+          onClose={(closeInfo = {}) => {
             const sourceId = activeMiniQuiz.sourceMessageId;
             const deferredId = activeMiniQuiz.deferredId;
-            const completedQueue = Array.isArray(activeMiniQuiz.queue) ? activeMiniQuiz.queue : null;
+            const completedNodeIds = new Set(
+              Array.isArray(closeInfo.completedNodeIds) ? closeInfo.completedNodeIds : []
+            );
             setActiveMiniQuiz(null);
+
             if (sourceId) {
-              setMiniQuizReadyByMessage((current) => ({
-                ...current,
-                [sourceId]: [],
-              }));
+              // trigger 버튼은 풀이가 완료된 노드만 제거 — 닫기로 끝낸 미풀이 노드는 그대로 둔다.
+              updateMiniQuizReadyByMessage((current) => {
+                const previous = current[sourceId];
+                if (!Array.isArray(previous) || !previous.length) {
+                  return current;
+                }
+                const remaining = previous.filter((target) => !completedNodeIds.has(target.nodeId));
+                if (remaining.length === previous.length) {
+                  return current;
+                }
+                return { ...current, [sourceId]: remaining };
+              });
             }
-            if (deferredId) {
-              setDeferredMiniQuizzes((current) => current.filter((item) => item.id !== deferredId));
-            }
-            if (completedQueue?.length) {
-              const completedNodeIds = new Set(completedQueue.map((item) => item.nodeId));
+
+            if (completedNodeIds.size) {
               setDeferredMiniQuizzes((current) =>
                 current.filter((item) => !completedNodeIds.has(item.nodeId))
               );
+            } else if (deferredId) {
+              // 안전장치 — 명시적 deferredId가 있고 완료된 노드가 없으면 그대로 둔다 (미풀이 닫기).
+              // 별도 처리 없음.
             }
+
             if (selectedProjectId) {
-              getProjectGraphData(selectedProjectId)
-                .then((nextGraph) => setBackendGraph(nextGraph))
-                .catch(() => null);
-              getRecentGraphNodes(selectedProjectId)
-                .then((nextNodes) => setRecentGraphNodes(nextNodes))
-                .catch(() => null);
+              if (completedNodeIds.size) {
+                getProjectGraphData(selectedProjectId)
+                  .then((nextGraph) => setBackendGraph(nextGraph))
+                  .catch(() => null);
+                getRecentGraphNodes(selectedProjectId)
+                  .then((nextNodes) => setRecentGraphNodes(nextNodes))
+                  .catch(() => null);
+                getProjectChats(selectedProjectId)
+                  .then((nextChats) => setRecentChats(nextChats))
+                  .catch(() => null);
+              }
             }
           }}
         />

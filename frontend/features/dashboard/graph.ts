@@ -2214,9 +2214,17 @@ export function buildProjectKnowledgeGraph(projectData: ProjectDataInput | null,
 export function buildBackendKnowledgeGraph(
   projectData: ProjectDataInput | null,
   backendGraph: BackendGraphData | null,
-  chats: Chat[]
+  chats: Chat[],
+  options: { strictBackend?: boolean } = {}
 ) {
   if (!projectData || !backendGraph?.nodes?.length) {
+    if (options.strictBackend) {
+      return {
+        nodes: [],
+        edges: [],
+        defaultSelectedNodeId: null,
+      } satisfies ProjectKnowledgeGraphData;
+    }
     return buildProjectKnowledgeGraph(projectData, chats);
   }
 

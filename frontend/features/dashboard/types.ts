@@ -7,7 +7,7 @@ export type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
-  variant?: "diagnosis-report";
+  variant?: "diagnosis-report" | "mini-quiz-result";
   collapsible?: boolean;
   attachment?: {
     type: "graph-preview";

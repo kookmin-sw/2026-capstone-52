@@ -36,6 +36,7 @@ const ANALYZING_DELAY_MS = 2200;
 const FINAL_PROGRESS_DELAY_MS = 420;
 const DIAGNOSIS_REMAINING_UNITS = 12;
 const DIAGNOSIS_SECONDS_PER_UNIT = 30;
+const DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS = 12;
 const EEUM_SPARKLE_PATH =
   "M 0 -38 C 3 -12 12 -3 38 0 C 12 3 3 12 0 38 C -3 12 -12 3 -38 0 C -12 -3 -3 -12 0 -38 Z";
 
@@ -132,23 +133,20 @@ function getSelectedChoiceIds(answer) {
 }
 
 function normalizeApiChoice(choice, index) {
-  // 백엔드 diagnosis 응답에 option_id 가 없는 케이스 대비 — 인덱스 기반으로 A/B/C/... 자동 부여.
-  // 백엔드 submit 은 selected_option_ids: ["A","C"] 형태를 기대하므로 항상 string id 가 채워져야 함.
-  const fallbackOptionId = String.fromCharCode(65 + index);
   if (choice && typeof choice === "object") {
-    const optionId = choice.option_id ?? choice.optionId ?? fallbackOptionId;
+    const optionId = choice.option_id ?? choice.optionId ?? null;
     const id = String(choice.id ?? optionId ?? choice.choice_id ?? choice.value ?? index);
     return {
       ...choice,
       id,
-      optionId: String(optionId),
+      optionId: optionId !== null ? String(optionId) : null,
       label: choice.label || choice.text || choice.name || choice.title || String(choice.value ?? index),
     };
   }
 
   return {
     id: String(index),
-    optionId: fallbackOptionId,
+    optionId: null,
     label: String(choice),
   };
 }
@@ -239,15 +237,21 @@ export default function DiagnosisPageView({ projectId }) {
             question.difficulty ??
             question.difficulty_level ??
             question.difficultyValue ??
-            question.level,
+            question.level ??
+            status?.estimated_level,
           order: 1,
         });
+
+        const totalFromStatus =
+          typeof status?.total_questions === "number" && status.total_questions > 0
+            ? status.total_questions
+            : DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
 
         setApiSession({
           id: sessionId,
           projectId,
           projectTitle: projectData.title,
-          totalQuestions: 1,
+          totalQuestions: totalFromStatus,
           estimatedMinutes: 6,
           concepts: concepts.length
             ? concepts
@@ -414,6 +418,10 @@ export default function DiagnosisPageView({ projectId }) {
       const selectedChoices = currentQuestion.choices.filter((choice) => selectedChoiceIds.includes(choice.id));
       const selectedOptionIds = selectedChoices.map((choice) => choice.optionId).filter(Boolean);
       const isSkipped = selectedChoiceIds.length === 1 && selectedChoiceIds[0] === unknownChoiceId;
+      const selectedIndex =
+        currentQuestion.type === "multiple-choice"
+          ? currentQuestion.choices.findIndex((choice) => choice.id === selectedChoiceIds[0])
+          : 0;
 
       setStep("analyzing");
 
@@ -423,7 +431,8 @@ export default function DiagnosisPageView({ projectId }) {
           session.id,
           currentQuestion.diagnosisId,
           {
-            selectedOptionIds,
+            selectedIndex: selectedOptionIds.length ? null : selectedIndex,
+            selectedOptionIds: selectedOptionIds.length ? selectedOptionIds : null,
             isSkipped,
           }
         );
@@ -443,45 +452,123 @@ export default function DiagnosisPageView({ projectId }) {
               ? getSelectedChoiceIds(resolvedAnswer)
               : [],
         };
-        const checkedSession = {
+
+        const totalFromStatus =
+          typeof status?.total_questions === "number" && status.total_questions > 0
+            ? status.total_questions
+            : session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
+        const answeredCount =
+          typeof status?.answered === "number" ? status.answered : Object.keys(nextAnswers).length;
+        const isCompleted = answeredCount >= totalFromStatus;
+
+        const sessionAfterCheck = {
           ...session,
-          questions: session.questions.map((question) => (question.id === currentQuestion.id ? checkedQuestion : question)),
+          totalQuestions: totalFromStatus,
+          questions: session.questions.map((question) =>
+            question.id === currentQuestion.id ? checkedQuestion : question
+          ),
         };
+
+        if (!isCompleted) {
+          let nextQuestion = null;
+          try {
+            nextQuestion = await createApiDiagnosisQuestion(projectId, session.id);
+          } catch (fetchError) {
+            // 다음 질문이 없으면 (404 등) 진단을 종료한 것으로 간주
+            nextQuestion = null;
+          }
+
+          if (nextQuestion?.question_id) {
+            const choices = Array.isArray(nextQuestion.choices) ? nextQuestion.choices : [];
+            const fallbackConceptId =
+              nextQuestion.concept_id || nextQuestion.node_id || `api-concept-${answeredCount + 1}`;
+            const normalizedNext = normalizeDiagnosisQuestion({
+              id: nextQuestion.question_id,
+              diagnosisId: nextQuestion.question_id,
+              type: "multiple-choice",
+              questionType: nextQuestion.question_type || null,
+              isMultiSelect: nextQuestion.question_type === "multi_select",
+              node_id: nextQuestion.concept_id || nextQuestion.node_id,
+              node_name: nextQuestion.node_name || nextQuestion.concept_name || "진단 대상 개념",
+              conceptIds: nextQuestion.conceptIds ||
+                nextQuestion.concept_ids ||
+                [
+                  {
+                    node_id: fallbackConceptId,
+                    name: nextQuestion.node_name || nextQuestion.concept_name || "진단 대상 개념",
+                  },
+                ],
+              prompt: nextQuestion.question,
+              choices: choices.map(normalizeApiChoice),
+              difficulty:
+                nextQuestion.difficulty ??
+                nextQuestion.difficulty_level ??
+                nextQuestion.difficultyValue ??
+                nextQuestion.level ??
+                status?.estimated_level,
+              order: answeredCount + 1,
+            });
+
+            setApiSession({
+              ...sessionAfterCheck,
+              questions: [...sessionAfterCheck.questions, normalizedNext],
+            });
+            setDraftAnswer(createEmptyDraftAnswer(normalizedNext));
+            setQuestionIndex((current) => current + 1);
+            setStep("quiz");
+            return;
+          }
+        }
+
         const conceptStatuses = buildConceptStatuses(
-          checkedSession,
+          sessionAfterCheck,
           nextAnswers,
-          checkedSession.questions.length,
+          sessionAfterCheck.questions.length,
           true
         );
+        const correctAnswerCount = sessionAfterCheck.questions.filter((question) => {
+          const userChoiceIds = getSelectedChoiceIds(nextAnswers[question.id]);
+          const correctIds = question.correctChoiceIds || [];
+          return (
+            correctIds.length > 0 &&
+            userChoiceIds.length === correctIds.length &&
+            userChoiceIds.every((choiceId) => correctIds.includes(choiceId))
+          );
+        }).length;
+        const passedDiagnosis = correctAnswerCount > sessionAfterCheck.questions.length / 2;
         const nextAssessment = {
-          levelTitle: wasCorrect ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
+          levelTitle: passedDiagnosis ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
           measuredLevel:
             status?.measured_level ||
             status?.result_level ||
+            status?.estimated_level ||
             status?.level ||
-            (wasCorrect ? "상급" : "초급"),
-          summary: wasCorrect
+            (passedDiagnosis ? "상급" : "초급"),
+          summary: passedDiagnosis
             ? `${session.projectTitle} 기준 진단 질문에 정답 처리되었습니다.`
             : `${session.projectTitle} 기준 추가 학습이 필요한 개념이 확인되었습니다.`,
           missingConcepts: conceptStatuses
             .filter((concept) => concept.tone === diagnosisStatusMap.needsReview.tone)
             .map((concept) => concept.label),
-          roadmap: wasCorrect ? ["응용 질문으로 개념 연결 확장"] : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
+          roadmap: passedDiagnosis
+            ? ["응용 질문으로 개념 연결 확장"]
+            : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
           conceptStatuses,
         };
         const workspaceState = loadWorkspaceState();
         const nextWorkspaceState = saveProjectDiagnosis(workspaceState, projectId, {
           savedAt: Date.now(),
           sessionId: session.id,
-          totalQuestionCount: session.totalQuestions,
-          completedQuestionCount: session.totalQuestions,
+          totalQuestionCount: sessionAfterCheck.totalQuestions,
+          completedQuestionCount: answeredCount,
           answers: nextAnswers,
-          questions: session.questions,
+          questions: sessionAfterCheck.questions,
           conceptStatuses,
           assessment: nextAssessment,
         });
 
         saveWorkspaceState(nextWorkspaceState);
+        setApiSession(sessionAfterCheck);
         setStep("ready");
         createLearningLog({
           projectId,
