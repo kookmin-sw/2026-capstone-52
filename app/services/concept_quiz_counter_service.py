@@ -119,7 +119,7 @@ def get_quiz_ready_concepts(db: Session, project_id: int) -> list[MatchedConcept
     ]
 
 
-def reset_concept_quiz_counter(db: Session, project_id: int, node_id: str) -> bool:
+def reset_concept_quiz_counter(db: Session, project_id: int, node_id: str) -> None:
     counter = (
         db.query(ConceptQuizCounter)
         .filter(
@@ -128,9 +128,5 @@ def reset_concept_quiz_counter(db: Session, project_id: int, node_id: str) -> bo
         )
         .first()
     )
-    if not counter:
-        return False
-
-    counter.mention_count = 0
-    db.commit()
-    return True
+    if counter:
+        counter.mention_count = 0

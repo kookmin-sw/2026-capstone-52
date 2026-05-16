@@ -87,7 +87,7 @@ def submit_answer(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """사용자 답변 저장 → AI score 계산 → affects 노드 전체 상태 갱신"""
+    """사용자 답변 저장 → AI score 계산 → concept 노드 상태 갱신"""
     _get_project_or_403(project_id, current_user, db)
 
     try:

@@ -2,7 +2,6 @@ import json
 
 from sqlalchemy.orm import Session
 
-from app.models.concept_quiz_counter import ConceptQuizCounter
 from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
 from app.models.graph import ConceptNode
 from app.ai.diagnosis_ai import (
@@ -11,6 +10,7 @@ from app.ai.diagnosis_ai import (
     score_to_level,
 )
 from app.services.diagnosis_service import apply_evaluation_to_nodes, create_diagnosis_question
+from app.services.concept_quiz_counter_service import reset_concept_quiz_counter
 
 
 def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> dict:
@@ -173,13 +173,7 @@ def submit_mini_quiz_answer(
     )
     db.add(answer)
 
-    # 카운터 초기화
-    counter = db.query(ConceptQuizCounter).filter(
-        ConceptQuizCounter.project_id == project_id,
-        ConceptQuizCounter.node_id == q.concept_id,
-    ).first()
-    if counter:
-        counter.mention_count = 0
+    reset_concept_quiz_counter(db, project_id, q.concept_id)
 
     db.commit()
 

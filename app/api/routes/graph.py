@@ -25,11 +25,11 @@ def _get_project_or_403(project_id: int, current_user: User, db: Session) -> Pro
 
 @router.get("/me")
 def get_my_graph(
-    subject: str | None = None,
+    project_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """사용자의 전체 프로젝트 지식 그래프 반환 (subject 파라미터로 과목 필터 가능)"""
+    """사용자의 전체 프로젝트 지식 그래프 반환 (project_id 파라미터로 특정 프로젝트 필터 가능)"""
     return {"success": True, "data": None, "message": "미구현"}
 
 

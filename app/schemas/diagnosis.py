@@ -44,7 +44,7 @@ class DiagnosisReportRequest(BaseModel):
 
 
 class DiagnosisAnswerResponse(BaseModel):
-    """진단 답변 처리 결과 — affects 노드 전체의 업데이트 결과 포함"""
+    """진단 답변 처리 결과"""
     is_correct: Optional[bool] = None
     correct_index: Optional[int] = None
     is_fully_correct: Optional[bool] = None
