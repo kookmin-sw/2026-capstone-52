@@ -28,3 +28,4 @@ yarn-error.log*
 pnpm-debug.log*
 .env.local
 .codex
+BACKEND2.md
