@@ -26,6 +26,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 PDF_CHUNK_MAX_CHARS = 3500
+MAX_CONCEPT_DESCRIPTION_CHARS = 60
 MIN_RELATION_EXTRACTION_CONCEPTS = 2
 INITIAL_SCORE = 0.5
 INITIAL_UNDERSTANDING_LEVEL = 3
@@ -211,6 +212,9 @@ def _extract_raw_concepts(
         system_prompt = (
             "You extract learning concepts from uploaded CS study material. "
             "Extract only concepts explicitly discussed in the text. "
+            "Each concept description must be a single concise sentence suitable for frontend graph node preview. "
+            "Keep each concept description very short. "
+            "Do not write paragraphs. "
             "Do not invent concept_ids. Do not include variable names, one-off examples, or overly generic words. "
             "Return JSON only with a top-level 'concepts' array."
         )
@@ -222,7 +226,7 @@ def _extract_raw_concepts(
             '  "concepts": [\n'
             "    {\n"
             '      "raw_name": "string",\n'
-            '      "description": "string",\n'
+            '      "description": "one-line short description, ideally 10-15 words, no line breaks, max about 60 characters if possible",\n'
             '      "group": "string",\n'
             '      "role_hint": "core | prerequisite | related",\n'
             '      "page_refs": [1, 2],\n'
@@ -292,7 +296,7 @@ def _normalize_and_merge_concepts(
         page_refs = _sanitize_page_refs(raw_concept.get("page_refs", []))
         role_hint = _sanitize_role_hint(raw_concept.get("role_hint"))
         hint_score = _normalize_importance_hint(raw_concept.get("document_importance_hint"))
-        raw_description = _clean_text(raw_concept.get("description"))
+        raw_description = _shorten_description(raw_concept.get("description"))
         evidence = _clean_text(raw_concept.get("evidence"))
 
         if concept_id not in merged_concepts:
@@ -300,7 +304,9 @@ def _normalize_and_merge_concepts(
                 "concept_id": concept_id,
                 "concept_name": normalization_result["canonical_name"] or alias_concept.get("canonical_name"),
                 "korean_name": normalization_result["korean_name"] or alias_concept.get("korean_name"),
-                "description": normalization_result["description"] or alias_concept.get("description") or raw_description,
+                "description": _shorten_description(
+                    normalization_result["description"] or alias_concept.get("description") or raw_description
+                ),
                 "group": normalization_result["group"] or alias_concept.get("group") or _clean_text(raw_concept.get("group")),
                 "role_hint": role_hint,
                 "raw_names": [],
@@ -325,7 +331,7 @@ def _normalize_and_merge_concepts(
         if raw_description and (
             not merged["description"] or len(raw_description) > len(merged["description"])
         ):
-            merged["description"] = raw_description
+            merged["description"] = _shorten_description(raw_description)
 
         if raw_concept.get("group") and not merged["group"]:
             merged["group"] = _clean_text(raw_concept.get("group"))
@@ -489,7 +495,7 @@ def _finalize_concepts(
                 "concept_id": concept_id,
                 "concept_name": concept["concept_name"],
                 "korean_name": concept["korean_name"],
-                "description": concept["description"],
+                "description": _shorten_description(concept["description"]),
                 "group": concept["group"],
                 "role_hint": concept.get("role_hint", "related"),
                 "role": concept.get("role_hint", "related"),
@@ -584,7 +590,7 @@ def _sanitize_llm_concepts(
         sanitized.append(
             {
                 "raw_name": raw_name,
-                "description": _clean_text(item.get("description")),
+                "description": _shorten_description(item.get("description")),
                 "group": _clean_text(item.get("group")),
                 "role_hint": _sanitize_role_hint(item.get("role_hint")),
                 "page_refs": _sanitize_page_refs(item.get("page_refs", fallback_page_refs)) or fallback_page_refs,
@@ -746,6 +752,28 @@ def _clean_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
     return value.strip()
+
+
+# concept description 축약 함수
+#
+# 역할:
+# - LLM이 긴 설명을 반환해도 frontend node preview에 맞는 한 줄 설명으로 정리한다.
+# - 줄바꿈을 제거하고 공백을 접은 뒤 최대 길이를 넘으면 안전하게 잘라낸다.
+def _shorten_description(
+    value: Any,
+    *,
+    max_chars: int = MAX_CONCEPT_DESCRIPTION_CHARS,
+) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    cleaned = value.replace("\r", " ").replace("\n", " ").strip()
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    if max_chars <= 1:
+        return "…"
+    return f"{cleaned[: max_chars - 1].rstrip()}…"
 
 
 # 범위 제한 함수

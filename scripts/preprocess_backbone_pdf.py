@@ -14,6 +14,8 @@ def main() -> None:
     parser.add_argument("--target-chars", type=int, default=1800)
     parser.add_argument("--overlap-chars", type=int, default=250)
     parser.add_argument("--max-chars", type=int, default=2600)
+    parser.add_argument("--start-page", type=int, default=None, help="Optional 1-based start page")
+    parser.add_argument("--end-page", type=int, default=None, help="Optional 1-based end page")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -26,6 +28,8 @@ def main() -> None:
         target_chars=args.target_chars,
         overlap_chars=args.overlap_chars,
         max_chars=args.max_chars,
+        start_page=args.start_page,
+        end_page=args.end_page,
     )
     output_path = write_chunks_json(chunks, args.output)
     total_chars = sum(len(chunk.get("text", "")) for chunk in chunks)
@@ -36,6 +40,8 @@ def main() -> None:
     print(f"source_id: {args.source_id}")
     print(f"number of chunks: {len(chunks)}")
     print(f"approximate total characters: {total_chars}")
+    print(f"start_page: {args.start_page}")
+    print(f"end_page: {args.end_page}")
 
 
 if __name__ == "__main__":

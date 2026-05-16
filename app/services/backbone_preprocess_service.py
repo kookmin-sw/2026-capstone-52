@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,9 @@ SUPPORTED_SUBJECT_IDS = {
     "algorithm",
 }
 
+ALIASES_DIR = Path(__file__).resolve().parent.parent / "data" / "aliases"
+logger = logging.getLogger(__name__)
+
 STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "into",
     "is", "it", "of", "on", "or", "that", "the", "to", "with", "this", "these",
@@ -20,6 +24,31 @@ STOPWORDS = {
     "do", "does", "did", "done", "such", "also", "more", "most", "very", "not",
     "we", "you", "they", "he", "she", "i", "our", "your", "its", "about",
 }
+
+BROAD_SINGLE_WORD_ALIASES = {
+    "tree", "node", "file", "page", "state", "memory", "network", "service",
+    "policy", "block", "data", "value", "queue", "lock", "process", "thread",
+    "array", "list", "set",
+}
+
+AUTO_TAGGING_BROAD_CONCEPT_IDS = {
+    "data_structure": {
+        "ds_node",
+        "ds_pointer_reference",
+        "ds_traversal",
+        "ds_big_o_notation",
+        "ds_dynamic_array",
+        "ds_array",
+        "ds_tree",
+    }
+}
+
+MAX_CONCEPT_IDS_PER_CHUNK = 8
+
+CHAPTER_HEADING_PATTERNS = [
+    re.compile(r"^\s*chapter\s+\d+\b.*$", re.IGNORECASE),
+    re.compile(r"^\s*part\s+[ivxlc]+\b.*$", re.IGNORECASE),
+]
 
 
 class BackbonePreprocessError(Exception):
@@ -97,6 +126,7 @@ def chunk_pages(
         raise BackboneChunkingError("source_id must be a non-empty string.")
 
     units: list[dict[str, Any]] = []
+    current_chapter = ""
     for page in pages:
         if not isinstance(page, dict):
             continue
@@ -104,15 +134,24 @@ def chunk_pages(
         text = _normalize_whitespace(page.get("text", ""))
         if not isinstance(page_number, int) or not text:
             continue
-        section_title = infer_section_title(text)
-        for unit_text in _split_text_units(text):
-            units.append(
-                {
-                    "page_number": page_number,
-                    "section_title": section_title,
-                    "text": unit_text,
-                }
-            )
+        page_segments = _split_page_by_chapter_boundaries(text, current_chapter)
+        for segment in page_segments:
+            segment_text = _normalize_whitespace(segment.get("text", ""))
+            if not segment_text:
+                continue
+            chapter_title = _normalize_whitespace(segment.get("chapter_title", "")) or current_chapter
+            if chapter_title:
+                current_chapter = chapter_title
+            section_title = infer_section_title(segment_text)
+            for unit_text in _split_text_units(segment_text):
+                units.append(
+                    {
+                        "page_number": page_number,
+                        "chapter_title": current_chapter,
+                        "section_title": section_title,
+                        "text": unit_text,
+                    }
+                )
 
     if not units:
         return []
@@ -121,16 +160,20 @@ def chunk_pages(
     buffer_text = ""
     buffer_page_start: int | None = None
     buffer_page_end: int | None = None
+    buffer_chapter = ""
     buffer_section = ""
+    buffer_has_fresh_content = False
 
-    def flush_buffer() -> None:
-        nonlocal buffer_text, buffer_page_start, buffer_page_end, buffer_section
+    def flush_buffer(*, keep_overlap: bool = True) -> None:
+        nonlocal buffer_text, buffer_page_start, buffer_page_end, buffer_chapter, buffer_section, buffer_has_fresh_content
         normalized_text = _normalize_whitespace(buffer_text)
-        if not normalized_text or buffer_page_start is None or buffer_page_end is None:
+        if not normalized_text or buffer_page_start is None or buffer_page_end is None or not buffer_has_fresh_content:
             buffer_text = ""
             buffer_page_start = None
             buffer_page_end = None
+            buffer_chapter = ""
             buffer_section = ""
+            buffer_has_fresh_content = False
             return
 
         chunk_index = len(chunks) + 1
@@ -140,7 +183,7 @@ def chunk_pages(
                 "subject_id": validated_subject_id,
                 "source_id": safe_source_id,
                 "source_title": source_title or "",
-                "chapter": "",
+                "chapter": buffer_chapter,
                 "section": buffer_section,
                 "page_start": buffer_page_start,
                 "page_end": buffer_page_end,
@@ -150,33 +193,49 @@ def chunk_pages(
             }
         )
 
-        overlap_text = _make_overlap_text(normalized_text, overlap_chars)
+        overlap_text = _make_overlap_text(normalized_text, overlap_chars) if keep_overlap else ""
         buffer_text = overlap_text
         buffer_page_start = buffer_page_end
-        buffer_section = buffer_section
+        buffer_section = ""
+        buffer_has_fresh_content = False
 
     for unit in units:
         unit_text = unit["text"]
         unit_page = unit["page_number"]
+        unit_chapter = unit.get("chapter_title", "")
         unit_section = unit["section_title"]
 
         if buffer_page_start is None:
             buffer_page_start = unit_page
             buffer_page_end = unit_page
+            buffer_chapter = unit_chapter
             buffer_section = unit_section
+        elif unit_chapter and buffer_chapter and unit_chapter != buffer_chapter:
+            flush_buffer(keep_overlap=False)
+            buffer_page_start = unit_page
+            buffer_page_end = unit_page
+            buffer_chapter = unit_chapter
+            buffer_section = unit_section
+        elif unit_chapter and not buffer_chapter:
+            buffer_chapter = unit_chapter
 
         candidate_text = f"{buffer_text}\n\n{unit_text}".strip() if buffer_text else unit_text
         if len(candidate_text) > max_chars and buffer_text:
             flush_buffer()
             if buffer_page_start is None:
                 buffer_page_start = unit_page
+                buffer_page_end = unit_page
+                buffer_chapter = unit_chapter
                 buffer_section = unit_section
             candidate_text = f"{buffer_text}\n\n{unit_text}".strip() if buffer_text else unit_text
 
         buffer_text = candidate_text
         buffer_page_end = unit_page
+        if unit_chapter and not buffer_chapter:
+            buffer_chapter = unit_chapter
         if not buffer_section and unit_section:
             buffer_section = unit_section
+        buffer_has_fresh_content = True
 
         if len(buffer_text) >= target_chars:
             flush_buffer()
@@ -277,10 +336,17 @@ def preprocess_pdf_to_chunks(
     target_chars: int = 1800,
     overlap_chars: int = 250,
     max_chars: int = 2600,
+    start_page: int | None = None,
+    end_page: int | None = None,
 ) -> list[dict]:
     pages = extract_pdf_pages(file_bytes)
-    return chunk_pages(
+    filtered_pages = _filter_pages_by_range(
         pages,
+        start_page=start_page,
+        end_page=end_page,
+    )
+    chunks = chunk_pages(
+        filtered_pages,
         subject_id=subject_id,
         source_id=source_id,
         source_title=source_title,
@@ -288,6 +354,7 @@ def preprocess_pdf_to_chunks(
         overlap_chars=overlap_chars,
         max_chars=max_chars,
     )
+    return assign_concept_ids_to_chunks(chunks, subject_id)
 
 
 # chunk JSON 저장 공개 함수
@@ -304,6 +371,53 @@ def write_chunks_json(chunks: list[dict], output_path: str | Path) -> Path:
     return path
 
 
+def assign_concept_ids_to_chunks(chunks: list[dict], subject_id: str) -> list[dict]:
+    concepts = _load_alias_concepts(subject_id)
+    if not concepts:
+        for chunk in chunks:
+            if isinstance(chunk, dict):
+                chunk["concept_ids"] = list(chunk.get("concept_ids", []))
+        return chunks
+
+    compiled_concepts = []
+    for concept in concepts:
+        compiled = _compile_alias_concept(concept)
+        if compiled:
+            compiled_concepts.append(compiled)
+
+    for chunk in chunks:
+        if not isinstance(chunk, dict):
+            continue
+        normalized_text = _normalize_match_text(chunk.get("text", ""))
+        normalized_chapter = _normalize_match_text(chunk.get("chapter", ""))
+        normalized_section = _normalize_match_text(chunk.get("section", ""))
+        concept_ids = list(chunk.get("concept_ids", [])) if isinstance(chunk.get("concept_ids"), list) else []
+        seen = {value for value in concept_ids if isinstance(value, str)}
+
+        scored_matches: list[tuple[float, str]] = []
+        for concept in compiled_concepts:
+            score = _score_concept_match(
+                normalized_text=normalized_text,
+                normalized_chapter=normalized_chapter,
+                normalized_section=normalized_section,
+                concept=concept,
+                subject_id=subject_id,
+            )
+            if score <= 0:
+                continue
+            scored_matches.append((score, concept["concept_id"]))
+
+        scored_matches.sort(key=lambda item: (-item[0], item[1]))
+        for _, concept_id in scored_matches[:MAX_CONCEPT_IDS_PER_CHUNK]:
+            if concept_id not in seen:
+                concept_ids.append(concept_id)
+                seen.add(concept_id)
+
+        chunk["concept_ids"] = concept_ids[:MAX_CONCEPT_IDS_PER_CHUNK]
+
+    return chunks
+
+
 def _normalize_whitespace(text: str) -> str:
     if not isinstance(text, str):
         return ""
@@ -311,6 +425,65 @@ def _normalize_whitespace(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _filter_pages_by_range(
+    pages: list[dict],
+    *,
+    start_page: int | None,
+    end_page: int | None,
+) -> list[dict]:
+    if start_page is not None and start_page < 1:
+        raise BackboneChunkingError("start_page must be 1 or greater.")
+    if end_page is not None and end_page < 1:
+        raise BackboneChunkingError("end_page must be 1 or greater.")
+    if start_page is not None and end_page is not None and start_page > end_page:
+        raise BackboneChunkingError("start_page cannot exceed end_page.")
+    if start_page is None and end_page is None:
+        return pages
+
+    filtered: list[dict] = []
+    for page in pages:
+        page_number = page.get("page_number")
+        if not isinstance(page_number, int):
+            continue
+        if start_page is not None and page_number < start_page:
+            continue
+        if end_page is not None and page_number > end_page:
+            continue
+        filtered.append(page)
+    return filtered
+
+
+def _split_page_by_chapter_boundaries(text: str, current_chapter: str) -> list[dict]:
+    lines = [line.rstrip() for line in str(text).splitlines()]
+    if not lines:
+        return [{"chapter_title": current_chapter, "text": text}]
+
+    segments: list[dict] = []
+    buffer: list[str] = []
+    active_chapter = current_chapter
+    index = 0
+
+    while index < len(lines):
+        chapter_title, consumed = _extract_chapter_heading(lines, index)
+        if chapter_title:
+            segment_text = _normalize_whitespace("\n".join(buffer))
+            if segment_text:
+                segments.append({"chapter_title": active_chapter, "text": segment_text})
+            active_chapter = chapter_title
+            buffer = []
+            index += consumed
+            continue
+
+        buffer.append(lines[index])
+        index += 1
+
+    segment_text = _normalize_whitespace("\n".join(buffer))
+    if segment_text:
+        segments.append({"chapter_title": active_chapter, "text": segment_text})
+
+    return segments or [{"chapter_title": current_chapter, "text": text}]
 
 
 def _split_text_units(text: str) -> list[str]:
@@ -363,3 +536,201 @@ def _validate_subject_id(subject_id: str) -> str:
     if subject_id not in SUPPORTED_SUBJECT_IDS:
         raise BackboneChunkingError(f"Unsupported subject_id: {subject_id}")
     return subject_id
+
+
+def _alias_path_for_subject(subject_id: str) -> Path:
+    return ALIASES_DIR / f"{subject_id}_aliases.json"
+
+
+def _load_alias_concepts(subject_id: str) -> list[dict]:
+    try:
+        _validate_subject_id(subject_id)
+        path = _alias_path_for_subject(subject_id)
+        if not path.exists():
+            logger.warning("backbone_alias_dictionary_missing subject_id=%s path=%s", subject_id, path)
+            return []
+        data = json.loads(path.read_text(encoding="utf-8"))
+        concepts = data.get("concepts", []) if isinstance(data, dict) else []
+        if not isinstance(concepts, list):
+            logger.warning("backbone_alias_dictionary_invalid subject_id=%s reason=concepts_not_list", subject_id)
+            return []
+        valid_concepts = []
+        for concept in concepts:
+            if isinstance(concept, dict) and isinstance(concept.get("concept_id"), str):
+                valid_concepts.append(concept)
+        return valid_concepts
+    except Exception as error:
+        logger.warning("backbone_alias_dictionary_load_failed subject_id=%s error=%s", subject_id, error)
+        return []
+
+
+def _compile_alias_concept(concept: dict) -> dict | None:
+    concept_id = concept.get("concept_id")
+    if not isinstance(concept_id, str) or not concept_id:
+        return None
+
+    candidates: list[tuple[str, str]] = []
+    canonical_name = concept.get("canonical_name")
+    korean_name = concept.get("korean_name")
+    if isinstance(canonical_name, str) and canonical_name.strip():
+        candidates.append(("canonical_name", canonical_name))
+    if isinstance(korean_name, str) and korean_name.strip():
+        candidates.append(("korean_name", korean_name))
+    for alias in concept.get("aliases", []):
+        if isinstance(alias, str) and alias.strip():
+            candidates.append(("alias", alias))
+
+    seen = set()
+    phrases: list[dict] = []
+    single_words: list[dict] = []
+    for source, raw in candidates:
+        normalized = _normalize_match_text(raw)
+        key = (source, normalized)
+        if not normalized or key in seen:
+            continue
+        seen.add(key)
+
+        if _is_multi_word_alias(raw, normalized):
+            phrases.append(
+                {
+                    "normalized": normalized,
+                    "source": source,
+                }
+            )
+            continue
+
+        single_words.append(
+            {
+                "normalized": normalized,
+                "pattern": _build_single_word_pattern(raw, normalized),
+                "is_acronym": _is_upper_acronym(raw),
+                "source": source,
+                "is_broad_alias": normalized in BROAD_SINGLE_WORD_ALIASES,
+            }
+        )
+
+    return {
+        "concept_id": concept_id,
+        "canonical_name": _normalize_match_text(canonical_name),
+        "korean_name": _normalize_match_text(korean_name),
+        "phrases": phrases,
+        "single_words": single_words,
+    }
+
+
+def _normalize_match_text(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    text = value.lower()
+    text = re.sub(r"[\u2010-\u2015]", "-", text)
+    text = text.replace("-", " ")
+    text = re.sub(r"[\t\r\n]+", " ", text)
+    text = re.sub(r"[^\w\s가-힣]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _is_multi_word_alias(raw: str, normalized: str) -> bool:
+    return (" " in normalized) or ("-" in raw)
+
+
+def _is_upper_acronym(raw: str) -> bool:
+    stripped = re.sub(r"[^A-Za-z0-9]", "", raw)
+    if len(stripped) < 2:
+        return False
+    letters = re.sub(r"[^A-Za-z]", "", stripped)
+    return bool(letters) and letters.isupper()
+
+
+def _build_single_word_pattern(raw: str, normalized: str) -> re.Pattern[str]:
+    if re.search(r"[A-Za-z0-9]", raw):
+        return re.compile(rf"(?<![a-z0-9]){re.escape(normalized)}(?![a-z0-9])")
+    return re.compile(rf"(?<![가-힣]){re.escape(normalized)}(?![가-힣])")
+
+
+def _extract_chapter_heading(lines: list[str], index: int) -> tuple[str, int]:
+    line = _normalize_whitespace(lines[index])
+    if not line:
+        return "", 1
+
+    if _looks_like_chapter_heading(line):
+        return line, 1
+
+    if index + 1 < len(lines):
+        combined = _normalize_whitespace(f"{line} {lines[index + 1]}")
+        if _looks_like_chapter_heading(combined):
+            return combined, 2
+
+    return "", 1
+
+
+def _looks_like_chapter_heading(value: str) -> bool:
+    compact = _normalize_whitespace(value)
+    if not compact or len(compact) > 120:
+        return False
+    return any(pattern.match(compact) for pattern in CHAPTER_HEADING_PATTERNS)
+
+
+def _score_concept_match(
+    *,
+    normalized_text: str,
+    normalized_chapter: str,
+    normalized_section: str,
+    concept: dict,
+    subject_id: str,
+) -> float:
+    if not normalized_text:
+        return 0.0
+    if concept["concept_id"] in AUTO_TAGGING_BROAD_CONCEPT_IDS.get(subject_id, set()):
+        return 0.0
+
+    score = 0.0
+
+    for phrase in concept["phrases"]:
+        normalized_phrase = phrase["normalized"]
+        occurrences = normalized_text.count(normalized_phrase)
+        if occurrences <= 0:
+            continue
+
+        candidate_score = 3.0 + min(occurrences, 3) * 0.5
+        if phrase["source"] in {"canonical_name", "korean_name"}:
+            candidate_score += 0.5
+        if normalized_phrase and normalized_chapter and normalized_phrase in normalized_chapter:
+            candidate_score += 3.0
+        if normalized_phrase and normalized_section and normalized_phrase in normalized_section:
+            candidate_score += 1.0
+        score = max(score, candidate_score)
+
+    for candidate in concept["single_words"]:
+        matches = candidate["pattern"].findall(normalized_text)
+        if not matches:
+            continue
+
+        occurrences = len(matches)
+        normalized_word = candidate["normalized"]
+        in_chapter = bool(normalized_word and normalized_chapter and normalized_word in normalized_chapter)
+        in_section = bool(normalized_word and normalized_section and normalized_word in normalized_section)
+        is_canonical_or_korean = candidate["source"] in {"canonical_name", "korean_name"}
+
+        if candidate["is_broad_alias"]:
+            if not (occurrences >= 3 or in_chapter):
+                continue
+        elif not candidate["is_acronym"] and len(normalized_word) < 4 and occurrences < 2 and not in_chapter:
+            continue
+
+        candidate_score = 0.0
+        if candidate["is_acronym"]:
+            candidate_score += 2.0
+        else:
+            candidate_score += 1.0
+        if is_canonical_or_korean:
+            candidate_score += 2.0
+        candidate_score += min(occurrences, 4) * 0.5
+        if in_chapter:
+            candidate_score += 3.0
+        if in_section:
+            candidate_score += 1.0
+
+        score = max(score, candidate_score)
+
+    return score
