@@ -257,7 +257,7 @@ def submit_answer(
         db.add(answer)
         db.flush()
 
-        updated_nodes = _apply_evaluation_to_nodes(
+        updated_nodes = apply_evaluation_to_nodes(
             node_ids=[q.concept_id],
             answer_score=evaluation["answer_score"],
             db=db,
@@ -309,7 +309,7 @@ def submit_answer(
     }
 
 
-def _apply_evaluation_to_nodes(
+def apply_evaluation_to_nodes(
     node_ids: list[str],
     answer_score: float,
     db: Session,
