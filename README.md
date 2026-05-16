@@ -4,10 +4,6 @@
   <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
 </p>
 
-<p align="center">
-  <a href="./docs/assets/images/capstone_52_poster.pdf">포스터 PDF 보기</a>
-</p>
-
 ## 목차
 
 1. 📌 [프로젝트 소개](#프로젝트-소개)
