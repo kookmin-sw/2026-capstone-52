@@ -7,7 +7,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
-from app.schemas.mini_quiz import MiniQuizAnswerRequest, MiniQuizAnswerResponse
+from app.schemas.mini_quiz import MiniQuizAnswerRequest, MiniQuizAnswerResponse, DeferredMiniQuizItem
 from app.schemas.diagnosis import DiagnosisQuestionResponse
 from app.schemas.quiz_review import QuizQuestionReview
 from app.services import mini_quiz_service
@@ -93,5 +93,44 @@ def get_mini_quiz_review(
     return {
         "success": True,
         "data": [QuizQuestionReview(**r) for r in reviews],
+        "message": "",
+    }
+
+
+@router.post("/{project_id}/defer", response_model=None)
+def defer_mini_quiz(
+    project_id: int,
+    node_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """나중에 풀기 — 문제를 미리 생성해 저장하고 카운터 초기화"""
+    _get_project_or_403(project_id, current_user, db)
+
+    try:
+        result = mini_quiz_service.defer_mini_quiz_question(project_id, node_id, db)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except QuestionValidationError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except DiagnosisAIError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+    return {"success": True, "data": DiagnosisQuestionResponse(**result), "message": ""}
+
+
+@router.get("/{project_id}/deferred", response_model=None)
+def get_deferred_mini_quizzes(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """미뤄둔 퀴즈 목록 조회 (대시보드 팝업용)"""
+    _get_project_or_403(project_id, current_user, db)
+
+    items = mini_quiz_service.get_deferred_mini_quizzes(project_id, db)
+    return {
+        "success": True,
+        "data": [DeferredMiniQuizItem(**item) for item in items],
         "message": "",
     }

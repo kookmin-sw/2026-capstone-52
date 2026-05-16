@@ -1,12 +1,16 @@
 # 채팅 라우터 — AI 응답 반환, 대화 기록 저장
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.security import get_optional_current_user
 from app.db.session import get_db
 from app.schemas.chat import ChatRequest
-from app.models.graph import ConceptNode
+from app.models.chat import Chat
+from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
+from app.models.graph import ConceptNode, ConceptEdge
 from app.models.project import Project
 from app.models.user import User, UserProfile
 from app.ai.chat_ai import process_chat
@@ -49,9 +53,66 @@ def chat(
 
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     allowed_concepts = [
-        {"node_id": n.node_id, "concept_id": n.concept_id, "concept_name": n.name,
-         "understanding_score": n.understanding_score}
+        {
+            "node_id": n.node_id,
+            "concept_id": n.concept_id,
+            "concept_name": n.name,
+            "understanding_score": n.understanding_score,
+            "understanding_level": n.understanding_level,
+        }
         for n in nodes
+    ]
+
+    edges = db.query(ConceptEdge).filter(ConceptEdge.project_id == project_id).all()
+    graph_context = {
+        "related_concepts": [
+            {"concept_id": n.concept_id or n.node_id, "concept_name": n.name}
+            for n in nodes
+        ],
+        "relations": [
+            {
+                "source_concept_id": e.source_node_id,
+                "target_concept_id": e.target_node_id,
+                "relation_type": e.relation_type,
+            }
+            for e in edges
+        ],
+    }
+
+    recent_chats = (
+        db.query(Chat)
+        .filter(Chat.project_id == project_id)
+        .order_by(Chat.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    conversation_context: list[dict] = []
+    for chat_item in reversed(recent_chats):
+        conversation_context.append({"role": "user", "content": chat_item.user_message})
+        if chat_item.ai_response:
+            conversation_context.append({"role": "assistant", "content": chat_item.ai_response})
+
+    node_ids = [n.node_id for n in nodes]
+    q_ids = [
+        row.question_id
+        for row in db.query(DiagnosisQuestion.question_id)
+        .filter(DiagnosisQuestion.concept_id.in_(node_ids))
+        .all()
+    ]
+    recent_answers = (
+        db.query(DiagnosisAnswer)
+        .filter(DiagnosisAnswer.question_id.in_(q_ids))
+        .order_by(DiagnosisAnswer.created_at.desc())
+        .limit(5)
+        .all()
+    ) if q_ids else []
+    recent_diagnosis = [
+        {
+            "question_id": a.question_id,
+            "answer_score": a.answer_score,
+            "feedback_tags": json.loads(a.feedback_tags) if a.feedback_tags else [],
+        }
+        for a in recent_answers
     ]
 
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
@@ -62,6 +123,9 @@ def chat(
             body.message,
             allowed_concepts=allowed_concepts,
             user_state=user_state,
+            graph_context=graph_context,
+            conversation_context=conversation_context,
+            recent_diagnosis=recent_diagnosis,
         )
         ai_reply = result["reply"]
     except NotImplementedError:

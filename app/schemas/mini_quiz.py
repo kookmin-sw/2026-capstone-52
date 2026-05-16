@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
 
@@ -19,3 +20,18 @@ class MiniQuizAnswerResponse(BaseModel):
     wrong_selected_option_ids: Optional[list[str]] = None
     invalid_selected_option_ids: Optional[list[str]] = None
     updated_node: Optional[dict] = None
+
+
+class DeferredMiniQuizChoice(BaseModel):
+    option_id: str
+    text: str
+
+
+class DeferredMiniQuizItem(BaseModel):
+    deferred_id: int
+    question_id: str
+    node_id: str
+    node_name: str
+    question: str
+    choices: list[DeferredMiniQuizChoice]
+    deferred_at: datetime
