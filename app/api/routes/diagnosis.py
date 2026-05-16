@@ -2,17 +2,22 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.core.security import get_optional_current_user
 from app.db.session import get_db
 from app.services import diagnosis_service
+from app.services.diagnosis_report_service import create_diagnosis_report_chats
 from app.schemas.diagnosis import (
     DiagnosisSessionCreateResponse,
     DiagnosisQuestionResponse,
     DiagnosisAnswerRequest,
+    DiagnosisReportRequest,
     DiagnosisAnswerResponse,
     DiagnosisStatusResponse,
     DiagnosisNodeItem,
 )
 from app.ai.diagnosis_ai import DiagnosisAIError
+from app.models.project import Project
+from app.models.user import User
 
 router = APIRouter()
 
@@ -85,6 +90,52 @@ def submit_answer(project_id: int, body: DiagnosisAnswerRequest, db: Session = D
             updated_nodes=result["updated_nodes"],
         ),
         "message": "",
+    }
+
+
+@router.post("/{project_id}/report", response_model=None)
+def create_diagnosis_report(
+    project_id: int,
+    body: DiagnosisReportRequest,
+    current_user: User | None = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+):
+    """수준진단 결과를 채팅 리포트 메시지 2개로 생성"""
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    if current_user and project.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
+
+    user_id = current_user.user_id if current_user else body.user_id or project.user_id
+
+    try:
+        chats = create_diagnosis_report_chats(
+            db=db,
+            project_id=project_id,
+            session_id=body.session_id,
+            user_id=user_id,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    return {
+        "success": True,
+        "data": {
+            "messages": [
+                {
+                    "chat_id": chat.chat_id,
+                    "project_id": chat.project_id,
+                    "user_message": chat.user_message,
+                    "ai_response": chat.ai_response,
+                    "response_type": chat.response_type,
+                    "created_at": chat.created_at,
+                }
+                for chat in chats
+            ]
+        },
+        "message": "수준진단 리포트 생성 성공",
     }
 
 

@@ -39,6 +39,12 @@ class DiagnosisAnswerRequest(BaseModel):
     is_skipped: bool = False  # 스킵 시 score 계산 없이 WEAK 처리
 
 
+class DiagnosisReportRequest(BaseModel):
+    """수준진단 완료 후 채팅 리포트 생성 요청"""
+    session_id: str
+    user_id: Optional[int] = None
+
+
 class DiagnosisAnswerResponse(BaseModel):
     """진단 답변 처리 결과 — affects 노드 전체의 업데이트 결과 포함"""
     is_correct: Optional[bool] = None
