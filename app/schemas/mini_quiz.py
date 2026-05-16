@@ -19,3 +19,4 @@ class MiniQuizAnswerResponse(BaseModel):
     wrong_selected_option_ids: Optional[list[str]] = None
     invalid_selected_option_ids: Optional[list[str]] = None
     updated_node: Optional[dict] = None
+    result_message: Optional[dict] = None
