@@ -1,6 +1,12 @@
 # EEUM : PDF 기반 개인화 학습 및 수준 진단 AI 서비스
 
-> 포스터 추후 추가 예정
+<p align="center">
+  <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
+</p>
+
+<p align="center">
+  <a href="./docs/assets/images/capstone_52_poster.pdf">포스터 PDF 보기</a>
+</p>
 
 ## 목차
 
