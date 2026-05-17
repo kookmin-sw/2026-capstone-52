@@ -75,10 +75,9 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 >시연 영상 추가예정
 ---
 
-## 🏗️ 시스템 구조
+## 🏗️ 서비스 시스템 아키텍처
 
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/9e837668-4a6c-41bd-9f4d-a213d1e4e405" />
-<img width="1456" height="1212" alt="image" src="https://github.com/user-attachments/assets/33e28f94-5039-479a-9608-da2cf74f15be" />
+<img width="1536" alt="서비스 시스템 아키텍처" src="./docs/assets/images/eeum_service_architecture.png" />
 
 ---
 ## 👥 팀원 소개
