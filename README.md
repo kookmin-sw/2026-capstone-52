@@ -98,7 +98,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   </tr>
   <tr>
     <td align="center">songha327@kookmin.ac.kr</td>
-    <td align="center">hyeals2@kookmin.ac.kr</td>
+    <td align="center">hyeals22@gmail.com</td>
   </tr>
   <tr>
     <td align="center">Frontend</td>
