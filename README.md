@@ -83,40 +83,21 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ---
 ## 👥 팀원 소개
 
-<table>
-  <tr>
-    <td align="center" width="50%" height="220">
-      프로필 사진
-    </td>
-    <td align="center" width="50%" height="220">
-      프로필 사진
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><strong>이송하</strong></td>
-    <td align="center"><strong>민태윤</strong></td>
-  </tr>
-  <tr>
-    <td align="center">Frontend</td>
-    <td align="center">AI</td>
-  </tr>
-  <tr>
-    <td align="center" width="50%" height="220">
-      프로필 사진
-    </td>
-    <td align="center" width="50%" height="220">
-      프로필 사진
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><strong>조민정</strong></td>
-    <td align="center"><strong>박혜민</strong></td>
-  </tr>
-  <tr>
-    <td align="center">Backend</td>
-    <td align="center">Backend</td>
-  </tr>
-</table>
+| 이송하 | 민태윤 |
+|:------:|:------:|
+|<img src="./docs/assets/people/songha.png" width=150px, height=150px, alt="songha"/>|<img src="./docs/assets/people/taeyoon.png" width=150px, height=150px, alt="taeyoon"/>|
+|{학번}|{학번}|
+|{이메일}|{이메일}|
+|Frontend|AI|
+|[@{github-id}](https://github.com/{github-id})|[@{github-id}](https://github.com/{github-id})|
+
+| 조민정 | 박혜민 |
+|:------:|:------:|
+|<img src="./docs/assets/people/minjeong.png" width=150px, height=150px, alt="minjeong"/>|<img src="./docs/assets/people/hyemin.png" width=150px, height=150px, alt="hyemin"/>|
+|{학번}|{학번}|
+|{이메일}|{이메일}|
+|Backend|Backend|
+|[@{github-id}](https://github.com/{github-id})|[@{github-id}](https://github.com/{github-id})|
 
 ---
 
