@@ -7,7 +7,7 @@ from app.models.user import User
 from app.schemas.project import ProjectCreate
 from app.models.project import Project
 from app.schemas.chat import ChatSessionCreate, ChatSessionResponse
-from app.services.project_service import create_project, get_projects_by_user
+from app.services.project_service import create_project, delete_project, get_projects_by_user
 from app.services.chat_service import create_chat_session, get_chat_sessions_by_project
 from app.utils.response import success_response
 
@@ -53,6 +53,22 @@ def get_my_projects_api(current_user: User = Depends(get_current_user), db: Sess
     ]
 
     return success_response(data, "프로젝트 목록 조회 성공")
+
+
+@router.delete("/{project_id}")
+def delete_project_api(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    if project.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
+
+    delete_project(db, project)
+    return success_response({"project_id": project_id}, "프로젝트가 삭제되었습니다.")
 
 
 @router.post("/{project_id}/chat-sessions", response_model=None)
