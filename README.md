@@ -83,14 +83,14 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ---
 ## 👥 팀원 소개
 
-<table width="100%">
+<table>
   <tr>
-    <th width="50%" align="center">이송하</th>
-    <th width="50%" align="center">박혜민</th>
+    <th width="300" align="center">이송하</th>
+    <th width="300" align="center">박혜민</th>
   </tr>
   <tr>
-    <td align="center"><img src="./docs/assets/people/songha.png" width="150" height="150" alt="songha"/></td>
-    <td align="center"><img src="./docs/assets/people/hyemin.png" width="150" height="150" alt="hyemin"/></td>
+    <td align="center"><img src="./docs/assets/people/songha.png" width="190" height="190" alt="songha"/></td>
+    <td align="center"><img src="./docs/assets/people/hyemin.png" width="190" height="190" alt="hyemin"/></td>
   </tr>
   <tr>
     <td align="center">20215210</td>
@@ -108,16 +108,13 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
     <td align="center"><a href="https://github.com/hassong327">@hassong327</a></td>
     <td align="center"><a href="https://github.com/hyeals2">@hyeals2</a></td>
   </tr>
-</table>
-
-<table width="100%">
   <tr>
-    <th width="50%" align="center">조민정</th>
-    <th width="50%" align="center">민태윤</th>
+    <th width="300" align="center">조민정</th>
+    <th width="300" align="center">민태윤</th>
   </tr>
   <tr>
-    <td align="center"><img src="./docs/assets/people/minjeong.png" width="150" height="150" alt="minjeong"/></td>
-    <td align="center"><img src="./docs/assets/people/taeyoon.png" width="150" height="150" alt="taeyoon"/></td>
+    <td align="center"><img src="./docs/assets/people/minjeong.png" width="190" height="190" alt="minjeong"/></td>
+    <td align="center"><img src="./docs/assets/people/taeyoon.png" width="190" height="190" alt="taeyoon"/></td>
   </tr>
   <tr>
     <td align="center">20231895</td>
