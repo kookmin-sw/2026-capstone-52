@@ -1,8 +1,19 @@
 BEGIN;
 
 -- 2.1 Project unique constraint (user_id + project_domain)
-ALTER TABLE projects
-    ADD CONSTRAINT IF NOT EXISTS uq_project_user_domain UNIQUE (user_id, project_domain);
+-- 2.1 Project unique constraint (user_id + project_domain)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'projects'::regclass
+          AND conname = 'uq_project_user_domain'
+    ) THEN
+        ALTER TABLE projects
+            ADD CONSTRAINT uq_project_user_domain UNIQUE (user_id, project_domain);
+    END IF;
+END $$;
 
 -- 2.2 ChatSession 테이블 추가
 CREATE TABLE IF NOT EXISTS chat_sessions (
