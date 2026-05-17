@@ -20,6 +20,7 @@ from app.services.chat_service import (
     create_chat_session,
     get_chat_sessions_by_project,
     get_chats_by_session,
+    get_chat_session,
     get_or_create_default_session,
 )
 from app.services.concept_quiz_counter_service import (
@@ -88,13 +89,19 @@ def chat(
         ],
     }
 
-    # session_id가 있으면 해당 세션 대화만, 없으면 project 전체 최근 10개
-    chat_filter = [Chat.project_id == project_id]
     if session_id:
-        chat_filter.append(Chat.session_id == session_id)
+        chat_session = get_chat_session(db, project_id, session_id)
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="채팅방을 찾을 수 없습니다.")
+    else:
+        # 기존 API 호환: session_id 없이 호출하면 기본 채팅방 기준으로 처리
+        chat_session = get_or_create_default_session(db, project_id)
+    resolved_session_id = chat_session.id
+
+    # AI 문맥, 저장 위치, 미니퀴즈 카운트 기준을 같은 채팅방으로 맞춤
     recent_chats = (
         db.query(Chat)
-        .filter(*chat_filter)
+        .filter(Chat.project_id == project_id, Chat.session_id == resolved_session_id)
         .order_by(Chat.created_at.desc())
         .limit(10)
         .all()
@@ -144,8 +151,6 @@ def chat(
     except NotImplementedError:
         ai_reply = "AI 응답 생성 로직 연결 전입니다."
 
-    # session_id 없으면 default 세션에 저장 (기존 API 호환)
-    resolved_session_id = session_id or get_or_create_default_session(db, project_id).id
     chat_log = save_chat(
         db=db,
         project_id=project_id,
@@ -179,6 +184,7 @@ def chat(
 
     data = {
         "chat_id": chat_log.chat_id,
+        "session_id": resolved_session_id,
         "user_id": chat_log.user_id,
         "project_id": chat_log.project_id,
         "user_message": chat_log.user_message,
