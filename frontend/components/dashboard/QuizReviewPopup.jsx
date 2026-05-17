@@ -47,14 +47,7 @@ export default function QuizReviewPopup({ entry, onClose }) {
                 <div key={choice.option_id || index} className={`quiz-review-popup-choice ${tone}`}>
                   <span className="quiz-review-popup-choice-index">{String.fromCharCode(65 + index)}</span>
                   <span className="quiz-review-popup-choice-text">{choice.text}</span>
-                  <span className="quiz-review-popup-choice-tags">
-                    {isCorrect ? (
-                      <span className="quiz-review-popup-tag quiz-review-popup-tag-correct">정답</span>
-                    ) : null}
-                    {choice.is_selected && !isCorrect ? (
-                      <span className="quiz-review-popup-tag quiz-review-popup-tag-wrong">내 답</span>
-                    ) : null}
-                  </span>
+                  {choice.is_selected ? <span className="quiz-review-popup-selected-check">✓</span> : null}
                 </div>
               );
             })}

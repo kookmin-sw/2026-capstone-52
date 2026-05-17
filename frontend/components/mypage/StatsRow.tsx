@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { MyPageStats } from "@/types/profile";
 
 const statConfig: Array<{ key: keyof MyPageStats; label: string; className: string; valueClassName: string }> = [
@@ -33,6 +34,54 @@ interface StatsRowProps {
   stats: MyPageStats;
 }
 
+const COUNT_UP_DURATION_MS = 3000;
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function CountUpValue({ value, className }: { value: number | string; className: string }) {
+  const numericValue = typeof value === "number" && Number.isFinite(value) ? value : null;
+  const [displayValue, setDisplayValue] = useState(numericValue ?? value);
+
+  useEffect(() => {
+    if (numericValue === null) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setDisplayValue(numericValue);
+      return;
+    }
+
+    let animationFrame = 0;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / COUNT_UP_DURATION_MS, 1);
+      const easedProgress = easeOutCubic(progress);
+
+      setDisplayValue(Math.round(numericValue * easedProgress));
+
+      if (progress < 1) {
+        animationFrame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    setDisplayValue(0);
+    animationFrame = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [numericValue, value]);
+
+  return <strong className={`text-[2.15rem] font-black leading-none ${className}`}>{displayValue}</strong>;
+}
+
 export default function StatsRow({ stats }: StatsRowProps) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -41,7 +90,7 @@ export default function StatsRow({ stats }: StatsRowProps) {
           key={item.key}
           className={`flex h-[104px] min-w-[136px] flex-col items-center justify-center rounded-[1.25rem] px-6 ${item.className}`}
         >
-          <strong className={`text-[2.15rem] font-black leading-none ${item.valueClassName}`}>{stats[item.key]}</strong>
+          <CountUpValue value={stats[item.key]} className={item.valueClassName} />
           <span className="mt-3 text-[0.72rem] font-black text-[#62607c]">{item.label}</span>
         </div>
       ))}

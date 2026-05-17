@@ -48,7 +48,6 @@ const MOCK_QUESTIONS_BY_NODE_ID = {
       { option_id: "B", text: "스레드는 같은 프로세스 내의 자원을 공유할 수 있다." },
       { option_id: "C", text: "스레드는 항상 프로세스보다 생성 비용이 크다." },
       { option_id: "D", text: "하나의 프로세스는 여러 개의 스레드를 가질 수 있다." },
-      { option_id: "E", text: "잘 모르겠어요." },
     ],
   },
   "mock-node-context-switch": {
@@ -63,7 +62,6 @@ const MOCK_QUESTIONS_BY_NODE_ID = {
       { option_id: "B", text: "현재 실행 상태를 저장하고 다음 실행 상태를 복원한다." },
       { option_id: "C", text: "문맥 교환은 오버헤드를 발생시킬 수 있다." },
       { option_id: "D", text: "문맥 교환이 많아질수록 항상 성능이 향상된다." },
-      { option_id: "E", text: "잘 모르겠어요." },
     ],
   },
   "mock-node-fcfs": {
@@ -78,7 +76,6 @@ const MOCK_QUESTIONS_BY_NODE_ID = {
       { option_id: "B", text: "구현이 비교적 단순하다." },
       { option_id: "C", text: "짧은 작업이 긴 작업 뒤에서 오래 기다릴 수 있다." },
       { option_id: "D", text: "항상 평균 대기 시간이 가장 짧다." },
-      { option_id: "E", text: "잘 모르겠어요." },
     ],
   },
   "mock-node-virtual-memory": {
@@ -93,7 +90,6 @@ const MOCK_QUESTIONS_BY_NODE_ID = {
       { option_id: "B", text: "필요한 페이지를 메모리에 올리는 방식과 관련이 있다." },
       { option_id: "C", text: "가상 메모리를 사용하면 페이지 폴트가 절대 발생하지 않는다." },
       { option_id: "D", text: "메모리 관리의 유연성을 높일 수 있다." },
-      { option_id: "E", text: "잘 모르겠어요." },
     ],
   },
   "mock-node-deadlock": {
@@ -108,7 +104,6 @@ const MOCK_QUESTIONS_BY_NODE_ID = {
       { option_id: "B", text: "상호 배제, 점유와 대기, 비선점, 순환 대기 조건과 관련이 있다." },
       { option_id: "C", text: "교착 상태가 발생하면 프로세스들이 계속 정상적으로 실행된다." },
       { option_id: "D", text: "자원 할당 순서를 제한하면 교착 상태 예방에 도움이 될 수 있다." },
-      { option_id: "E", text: "잘 모르겠어요." },
     ],
   },
 };

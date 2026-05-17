@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import EeumIcon from "@/components/common/EeumIcon";
 import {
   generateApiMiniQuizQuestion,
   isMiniQuizBackendApiEnabled,
@@ -27,6 +26,37 @@ function normalizeChoice(choice, index) {
   return { id: String(index), optionId: null, label: String(choice) };
 }
 
+function isUnknownChoice(choice) {
+  return /잘\s*모르겠어요/.test(choice?.label || "");
+}
+
+function buildReviewEntry({ question, choices, result, selectedOptionIds, currentTarget }) {
+  const correctSet = new Set(Array.isArray(result.correct_option_ids) ? result.correct_option_ids : []);
+  const selectedFromResult = Array.isArray(result.selected_option_ids)
+    ? result.selected_option_ids
+    : selectedOptionIds;
+  const selectedSet = new Set(selectedFromResult);
+
+  return {
+    question_id: question.question_id,
+    concept_id: question.concept_id || currentTarget.nodeId,
+    question: question.question,
+    choices: choices.map((choice) => ({
+      option_id: choice.optionId || choice.id,
+      text: choice.label,
+      is_correct: choice.optionId ? correctSet.has(choice.optionId) : false,
+      is_selected: choice.optionId ? selectedSet.has(choice.optionId) : false,
+    })),
+    correct_option_ids: Array.from(correctSet),
+    selected_option_ids: selectedFromResult,
+    is_fully_correct: result.is_fully_correct ?? null,
+    partial_score: result.partial_score ?? null,
+    answer_score: result.answer_score ?? null,
+    // 백엔드 QuizQuestionReview.source 와 동일 값 — 추후 백엔드 응답으로 대체될 수 있음.
+    source: "mini_quiz",
+  };
+}
+
 export default function MiniQuizPopup({
   projectId,
   conceptNodeId,
@@ -47,13 +77,22 @@ export default function MiniQuizPopup({
     }
     return [];
   }, [conceptQueue, conceptNodeId, conceptName]);
+  const queueKey = useMemo(
+    () =>
+      queue
+        .map((item) => `${item.nodeId || ""}:${item.presetQuestion?.question_id || ""}`)
+        .join("|"),
+    [queue]
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [step, setStep] = useState("loading"); // loading | quiz | result | error
+  const [visibleQuestionIndex, setVisibleQuestionIndex] = useState(0);
+  const [step, setStep] = useState("loading"); // loading | quiz | complete | answers | error
   const [question, setQuestion] = useState(null);
   const [choices, setChoices] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [result, setResult] = useState(null);
+  const [submittedResults, setSubmittedResults] = useState([]);
+  const [answerIndex, setAnswerIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   // 제출이 완료된 노드만 부모에게 보고 — 닫기로 끝낸 미풀이 항목은 제외해 deferred/trigger를 유지한다.
   const completedNodeIdsRef = useRef(new Set());
@@ -61,9 +100,39 @@ export default function MiniQuizPopup({
   const currentTarget = queue[currentIndex] || null;
   const totalCount = queue.length;
   const isLastInQueue = totalCount > 0 && currentIndex >= totalCount - 1;
+  const shouldUseMockMiniQuiz = Boolean(currentTarget?.useMockMiniQuiz);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+    setVisibleQuestionIndex(0);
+    setSelectedIds([]);
+    setSubmittedResults([]);
+    setAnswerIndex(0);
+    setErrorMessage("");
+    completedNodeIdsRef.current.clear();
+  }, [projectId, queueKey]);
 
   function handleClose() {
     onClose?.({ completedNodeIds: Array.from(completedNodeIdsRef.current) });
+  }
+
+  function completeQuiz(nextSubmittedResults) {
+    if (typeof onResult === "function") {
+      nextSubmittedResults.forEach((entry) => {
+        onResult({
+          nodeId: entry.currentTarget.nodeId,
+          conceptName: entry.currentTarget.name,
+          reviewEntry: entry.reviewEntry,
+        });
+      });
+    }
+
+    nextSubmittedResults.forEach((entry) => {
+      if (entry.currentTarget?.nodeId) {
+        completedNodeIdsRef.current.add(entry.currentTarget.nodeId);
+      }
+    });
+    setStep("complete");
   }
 
   useEffect(() => {
@@ -74,14 +143,14 @@ export default function MiniQuizPopup({
     let cancelled = false;
     setStep("loading");
     setSelectedIds([]);
-    setResult(null);
     setErrorMessage("");
 
     const preset = currentTarget.presetQuestion;
     if (preset && preset.question_id) {
       const rawChoices = Array.isArray(preset.choices) ? preset.choices : [];
       setQuestion(preset);
-      setChoices(rawChoices.map(normalizeChoice));
+      setChoices(rawChoices.map(normalizeChoice).filter((choice) => !isUnknownChoice(choice)));
+      setVisibleQuestionIndex(currentIndex);
       setStep("quiz");
       return () => {
         cancelled = true;
@@ -90,13 +159,14 @@ export default function MiniQuizPopup({
 
     (async () => {
       try {
-        const data = isMiniQuizBackendApiEnabled
+        const data = isMiniQuizBackendApiEnabled && !shouldUseMockMiniQuiz
           ? await generateApiMiniQuizQuestion(projectId, currentTarget.nodeId)
           : await delay(MOCK_LATENCY_MS).then(() => getMockMiniQuizQuestion(currentTarget.nodeId));
         if (cancelled) return;
         const rawChoices = Array.isArray(data?.choices) ? data.choices : [];
         setQuestion(data);
-        setChoices(rawChoices.map(normalizeChoice));
+        setChoices(rawChoices.map(normalizeChoice).filter((choice) => !isUnknownChoice(choice)));
+        setVisibleQuestionIndex(currentIndex);
         setStep("quiz");
       } catch (error) {
         if (cancelled) return;
@@ -108,15 +178,30 @@ export default function MiniQuizPopup({
     return () => {
       cancelled = true;
     };
-  }, [projectId, currentTarget?.nodeId, currentTarget?.presetQuestion?.question_id]);
+  }, [projectId, currentTarget?.nodeId, currentTarget?.presetQuestion?.question_id, shouldUseMockMiniQuiz]);
 
   const isMultiSelect = question?.question_type === "multi_select";
 
   function toggleChoice(choiceId) {
+    const clickedChoice = choices.find((choice) => choice.id === choiceId);
+    const unknownChoice = choices.find(isUnknownChoice);
+    const isClickedUnknown = isUnknownChoice(clickedChoice);
+
+    if (isClickedUnknown) {
+      setSelectedIds((current) => (current.includes(choiceId) ? [] : [choiceId]));
+      return;
+    }
+
     if (isMultiSelect) {
-      setSelectedIds((current) =>
-        current.includes(choiceId) ? current.filter((id) => id !== choiceId) : [...current, choiceId]
-      );
+      setSelectedIds((current) => {
+        const currentWithoutUnknown = unknownChoice
+          ? current.filter((id) => id !== unknownChoice.id)
+          : current;
+
+        return currentWithoutUnknown.includes(choiceId)
+          ? currentWithoutUnknown.filter((id) => id !== choiceId)
+          : [...currentWithoutUnknown, choiceId];
+      });
     } else {
       setSelectedIds([choiceId]);
     }
@@ -132,7 +217,7 @@ export default function MiniQuizPopup({
 
     setStep("loading");
     try {
-      const data = isMiniQuizBackendApiEnabled
+      const data = isMiniQuizBackendApiEnabled && !shouldUseMockMiniQuiz
         ? await submitApiMiniQuizAnswer(projectId, question.question_id, {
             selectedOptionIds: skipped ? null : selectedOptionIds.length ? selectedOptionIds : null,
             isSkipped: skipped,
@@ -140,76 +225,73 @@ export default function MiniQuizPopup({
         : await delay(MOCK_LATENCY_MS).then(() =>
             buildMockMiniQuizAnswerResponse(question.question_id, skipped ? [] : selectedOptionIds, skipped)
           );
-      setResult(data);
-      setStep("result");
+      const reviewEntry = buildReviewEntry({
+        question,
+        choices,
+        result: data,
+        selectedOptionIds,
+        currentTarget,
+      });
+      const nextSubmittedResults = [
+        ...submittedResults,
+        {
+          currentTarget,
+          question,
+          choices,
+          result: data,
+          selectedOptionIds: reviewEntry.selected_option_ids,
+          reviewEntry,
+        },
+      ];
 
-      // 풀이 이력에 즉시 반영할 수 있도록 backend QuizQuestionReview 와 동일 shape로 전달.
-      if (typeof onResult === "function" && currentTarget) {
-        const correctSet = new Set(Array.isArray(data.correct_option_ids) ? data.correct_option_ids : []);
-        const selectedFromResult = Array.isArray(data.selected_option_ids)
-          ? data.selected_option_ids
-          : selectedOptionIds;
-        const selectedSet = new Set(selectedFromResult);
-        const reviewEntry = {
-          question_id: question.question_id,
-          concept_id: question.concept_id || currentTarget.nodeId,
-          question: question.question,
-          choices: choices.map((choice) => ({
-            option_id: choice.optionId || choice.id,
-            text: choice.label,
-            is_correct: choice.optionId ? correctSet.has(choice.optionId) : false,
-            is_selected: choice.optionId ? selectedSet.has(choice.optionId) : false,
-          })),
-          correct_option_ids: Array.from(correctSet),
-          selected_option_ids: selectedFromResult,
-          is_fully_correct: data.is_fully_correct ?? null,
-          partial_score: data.partial_score ?? null,
-          answer_score: data.answer_score ?? null,
-          // 백엔드 QuizQuestionReview.source 와 동일 값 — 추후 백엔드 응답으로 대체될 수 있음.
-          source: "mini_quiz",
-        };
-        onResult({ nodeId: currentTarget.nodeId, conceptName: currentTarget.name, reviewEntry });
+      setSubmittedResults(nextSubmittedResults);
+
+      if (isLastInQueue) {
+        completeQuiz(nextSubmittedResults);
+        return;
       }
-      if (currentTarget?.nodeId) {
-        completedNodeIdsRef.current.add(currentTarget.nodeId);
-      }
+
+      setCurrentIndex((current) => current + 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "미니퀴즈 제출에 실패했습니다.");
       setStep("error");
     }
   }
 
-  function handleAdvance() {
-    if (isLastInQueue) {
-      handleClose();
-      return;
-    }
-    setCurrentIndex((current) => current + 1);
-  }
-
-  const correctOptionIds = Array.isArray(result?.correct_option_ids) ? result.correct_option_ids : [];
-  const selectedOptionIdsFromResult = Array.isArray(result?.selected_option_ids)
-    ? result.selected_option_ids
-    : [];
+  const currentAnswer = submittedResults[answerIndex] || null;
+  const isLastAnswer = answerIndex >= submittedResults.length - 1;
+  const answerVerdictLabel = currentAnswer?.result?.is_fully_correct ? "정답" : "오답";
+  const answerVerdictTone = currentAnswer?.result?.is_fully_correct ? "correct" : "wrong";
+  const displayCurrentNumber =
+    step === "answers"
+      ? answerIndex + 1
+      : step === "complete"
+        ? submittedResults.length || totalCount
+        : Math.min(visibleQuestionIndex + 1, totalCount || 1);
+  const displayTotalNumber = step === "answers" || step === "complete" ? submittedResults.length || totalCount : totalCount;
 
   return (
     <div className="mini-quiz-popup-backdrop" role="dialog" aria-modal="true" aria-label="미니 퀴즈">
       <div className="mini-quiz-popup-card">
         <header className="mini-quiz-popup-head">
-          <div className="mini-quiz-popup-brand">
-            <EeumIcon className="mini-quiz-popup-icon" />
+          <div className="mini-quiz-popup-title-wrap">
             <strong>미니 퀴즈</strong>
-            {currentTarget?.name ? (
-              <span className="mini-quiz-popup-concept">{currentTarget.name}</span>
-            ) : null}
-            {totalCount > 1 ? (
-              <span className="mini-quiz-popup-progress">
-                {currentIndex + 1} / {totalCount}
+            {step === "answers" && currentAnswer ? (
+              <span className={`mini-quiz-popup-verdict mini-quiz-popup-verdict-${answerVerdictTone}`}>
+                {answerVerdictLabel}
               </span>
             ) : null}
           </div>
+          <span className="mini-quiz-popup-progress">
+            {displayCurrentNumber} / {displayTotalNumber}
+          </span>
           <button type="button" className="mini-quiz-popup-close" onClick={handleClose} aria-label="닫기">
-            ×
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12.78 4.28a.75.75 0 00-1.06-1.06L8 6.94 4.28 3.22a.75.75 0 00-1.06 1.06L6.94 8l-3.72 3.72a.75.75 0 101.06 1.06L8 9.06l3.72 3.72a.75.75 0 101.06-1.06L9.06 8l3.72-3.72z"
+              />
+            </svg>
           </button>
         </header>
 
@@ -266,34 +348,86 @@ export default function MiniQuizPopup({
           </div>
         ) : null}
 
-        {step === "result" && result ? (
+        {step === "complete" ? (
           <div className="mini-quiz-popup-body">
-            <h2 className="mini-quiz-popup-question">
-              {result.is_fully_correct ? "정답이에요! 🎉" : "다시 한 번 살펴봐요"}
-            </h2>
-            <div className="mini-quiz-popup-choices">
-              {choices.map((choice) => {
-                const isCorrect = choice.optionId && correctOptionIds.includes(choice.optionId);
-                const wasSelected = choice.optionId && selectedOptionIdsFromResult.includes(choice.optionId);
-                let tone = "";
-                if (isCorrect) tone = "mini-quiz-popup-choice-correct";
-                else if (wasSelected) tone = "mini-quiz-popup-choice-wrong";
-                return (
-                  <div key={choice.id} className={`mini-quiz-popup-choice mini-quiz-popup-choice-static ${tone}`}>
-                    <span>{choice.label}</span>
-                    {isCorrect ? <span className="mini-quiz-popup-tag">정답</span> : null}
-                    {wasSelected && !isCorrect ? <span className="mini-quiz-popup-tag">선택</span> : null}
-                  </div>
-                );
-              })}
-            </div>
+            <h2 className="mini-quiz-popup-question">퀴즈를 모두 풀었어요.</h2>
+            <p className="mini-quiz-popup-summary-copy">
+              답안을 확인하거나 채팅으로 돌아갈 수 있습니다.
+            </p>
             <div className="mini-quiz-popup-actions">
               <button
                 type="button"
-                className="mini-quiz-popup-action mini-quiz-popup-action-primary"
-                onClick={handleAdvance}
+                className="mini-quiz-popup-action mini-quiz-popup-action-secondary"
+                onClick={() => {
+                  setAnswerIndex(0);
+                  setStep("answers");
+                }}
               >
-                {isLastInQueue ? "채팅으로 돌아가기" : "다음 문제 →"}
+                답안 보기
+              </button>
+              <button
+                type="button"
+                className="mini-quiz-popup-action mini-quiz-popup-action-primary"
+                onClick={handleClose}
+              >
+                돌아가기
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {step === "answers" && currentAnswer ? (
+          <div className="mini-quiz-popup-body">
+            <section className="mini-quiz-popup-answer-item">
+              <h3>
+                {answerIndex + 1} / {submittedResults.length}. {currentAnswer.question.question}
+              </h3>
+              <div className="mini-quiz-popup-choices">
+                {currentAnswer.choices.map((choice) => {
+                  const correctOptionIds = Array.isArray(currentAnswer.result?.correct_option_ids)
+                    ? currentAnswer.result.correct_option_ids
+                    : [];
+                  const selectedOptionIdsFromResult = Array.isArray(currentAnswer.result?.selected_option_ids)
+                    ? currentAnswer.result.selected_option_ids
+                    : currentAnswer.selectedOptionIds;
+                  const isCorrect = choice.optionId && correctOptionIds.includes(choice.optionId);
+                  const wasSelected = choice.optionId && selectedOptionIdsFromResult.includes(choice.optionId);
+                  let tone = "";
+                  if (isCorrect) tone = "mini-quiz-popup-choice-correct";
+                  else if (wasSelected) tone = "mini-quiz-popup-choice-wrong";
+
+                  return (
+                    <div key={choice.id} className={`mini-quiz-popup-choice mini-quiz-popup-choice-static ${tone}`}>
+                      <span>{choice.label}</span>
+                      {wasSelected ? <span className="mini-quiz-popup-selected-check">✓</span> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+            <div className="mini-quiz-popup-actions">
+              {answerIndex > 0 ? (
+                <button
+                  type="button"
+                  className="mini-quiz-popup-action mini-quiz-popup-action-secondary"
+                  onClick={() => setAnswerIndex((current) => Math.max(0, current - 1))}
+                >
+                  이전 문제
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="mini-quiz-popup-action mini-quiz-popup-action-primary"
+                onClick={() => {
+                  if (isLastAnswer) {
+                    handleClose();
+                    return;
+                  }
+
+                  setAnswerIndex((current) => Math.min(submittedResults.length - 1, current + 1));
+                }}
+              >
+                {isLastAnswer ? "돌아가기" : "다음 문제 →"}
               </button>
             </div>
           </div>

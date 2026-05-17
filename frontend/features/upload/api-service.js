@@ -5,6 +5,7 @@ const STATUS_LABELS = {
   PROCESSING: { status: "분석 중", statusTone: "working" },
   DONE: { status: "분석 완료", statusTone: "done" },
   FAILED: { status: "분석 실패", statusTone: "error" },
+  REJECTED: { status: "분석 제외", statusTone: "rejected" },
 };
 
 function formatUploadedAt(value) {
@@ -99,7 +100,7 @@ export async function getApiAnalysisStatus(fileId) {
 export async function refreshApiAnalysisStatuses(files) {
   const statusEntries = await Promise.all(
     files.map(async (file) => {
-      if (file.rawStatus === "DONE" || file.rawStatus === "FAILED") {
+      if (file.rawStatus === "DONE" || file.rawStatus === "FAILED" || file.rawStatus === "REJECTED") {
         return [file.id, file.rawStatus];
       }
 

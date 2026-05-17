@@ -1,32 +1,32 @@
-const UPLOAD_STORAGE_KEY = "eeum-upload-mock-v1";
+const UPLOAD_STORAGE_KEY = "eeum-upload-mock-v2";
 
 const defaultUploadState = {
   os: [
     {
       id: "os-seed-1",
-      name: "11월11일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.01 09:10",
+      name: "Practice1.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
       status: "분석 완료",
       statusTone: "done",
       analyzeRequestedAt: null,
-      completedAt: "2026.04.01 09:14"
+      completedAt: "2026.04.23 16:58"
     },
     {
       id: "os-seed-2",
-      name: "11월13일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.02 11:40",
-      status: "분석 완료",
-      statusTone: "done",
+      name: "QLabs Virtual QCar 2 Data Sheet.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
+      status: "분석 중",
+      statusTone: "working",
       analyzeRequestedAt: null,
-      completedAt: "2026.04.02 11:45"
+      completedAt: null
     },
     {
       id: "os-seed-3",
-      name: "11월18일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.03 14:30",
+      name: "교육커리큘럼_Unity 활용 MR_AR_VR 콘텐츠 제작.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
       status: "대기 중",
       statusTone: "idle",
       analyzeRequestedAt: null,
@@ -34,33 +34,33 @@ const defaultUploadState = {
     },
     {
       id: "os-seed-4",
-      name: "11월20일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.03 16:20",
-      status: "분석 중",
-      statusTone: "working",
-      analyzeRequestedAt: Date.now() - 60_000,
+      name: "QCar 2-Product Data Sheet.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
+      status: "분석 실패",
+      statusTone: "error",
+      analyzeRequestedAt: null,
       completedAt: null
     },
     {
       id: "os-seed-5",
-      name: "11월25일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.05 10:05",
-      status: "분석 완료",
-      statusTone: "done",
+      name: "22AKSAE_J051.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
+      status: "분석 제외",
+      statusTone: "rejected",
       analyzeRequestedAt: null,
-      completedAt: "2026.04.05 10:08"
+      completedAt: null
     },
     {
       id: "os-seed-6",
-      name: "11월27일.txt",
-      subject: "운영체제",
-      uploadedAt: "2026.04.07 13:45",
+      name: "1th_report.pdf",
+      subject: "운영체제 개념 정리",
+      uploadedAt: "2026.04.23 16:54",
       status: "분석 완료",
       statusTone: "done",
       analyzeRequestedAt: null,
-      completedAt: "2026.04.07 13:51"
+      completedAt: "2026.04.23 17:01"
     }
   ]
 };
