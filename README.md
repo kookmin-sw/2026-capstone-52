@@ -83,21 +83,59 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ---
 ## 👥 팀원 소개
 
-| 이송하 | 민태윤 |
-|:------:|:------:|
-|<img src="./docs/assets/people/songha.png" width=150px, height=150px, alt="songha"/>|<img src="./docs/assets/people/taeyoon.png" width=150px, height=150px, alt="taeyoon"/>|
-|{학번}|{학번}|
-|{이메일}|{이메일}|
-|Frontend|AI|
-|[@{github-id}](https://github.com/{github-id})|[@{github-id}](https://github.com/{github-id})|
+<table width="100%">
+  <tr>
+    <th width="50%" align="center">이송하</th>
+    <th width="50%" align="center">박혜민</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="./docs/assets/people/songha.png" width="150" height="150" alt="songha"/></td>
+    <td align="center"><img src="./docs/assets/people/hyemin.png" width="150" height="150" alt="hyemin"/></td>
+  </tr>
+  <tr>
+    <td align="center">20215210</td>
+    <td align="center">20222971</td>
+  </tr>
+  <tr>
+    <td align="center">songha327@kookmin.ac.kr</td>
+    <td align="center">hyeals2@kookmin.ac.kr</td>
+  </tr>
+  <tr>
+    <td align="center">Frontend</td>
+    <td align="center">Backend</td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/hassong327">@hassong327</a></td>
+    <td align="center"><a href="https://github.com/hyeals2">@hyeals2</a></td>
+  </tr>
+</table>
 
-| 조민정 | 박혜민 |
-|:------:|:------:|
-|<img src="./docs/assets/people/minjeong.png" width=150px, height=150px, alt="minjeong"/>|<img src="./docs/assets/people/hyemin.png" width=150px, height=150px, alt="hyemin"/>|
-|{학번}|{학번}|
-|{이메일}|{이메일}|
-|Backend|Backend|
-|[@{github-id}](https://github.com/{github-id})|[@{github-id}](https://github.com/{github-id})|
+<table width="100%">
+  <tr>
+    <th width="50%" align="center">조민정</th>
+    <th width="50%" align="center">민태윤</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="./docs/assets/people/minjeong.png" width="150" height="150" alt="minjeong"/></td>
+    <td align="center"><img src="./docs/assets/people/taeyoon.png" width="150" height="150" alt="taeyoon"/></td>
+  </tr>
+  <tr>
+    <td align="center">20231895</td>
+    <td align="center">20233138</td>
+  </tr>
+  <tr>
+    <td align="center">chominjung821@kookmin.ac.kr</td>
+    <td align="center">mintaeyoon@kookmin.ac.kr</td>
+  </tr>
+  <tr>
+    <td align="center">Backend</td>
+    <td align="center">AI</td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/itsminjeong">@itsminjeong</a></td>
+    <td align="center"><a href="https://github.com/Min-Taeyoon">@Min-Taeyoon</a></td>
+  </tr>
+</table>
 
 ---
 
