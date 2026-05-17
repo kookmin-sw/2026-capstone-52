@@ -14,7 +14,10 @@ class File(Base):
     project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.project_id"), nullable=False)
     file_name: Mapped[str] = mapped_column(String, nullable=False)   # 원본 파일명
     s3_key: Mapped[str] = mapped_column(String, nullable=False)       # S3 저장 경로
+    chat_session_id: Mapped[int] = mapped_column(Integer, ForeignKey("chat_sessions.id"), nullable=True)
     file_type: Mapped[str] = mapped_column(String, default="pdf")
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     analysis_status: Mapped[str] = mapped_column(String, default="UPLOADED")
-    # 분석 상태: UPLOADED → PROCESSING → DONE / FAILED
+    # 분석 상태: UPLOADED → PROCESSING → DONE / FAILED / REJECTED
+    relevance_status: Mapped[str] = mapped_column(String, default="UNCHECKED")
+    # 관련성 상태: UNCHECKED → RELEVANT / REJECTED

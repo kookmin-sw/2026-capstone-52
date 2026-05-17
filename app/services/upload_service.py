@@ -56,6 +56,16 @@ def run_analysis(file_id: str, project_id: int, s3_key: str):
             use_llm_normalization=True,
             max_core_concepts=10,
         )
+
+        if not _validate_material_relevance(ai_result, subject_id):
+            logger.warning(
+                "upload_relevance_rejected file_id=%s subject_id=%s", file_id, subject_id
+            )
+            _update_relevance_status(file_id, "REJECTED", db)
+            update_analysis_status(file_id, "REJECTED", db)
+            return
+
+        _update_relevance_status(file_id, "RELEVANT", db)
         save_graph_from_ai(project_id, file_id, ai_result, db)
         update_analysis_status(file_id, "DONE", db)
     except Exception as error:
@@ -68,6 +78,44 @@ def run_analysis(file_id: str, project_id: int, s3_key: str):
         update_analysis_status(file_id, "FAILED", db)
     finally:
         db.close()
+
+
+def _validate_material_relevance(ai_result: dict, subject_id: str) -> bool:
+    """AI 추출 결과가 해당 과목과 관련 있는지 판단 — deterministic rule 기반
+
+    통과 조건 (AND):
+    - normalized_concept_count >= 3  : 정규화된 개념이 3개 이상
+    - normalization_ratio >= 0.35    : 전체 개념 중 35% 이상이 정규화됨
+    - subject_specific_match_count >= 3 : 해당 과목 subject_id를 가진 개념이 3개 이상
+    """
+    concepts = ai_result.get("concepts", [])
+    if not concepts:
+        return False
+
+    total = len(concepts)
+    normalized = [c for c in concepts if c.get("concept_id")]
+    subject_matched = [
+        c for c in normalized
+        if (c.get("subject_id") or "").strip() == subject_id
+    ]
+
+    normalized_count = len(normalized)
+    ratio = normalized_count / total if total > 0 else 0.0
+    subject_match_count = len(subject_matched)
+
+    logger.info(
+        "relevance_check subject=%s total=%d normalized=%d ratio=%.2f subject_match=%d",
+        subject_id, total, normalized_count, ratio, subject_match_count,
+    )
+
+    return normalized_count >= 3 and ratio >= 0.35 and subject_match_count >= 3
+
+
+def _update_relevance_status(file_id: str, status: str, db: Session) -> None:
+    db_file = db.query(File).filter(File.file_id == file_id).first()
+    if db_file:
+        db_file.relevance_status = status
+        db.commit()
 
 
 def get_files_by_project(project_id: int, db: Session) -> list[File]:
