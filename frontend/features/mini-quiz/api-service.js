@@ -38,3 +38,16 @@ export async function getApiMiniQuizReview(projectId, questionIds) {
     method: "GET",
   });
 }
+
+export async function deferApiMiniQuizQuestion(projectId, nodeId) {
+  const query = `?node_id=${encodeURIComponent(nodeId)}`;
+  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/defer${query}`, {
+    method: "POST",
+  });
+}
+
+export async function getApiDeferredMiniQuizzes(projectId) {
+  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/deferred`, {
+    method: "GET",
+  });
+}

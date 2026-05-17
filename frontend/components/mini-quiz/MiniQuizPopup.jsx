@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import EeumIcon from "@/components/common/EeumIcon";
 import {
   generateApiMiniQuizQuestion,
@@ -55,10 +55,16 @@ export default function MiniQuizPopup({
   const [selectedIds, setSelectedIds] = useState([]);
   const [result, setResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  // 제출이 완료된 노드만 부모에게 보고 — 닫기로 끝낸 미풀이 항목은 제외해 deferred/trigger를 유지한다.
+  const completedNodeIdsRef = useRef(new Set());
 
   const currentTarget = queue[currentIndex] || null;
   const totalCount = queue.length;
   const isLastInQueue = totalCount > 0 && currentIndex >= totalCount - 1;
+
+  function handleClose() {
+    onClose?.({ completedNodeIds: Array.from(completedNodeIdsRef.current) });
+  }
 
   useEffect(() => {
     if (!projectId || !currentTarget) {
@@ -70,6 +76,17 @@ export default function MiniQuizPopup({
     setSelectedIds([]);
     setResult(null);
     setErrorMessage("");
+
+    const preset = currentTarget.presetQuestion;
+    if (preset && preset.question_id) {
+      const rawChoices = Array.isArray(preset.choices) ? preset.choices : [];
+      setQuestion(preset);
+      setChoices(rawChoices.map(normalizeChoice));
+      setStep("quiz");
+      return () => {
+        cancelled = true;
+      };
+    }
 
     (async () => {
       try {
@@ -91,7 +108,7 @@ export default function MiniQuizPopup({
     return () => {
       cancelled = true;
     };
-  }, [projectId, currentTarget?.nodeId]);
+  }, [projectId, currentTarget?.nodeId, currentTarget?.presetQuestion?.question_id]);
 
   const isMultiSelect = question?.question_type === "multi_select";
 
@@ -153,6 +170,9 @@ export default function MiniQuizPopup({
         };
         onResult({ nodeId: currentTarget.nodeId, conceptName: currentTarget.name, reviewEntry });
       }
+      if (currentTarget?.nodeId) {
+        completedNodeIdsRef.current.add(currentTarget.nodeId);
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "미니퀴즈 제출에 실패했습니다.");
       setStep("error");
@@ -161,7 +181,7 @@ export default function MiniQuizPopup({
 
   function handleAdvance() {
     if (isLastInQueue) {
-      onClose?.();
+      handleClose();
       return;
     }
     setCurrentIndex((current) => current + 1);
@@ -188,7 +208,7 @@ export default function MiniQuizPopup({
               </span>
             ) : null}
           </div>
-          <button type="button" className="mini-quiz-popup-close" onClick={onClose} aria-label="닫기">
+          <button type="button" className="mini-quiz-popup-close" onClick={handleClose} aria-label="닫기">
             ×
           </button>
         </header>
@@ -202,7 +222,7 @@ export default function MiniQuizPopup({
         {step === "error" ? (
           <div className="mini-quiz-popup-body mini-quiz-popup-error">
             <p>{errorMessage || "오류가 발생했습니다."}</p>
-            <button type="button" className="mini-quiz-popup-action" onClick={onClose}>
+            <button type="button" className="mini-quiz-popup-action" onClick={handleClose}>
               닫기
             </button>
           </div>

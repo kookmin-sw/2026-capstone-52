@@ -201,7 +201,10 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
     .sort((left, right) => Date.parse(normalizeApiDate(left.created_at)) - Date.parse(normalizeApiDate(right.created_at)));
   const messages = sortedLogs.flatMap((log) => {
     const isDiagnosisReport = typeof log.response_type === "string" && log.response_type.startsWith("diagnosis_report");
-    const userMessage = !isDiagnosisReport
+    const isDiagnosisReportSummary = log.response_type === "diagnosis_report_summary";
+    const isMiniQuizResult = log.response_type === "mini_quiz_result";
+    // 백엔드는 미니퀴즈 결과 채팅을 "미니퀴즈 결과"라는 user_message 마커와 함께 저장 — 실제 사용자 발화가 아니므로 숨긴다.
+    const userMessage = !isDiagnosisReport && !isMiniQuizResult
       ? {
           id: `api-chat-${log.chat_id}-user`,
           role: "user" as const,
@@ -216,7 +219,12 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
           id: `api-chat-${log.chat_id}-assistant`,
           role: "assistant" as const,
           text: log.ai_response,
-          variant: isDiagnosisReport ? ("diagnosis-report" as const) : undefined,
+          variant: isDiagnosisReport
+            ? ("diagnosis-report" as const)
+            : isMiniQuizResult
+              ? ("mini-quiz-result" as const)
+              : undefined,
+          attachment: isDiagnosisReportSummary ? ({ type: "graph-preview" } as const) : undefined,
           miniQuizReady: quizReadyConcepts.length
             ? quizReadyConcepts.map((concept) => ({ nodeId: concept.node_id, name: concept.name }))
             : undefined,
@@ -789,8 +797,7 @@ export type GraphNodeQuizHistoryItem = {
   partial_score?: number | null;
   answer_score?: number | null;
   explanation?: string | null;
-  // 백엔드 합의: "mini_quiz" | "diagnosis" — quiz_review.py 스펙 참조.
-  // 누락 시 프론트는 일단 "diagnosis"로 처리 (legacy 호환).
+  // 현재 백엔드 quiz_review 응답에는 source가 없다. 프론트에서 즉시 합성한 미니퀴즈 결과만 source를 가질 수 있다.
   source?: "mini_quiz" | "diagnosis" | null;
 };
 

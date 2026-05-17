@@ -12,7 +12,7 @@ type ApiCall = {
 };
 
 const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
-const knownBackendPathPattern = /^\/(?:api\/backend\/|api\/)(?:users|projects|chat|graph|mypage|learning-logs|explanation|upload|diagnosis)(?:\/|$)/;
+const knownBackendPathPattern = /^\/(?:api\/backend\/|api\/)(?:users|projects|chat|graph|mypage|learning-logs|explanation|upload|diagnosis|mini-quiz)(?:\/|$)/;
 
 function isBackendApiUrl(url: string) {
   const parsedUrl = new URL(url);
@@ -152,18 +152,18 @@ test.describe("frontend-backend API integration smoke", () => {
         label: "create or load current user",
         matches: (call) =>
           (call.method === "POST" && /^\/api\/users\/?$/.test(call.path)) ||
-          (call.method === "GET" && /^\/api\/users\/\d+$/.test(call.path)),
+          (call.method === "GET" && /^\/api\/users\/me$/.test(call.path)),
       },
-      { label: "save user profile", matches: (call) => call.method === "PATCH" && /^\/api\/users\/\d+$/.test(call.path) },
-      { label: "load user projects", matches: (call) => call.method === "GET" && /^\/api\/projects\/user\/\d+$/.test(call.path) },
+      { label: "save user profile", matches: (call) => call.method === "PATCH" && /^\/api\/users\/me$/.test(call.path) },
+      { label: "load user projects", matches: (call) => call.method === "GET" && /^\/api\/projects\/me$/.test(call.path) },
       { label: "create project from subject catalog", matches: (call) => call.method === "POST" && /^\/api\/projects\/?$/.test(call.path) },
       { label: "load project chats", matches: (call) => call.method === "GET" && /^\/api\/chat\/project\/\d+$/.test(call.path) },
       { label: "send chat message", matches: (call) => call.method === "POST" && /^\/api\/chat\/\d+$/.test(call.path) },
       { label: "load project graph", matches: (call) => call.method === "GET" && /^\/api\/graph\/\d+$/.test(call.path) },
       { label: "load recent graph nodes", matches: (call) => call.method === "GET" && /^\/api\/graph\/\d+\/recent$/.test(call.path) },
       { label: "load project memos", matches: (call) => call.method === "GET" && /^\/api\/projects\/\d+\/memos$/.test(call.path) },
-      { label: "load mypage", matches: (call) => call.method === "GET" && /^\/api\/mypage\/\d+$/.test(call.path) },
-      { label: "load learning logs", matches: (call) => call.method === "GET" && /^\/api\/learning-logs\/user\/\d+$/.test(call.path) },
+      { label: "load mypage", matches: (call) => call.method === "GET" && /^\/api\/mypage\/me$/.test(call.path) },
+      { label: "load learning logs", matches: (call) => call.method === "GET" && /^\/api\/learning-logs\/me$/.test(call.path) },
     ];
     const missingRequiredCalls = requiredCalls
       .filter((requiredCall) => !calls.some(requiredCall.matches))
