@@ -45,7 +45,11 @@ def generate_mini_quiz(
     except DiagnosisAIError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
-    return {"success": True, "data": DiagnosisQuestionResponse(**result), "message": ""}
+    return {
+        "success": True,
+        "data": [DiagnosisQuestionResponse(**q) for q in result["questions"]],
+        "message": "",
+    }
 
 
 @router.post("/{project_id}/submit", response_model=None)
@@ -117,7 +121,11 @@ def defer_mini_quiz(
     except DiagnosisAIError as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
 
-    return {"success": True, "data": DiagnosisQuestionResponse(**result), "message": ""}
+    return {
+        "success": True,
+        "data": [DiagnosisQuestionResponse(**q) for q in result["questions"]],
+        "message": "",
+    }
 
 
 @router.get("/{project_id}/deferred", response_model=None)

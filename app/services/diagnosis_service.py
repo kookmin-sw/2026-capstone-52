@@ -64,6 +64,16 @@ def create_diagnosis_question(
 
 def generate_next_question(project_id: int, db: Session, session_id: str | None = None) -> dict | None:
     """프로젝트 그래프에서 다음 진단 문항을 생성하고 teacher-side payload를 저장"""
+    # hard cap: 세션 내 답변 수가 TOTAL_QUESTIONS에 도달하면 더 이상 생성하지 않음
+    if session_id:
+        answered_count = (
+            db.query(DiagnosisAnswer)
+            .filter(DiagnosisAnswer.session_id == session_id)
+            .count()
+        )
+        if answered_count >= TOTAL_QUESTIONS:
+            return None
+
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     if not nodes:
         return None
