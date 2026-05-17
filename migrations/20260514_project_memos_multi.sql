@@ -21,7 +21,7 @@ BEGIN
         WHERE c.conrelid = 'project_memos'::regclass
           AND c.contype = 'u'
         GROUP BY c.conname
-        HAVING array_agg(a.attname ORDER BY a.attnum) = ARRAY['project_id']
+        HAVING array_agg(a.attname::text ORDER BY a.attnum) = ARRAY['project_id']
     LOOP
         EXECUTE format('ALTER TABLE project_memos DROP CONSTRAINT %I', constraint_name);
     END LOOP;
