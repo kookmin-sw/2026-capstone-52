@@ -11,6 +11,7 @@ def save_chat(
     chat_data: ChatRequest,
     ai_response: str,
     user_id: int | None = None,
+    session_id: int | None = None,
 ):
     resolved_user_id = user_id if user_id is not None else chat_data.user_id
 
@@ -20,6 +21,7 @@ def save_chat(
     chat = Chat(
         user_id=resolved_user_id,
         project_id=project_id,
+        session_id=session_id,
         user_message=chat_data.message,
         ai_response=ai_response,
         response_type=chat_data.response_type,

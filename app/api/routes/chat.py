@@ -20,6 +20,7 @@ from app.services.chat_service import (
     create_chat_session,
     get_chat_sessions_by_project,
     get_chats_by_session,
+    get_or_create_default_session,
 )
 from app.services.concept_quiz_counter_service import (
     TURN_CHECK_INTERVAL,
@@ -36,6 +37,7 @@ router = APIRouter()
 def chat(
     project_id: int,
     body: ChatRequest,
+    session_id: int | None = None,
     current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
@@ -85,9 +87,13 @@ def chat(
         ],
     }
 
+    # session_id가 있으면 해당 세션 대화만, 없으면 project 전체 최근 10개
+    chat_filter = [Chat.project_id == project_id]
+    if session_id:
+        chat_filter.append(Chat.session_id == session_id)
     recent_chats = (
         db.query(Chat)
-        .filter(Chat.project_id == project_id)
+        .filter(*chat_filter)
         .order_by(Chat.created_at.desc())
         .limit(10)
         .all()
@@ -137,12 +143,15 @@ def chat(
     except NotImplementedError:
         ai_reply = "AI 응답 생성 로직 연결 전입니다."
 
+    # session_id 없으면 default 세션에 저장 (기존 API 호환)
+    resolved_session_id = session_id or get_or_create_default_session(db, project_id).id
     chat_log = save_chat(
         db=db,
         project_id=project_id,
         chat_data=body,
         ai_response=ai_reply,
         user_id=user_id,
+        session_id=resolved_session_id,
     )
     counted_concepts = record_ai_response_concept_counts(
         db=db,
