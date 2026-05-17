@@ -131,6 +131,8 @@ def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> d
 
     q1 = _generate_one_question(node, target_concept, graph_context, subject_id, db)
     q2 = _generate_one_question(node, target_concept, graph_context, subject_id, db)
+    reset_concept_quiz_counter(db, project_id, node_id)
+    db.commit()
 
     return {"questions": [q1, q2]}
 

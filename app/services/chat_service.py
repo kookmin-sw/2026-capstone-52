@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.chat import Chat, ChatSession
+from app.models.file import File
 from app.models.learning_log import LearningLog
 from app.schemas.chat import ChatRequest
 
@@ -89,3 +90,21 @@ def get_or_create_default_session(db: Session, project_id: int) -> ChatSession:
     if existing:
         return existing
     return create_chat_session(db, project_id, title="기본 채팅방")
+
+
+def get_chat_session(db: Session, project_id: int, session_id: int) -> ChatSession | None:
+    return (
+        db.query(ChatSession)
+        .filter(ChatSession.project_id == project_id, ChatSession.id == session_id)
+        .first()
+    )
+
+
+def delete_chat_session(db: Session, session: ChatSession) -> None:
+    db.query(Chat).filter(Chat.session_id == session.id).delete(synchronize_session=False)
+    db.query(File).filter(File.chat_session_id == session.id).update(
+        {File.chat_session_id: None},
+        synchronize_session=False,
+    )
+    db.delete(session)
+    db.commit()
