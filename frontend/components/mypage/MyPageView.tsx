@@ -71,10 +71,10 @@ export default function MyPageView() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#faf9ff] text-[#24213d]">
+    <div className="mypage-scroll-shell h-screen overflow-y-auto overflow-x-hidden bg-[#faf9ff] text-[#24213d]">
       <MyPageHeader onOpenEdit={() => setIsEditOpen(true)} />
 
-      <main className="mx-auto grid h-[calc(100vh-76px)] w-full max-w-[min(86vw,2000px)] grid-rows-[auto_minmax(0,1fr)] gap-7 px-[clamp(28px,3vw,52px)] py-[clamp(38px,5vh,58px)]">
+      <main className="mx-auto grid min-h-[calc(100vh-76px)] w-full max-w-[min(86vw,2000px)] grid-rows-[auto_auto] gap-7 px-[clamp(28px,3vw,52px)] py-[clamp(38px,5vh,58px)]">
         <ProfileSummaryCard
           profile={profile}
           profileImage={hydrated ? profileImage : null}

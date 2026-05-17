@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 const featureCards = [
@@ -16,6 +17,26 @@ const featureCards = [
     description: "학습 흐름 시각화",
   },
 ] as const;
+
+const heroItemVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 34,
+    filter: "blur(10px)",
+  },
+  visible: (index = 0) => ({
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 18,
+      mass: 0.9,
+      delay: 0.08 + index * 0.1,
+    },
+  }),
+};
 
 function TutorAppMockup({ isAnimating }: { isAnimating: boolean }) {
   return (
@@ -94,32 +115,26 @@ function TutorAppMockup({ isAnimating }: { isAnimating: boolean }) {
 
 export function HeroSection() {
   const heroRef = useRef<HTMLElement | null>(null);
+  const hasPlayedIntroRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion();
+  const [heroAnimationState, setHeroAnimationState] = useState<"hidden" | "visible">("hidden");
   const [isMockupAnimating, setIsMockupAnimating] = useState(false);
 
   useEffect(() => {
-    const heroElement = heroRef.current;
-
-    if (!heroElement) {
-      return undefined;
+    if (hasPlayedIntroRef.current) {
+      return;
     }
 
-    if (typeof IntersectionObserver === "undefined") {
+    hasPlayedIntroRef.current = true;
+
+    if (shouldReduceMotion) {
+      setHeroAnimationState("visible");
       setIsMockupAnimating(true);
-      return undefined;
+      return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsMockupAnimating(entry.isIntersecting && entry.intersectionRatio >= 0.35);
-      },
-      {
-        threshold: [0, 0.35],
-      }
-    );
-
-    observer.observe(heroElement);
-    return () => observer.disconnect();
-  }, []);
+    setHeroAnimationState("visible");
+  }, [shouldReduceMotion]);
 
   return (
     <section
@@ -128,27 +143,47 @@ export function HeroSection() {
       className="relative z-20 min-h-screen scroll-mt-24 overflow-hidden text-[#24213d]"
     >
       <div className="relative mx-auto flex min-h-screen max-w-[1800px] flex-col justify-center px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
-        <div className="grid items-center gap-14 xl:grid-cols-[0.94fr_1.06fr] 2xl:gap-[4.5rem]">
+        <motion.div
+          className="grid items-center gap-14 xl:grid-cols-[0.94fr_1.06fr] 2xl:gap-[4.5rem]"
+          initial="hidden"
+          animate={heroAnimationState}
+        >
           <div className="max-w-[774px]">
-            <span className="inline-flex items-center rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.92rem] font-bold text-[#817cf2]">
+            <motion.span
+              className="inline-flex items-center rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.92rem] font-bold text-[#817cf2]"
+              variants={heroItemVariants}
+              custom={0}
+            >
               ✦ AI 맞춤 학습 튜터
-            </span>
+            </motion.span>
 
-            <h1 className="mt-7 text-[3.05rem] font-black leading-[1.08] tracking-normal text-[#24213d] md:text-[3.95rem] 2xl:text-[4.85rem]">
+            <motion.h1
+              className="mt-7 text-[3.05rem] font-black leading-[1.08] tracking-normal text-[#24213d] md:text-[3.95rem] 2xl:text-[4.85rem]"
+              variants={heroItemVariants}
+              custom={1}
+            >
               <span className="whitespace-nowrap">나의 이해를 읽고,</span>
               <br />
               <span className="bg-gradient-to-r from-[#817cf2] via-[#b989c8] to-[#ef8f79] bg-clip-text text-transparent">
                 배움의 흐름을 잇다
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="mt-7 max-w-[700px] text-[1.1rem] font-medium leading-9 text-[#74708b]">
+            <motion.p
+              className="mt-7 max-w-[700px] text-[1.1rem] font-medium leading-9 text-[#74708b]"
+              variants={heroItemVariants}
+              custom={2}
+            >
               AI가 내 이해도를 파악하고, 프로젝트별 지식 그래프를 쌓아가며 지금 나에게
               <br className="hidden md:block" />
               필요한 설명을 이어주는 AI 튜터 서비스입니다.
-            </p>
+            </motion.p>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3">
+            <motion.div
+              className="mt-10 flex flex-wrap items-center gap-3"
+              variants={heroItemVariants}
+              custom={3}
+            >
               <a
                 href="/dashboard"
                 className="inline-flex min-h-14 items-center justify-center rounded-full bg-[#817cf2] px-10 text-[1.06rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8]"
@@ -161,23 +196,35 @@ export function HeroSection() {
               >
                 <span className="translate-y-[1px]">이음 더 알아보기</span>
               </a>
-            </div>
+            </motion.div>
 
             <div className="mt-12 grid max-w-[684px] gap-4 sm:grid-cols-3">
-              {featureCards.map((card) => (
-                <div
+              {featureCards.map((card, index) => (
+                <motion.div
                   key={card.title}
                   className="rounded-xl border border-[#e6e4f0] bg-white/82 px-5 py-4 shadow-[0_14px_30px_rgba(42,38,73,0.06)] backdrop-blur"
+                  variants={heroItemVariants}
+                  custom={4 + index}
                 >
                   <p className="text-[1.06rem] font-black text-[#817cf2]">{card.title}</p>
                   <p className="mt-1.5 text-[0.8rem] font-semibold text-[#77728d]">{card.description}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
 
-          <TutorAppMockup isAnimating={isMockupAnimating} />
-        </div>
+          <motion.div
+            variants={heroItemVariants}
+            custom={7}
+            onAnimationComplete={(definition) => {
+              if (definition === "visible") {
+                setIsMockupAnimating(true);
+              }
+            }}
+          >
+            <TutorAppMockup isAnimating={isMockupAnimating} />
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

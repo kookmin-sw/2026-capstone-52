@@ -102,23 +102,16 @@ function sortProjectMemos(memos = []) {
   });
 }
 
-function pickAllowedMemoEntries(memosByProject = {}, notesByProject = {}) {
+function pickAllowedMemoEntries(memosByProject = {}) {
   return ALLOWED_PROJECT_IDS.reduce((nextEntries, projectId) => {
     const memos = Array.isArray(memosByProject[projectId])
-      ? memosByProject[projectId].map((memo, index) => normalizeProjectMemo(projectId, memo, index))
+      ? memosByProject[projectId]
+          .filter((memo) => memo?.memoId !== `local-${projectId}-legacy`)
+          .map((memo, index) => normalizeProjectMemo(projectId, memo, index))
       : [];
-    const legacyNote = typeof notesByProject[projectId] === "string" ? notesByProject[projectId] : "";
 
     if (memos.length) {
       nextEntries[projectId] = sortProjectMemos(memos);
-    } else if (legacyNote) {
-      nextEntries[projectId] = [
-        normalizeProjectMemo(projectId, {
-          memoId: `local-${projectId}-legacy`,
-          title: "메모",
-          content: legacyNote
-        })
-      ];
     }
 
     return nextEntries;
@@ -155,7 +148,7 @@ export function loadWorkspaceState() {
       },
       diagnosisByProject: pickAllowedProjectEntries(parsed.diagnosisByProject),
       notesByProject: pickAllowedProjectEntries(parsed.notesByProject),
-      memosByProject: pickAllowedMemoEntries(parsed.memosByProject, parsed.notesByProject),
+      memosByProject: pickAllowedMemoEntries(parsed.memosByProject),
       lastOpenedProjectId
     };
 

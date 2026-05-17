@@ -67,43 +67,21 @@ def get_related_chats(node: ConceptNode, db: Session) -> list[dict]:
 
 
 def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Session):
-    """AI 모듈 결과를 받아 concept_nodes와 concept_edges에 저장
+    """AI 모듈 결과를 받아 concept_nodes와 concept_edges에 upsert
 
-    ai_result 형식:
-    old format:
-    {
-      "concepts": [{"name": str, "description": str, "group": str}],
-      "relations": [{"source": str, "target": str, "relation_type": str}]
-    }
-
-    new format:
-    {
-      "subject_id": str,
-      "concepts": [{
-        "concept_id": str,
-        "concept_name": str,
-        "description": str,
-        "group": str,
-        "score": float,
-        "understanding_level": int,
-        "confidence": float,
-        "diagnosis_count": int,
-        "core_score": float,
-        "is_core": bool,
-        "node_source": str
-      }],
-      "relations": [{
-        "source_concept_id": str,
-        "target_concept_id": str,
-        "relation_type": str,
-        "edge_source_scope": str,
-        "weight": float
-      }]
-    }
+    같은 (project_id, concept_id) 노드가 이미 있으면 update(merge),
+    없으면 insert. 엣지도 (project_id, source, target, relation_type) 기준으로
+    중복 insert를 방지합니다.
     """
     subject_id = ai_result.get("subject_id")
 
-    # 노드 먼저 저장하면서 concept_id/name 기반 매핑 생성 (엣지 연결 시 사용)
+    # 기존 노드 미리 로드 — concept_id 기반 O(1) 조회
+    existing_nodes: dict[str, ConceptNode] = {
+        node.concept_id: node
+        for node in db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+        if node.concept_id
+    }
+
     concept_id_to_node: dict[str, ConceptNode] = {}
     name_to_node: dict[str, ConceptNode] = {}
 
@@ -112,46 +90,74 @@ def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Sessi
         if not node_name:
             continue
 
-        node = ConceptNode(
-            project_id=project_id,
-            file_id=file_id,
-            concept_id=concept.get("concept_id"),
-            subject_id=concept.get("subject_id", subject_id),
-            name=node_name,
-            description=concept.get("description"),
-            group=concept.get("group"),
-            status=NODE_STATUS_UNSEEN,
-            understanding_score=concept.get("score", 0.5),
-            understanding_level=concept.get("understanding_level", 3),
-            confidence=concept.get("confidence", 0.0),
-            diagnosis_count=concept.get("diagnosis_count", 0),
-            core_score=concept.get("core_score"),
-            is_core=concept.get("is_core", False),
-            node_source=concept.get("node_source", "uploaded_pdf"),
-        )
-        db.add(node)
-        db.flush()  # node_id 생성을 위해 flush (commit은 마지막에 한 번만)
-        name_to_node[node_name] = node
-        if concept.get("concept_id"):
-            concept_id_to_node[concept["concept_id"]] = node
+        cid = concept.get("concept_id")
+        if cid and cid in existing_nodes:
+            # 기존 노드 merge — is_core가 올라가거나 description이 보강되는 경우만 덮어씀
+            node = existing_nodes[cid]
+            node.name = node_name
+            if concept.get("description"):
+                node.description = concept["description"]
+            if concept.get("group"):
+                node.group = concept["group"]
+            if concept.get("is_core"):
+                node.is_core = True
+            if concept.get("core_score") is not None and (node.core_score or 0) < concept["core_score"]:
+                node.core_score = concept["core_score"]
+        else:
+            node = ConceptNode(
+                project_id=project_id,
+                file_id=file_id,
+                concept_id=cid,
+                subject_id=concept.get("subject_id", subject_id),
+                name=node_name,
+                description=concept.get("description"),
+                group=concept.get("group"),
+                status=NODE_STATUS_UNSEEN,
+                understanding_score=concept.get("score", 0.5),
+                understanding_level=concept.get("understanding_level", 3),
+                confidence=concept.get("confidence", 0.0),
+                diagnosis_count=concept.get("diagnosis_count", 0),
+                core_score=concept.get("core_score"),
+                is_core=concept.get("is_core", False),
+                node_source=concept.get("node_source", "uploaded_pdf"),
+            )
+            db.add(node)
 
-    # 엣지 저장 — new format은 concept_id 매핑, old format은 name 매핑 사용
+        db.flush()
+        name_to_node[node_name] = node
+        if cid:
+            concept_id_to_node[cid] = node
+
+    # 기존 엣지 미리 로드 — (source, target, relation_type) 기준 중복 방지
+    existing_edges: set[tuple[str, str, str]] = {
+        (e.source_node_id, e.target_node_id, e.relation_type)
+        for e in db.query(ConceptEdge).filter(ConceptEdge.project_id == project_id).all()
+    }
+
     for relation in ai_result.get("relations", []):
         source, target = _resolve_relation_nodes(
             relation=relation,
             concept_id_to_node=concept_id_to_node,
             name_to_node=name_to_node,
         )
-        if source and target:
-            edge = ConceptEdge(
-                project_id=project_id,
-                source_node_id=source.node_id,
-                target_node_id=target.node_id,
-                relation_type=relation.get("relation_type", "part_of"),
-                edge_source_scope=relation.get("edge_source_scope", "uploaded_material"),
-                weight=relation.get("weight", 1.0),
-            )
-            db.add(edge)
+        if not source or not target:
+            continue
+
+        relation_type = relation.get("relation_type", "part_of")
+        key = (source.node_id, target.node_id, relation_type)
+        if key in existing_edges:
+            continue
+
+        edge = ConceptEdge(
+            project_id=project_id,
+            source_node_id=source.node_id,
+            target_node_id=target.node_id,
+            relation_type=relation_type,
+            edge_source_scope=relation.get("edge_source_scope", "uploaded_material"),
+            weight=relation.get("weight", 1.0),
+        )
+        db.add(edge)
+        existing_edges.add(key)
 
     db.commit()
 

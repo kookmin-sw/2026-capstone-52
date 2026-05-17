@@ -71,6 +71,7 @@ export default function UploadPageView({ initialProjectId = null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProjectResolved, setIsProjectResolved] = useState(false);
   const [canStartDiagnosis, setCanStartDiagnosis] = useState(false);
+  const [uploadFeedback, setUploadFeedback] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,6 +117,7 @@ export default function UploadPageView({ initialProjectId = null }) {
       setIsDragging(false);
       setIsSubmitting(false);
       setCanStartDiagnosis(false);
+      setUploadFeedback(null);
       return;
     }
 
@@ -134,12 +136,14 @@ export default function UploadPageView({ initialProjectId = null }) {
         setUploadedFiles(files);
         setRecentChats(chats);
         setCanStartDiagnosis(hasCompleted);
+        setUploadFeedback(null);
       } catch (error) {
         console.error(error);
         if (isMounted) {
           setUploadedFiles([]);
           setRecentChats([]);
           setCanStartDiagnosis(false);
+          setUploadFeedback("업로드된 파일 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
         }
       }
     }
@@ -148,6 +152,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     setPendingFiles([]);
     setIsDragging(false);
     setIsSubmitting(false);
+    setUploadFeedback(null);
 
     return () => {
       isMounted = false;
@@ -206,20 +211,33 @@ export default function UploadPageView({ initialProjectId = null }) {
 
   function normalizeIncomingFiles(fileList) {
     const acceptedPattern = isBackendApiEnabled ? /\.pdf$/i : /\.(pdf|txt)$/i;
-    return Array.from(fileList).filter((file) => acceptedPattern.test(file.name));
+    const files = Array.from(fileList);
+    const acceptedFiles = files.filter((file) => acceptedPattern.test(file.name));
+
+    return {
+      acceptedFiles,
+      rejectedCount: files.length - acceptedFiles.length,
+    };
   }
 
   function queueFiles(fileList) {
-    const nextFiles = normalizeIncomingFiles(fileList);
+    const { acceptedFiles, rejectedCount } = normalizeIncomingFiles(fileList);
 
-    if (!nextFiles.length) {
+    if (rejectedCount > 0) {
+      const supportedTypes = isBackendApiEnabled ? "PDF" : "PDF 또는 TXT";
+      setUploadFeedback(`${supportedTypes} 파일만 업로드할 수 있어 ${rejectedCount}개 파일을 제외했습니다.`);
+    } else {
+      setUploadFeedback(null);
+    }
+
+    if (!acceptedFiles.length) {
       return;
     }
 
     setPendingFiles((current) => {
       const nextMap = new Map(current.map((file) => [file.name, file]));
 
-      nextFiles.forEach((file) => {
+      acceptedFiles.forEach((file) => {
         nextMap.set(file.name, file);
       });
 
@@ -244,6 +262,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     }
 
     setIsSubmitting(true);
+    setUploadFeedback(null);
 
     try {
       const uploaded = await uploadProjectFiles(projectId, projectTitle || "새 프로젝트", pendingFiles);
@@ -269,6 +288,7 @@ export default function UploadPageView({ initialProjectId = null }) {
       }, 120);
     } catch (error) {
       console.error(error);
+      setUploadFeedback(error instanceof Error ? error.message : "업로드 또는 분석을 시작하지 못했습니다. 다시 시도해주세요.");
     } finally {
       setIsSubmitting(false);
     }
@@ -418,49 +438,18 @@ export default function UploadPageView({ initialProjectId = null }) {
                   ) : null}
                 </div>
 
-                {hasPendingFiles ? (
-                  <section className="workspace-upload-page-pending">
-                    <div className="workspace-upload-page-pending-head">
-                      <h2>업로드 대기 파일</h2>
-                      <span>{pendingFiles.length}개 파일이 준비되었습니다.</span>
-                    </div>
-
-                    <div className="workspace-upload-files-table">
-                      <div className="workspace-upload-files-head">
-                        <span>파일명</span>
-                        <span>프로젝트</span>
-                        <span>업로드 예정</span>
-                        <span>상태</span>
-                      </div>
-
-                      {pendingFiles.map((file, index) => (
-                        <div key={`pending-${file.name}-${index}`} className="workspace-upload-files-row workspace-upload-files-row-pending">
-                          <div className="workspace-upload-file-name">
-                            <span className="workspace-upload-file-icon">📄</span>
-                            <strong>{file.name}</strong>
-                          </div>
-                          <span>{projectTitle}</span>
-                          <span>분석 전</span>
-                          <span className="workspace-upload-status workspace-upload-status-idle">대기 중</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <p className="workspace-upload-page-pending-copy">
-                      `자료 분석 시작하기`를 누르면 이 파일들이 아래 `업로드된 파일 목록`으로 이동합니다.
-                    </p>
-                  </section>
-                ) : null}
-              </div>
-
-              <div className="workspace-upload-primary-action workspace-upload-page-primary">
-                <button type="button" onClick={handleStartAnalysis} disabled={!canStartAnalysis}>
-                  {isSubmitting ? "처리 중..." : "자료 분석 시작하기 →"}
-                </button>
+                {uploadFeedback ? <p className="workspace-upload-feedback">{uploadFeedback}</p> : null}
               </div>
 
               <section className="workspace-upload-files-panel workspace-upload-page-files" ref={fileTableRef}>
-                <h2>업로드된 파일 목록</h2>
+                <div className="workspace-upload-files-panel-header">
+                  <h2>업로드된 파일 목록</h2>
+                  <div className="workspace-upload-primary-action workspace-upload-files-panel-action">
+                    <button type="button" onClick={handleStartAnalysis} disabled={!canStartAnalysis}>
+                      {isSubmitting ? "처리 중..." : "자료 분석하기 →"}
+                    </button>
+                  </div>
+                </div>
                 <div className="workspace-upload-files-table workspace-upload-files-table-uploaded">
                   <div className="workspace-upload-files-head">
                     <span>파일명</span>

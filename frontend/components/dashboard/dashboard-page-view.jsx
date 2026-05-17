@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import KnowledgeGraphScene from "../graph/knowledge-graph-scene";
 import EeumIcon from "@/components/common/EeumIcon";
 import { buildBackendKnowledgeGraph, buildProjectKnowledgeGraph } from "../../features/dashboard/graph";
@@ -50,6 +52,8 @@ const knowledgeStageLabels = ["진단 전", "입문", "기초", "심화", "마�
 const knowledgeStageColors = ["#fb923c", "#f9a8d4", "#a78bfa", "#60a5fa", "#34d399"];
 const fallbackKnowledgeStageCycle = [1, 2, 3, 4, 1, 2, 3, 4, 0];
 const MINI_QUIZ_READY_STORAGE_KEY = "eeum-mini-quiz-ready-v1";
+const MINI_QUIZ_COMPLETED_STORAGE_KEY = "eeum-mini-quiz-completed-v1";
+const MINI_QUIZ_DEFERRED_STORAGE_KEY = "eeum-mini-quiz-deferred-v1";
 
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
@@ -66,6 +70,7 @@ function normalizeMiniQuizReadyTargets(targets) {
       return {
         nodeId: String(nodeId),
         name: target.name ?? target.node_name ?? target.nodeName ?? "미니퀴즈",
+        useMockMiniQuiz: Boolean(target.useMockMiniQuiz ?? target.use_mock_mini_quiz),
       };
     })
     .filter(Boolean);
@@ -110,6 +115,93 @@ function saveProjectMiniQuizReady(projectId, readyByMessage) {
   const store = loadMiniQuizReadyStore();
   store[String(projectId)] = normalized;
   window.localStorage.setItem(MINI_QUIZ_READY_STORAGE_KEY, JSON.stringify(store));
+}
+
+function loadMiniQuizCompletedStore() {
+  if (!canUseBrowserStorage()) return {};
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(MINI_QUIZ_COMPLETED_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function loadProjectMiniQuizCompleted(projectId) {
+  if (!projectId) return {};
+
+  const projectStore = loadMiniQuizCompletedStore()[String(projectId)];
+  if (!projectStore || typeof projectStore !== "object" || Array.isArray(projectStore)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(projectStore)
+      .filter(([, isCompleted]) => Boolean(isCompleted))
+      .map(([messageId]) => [messageId, true])
+  );
+}
+
+function saveProjectMiniQuizCompleted(projectId, completedByMessage) {
+  if (!projectId || !canUseBrowserStorage()) return;
+
+  const normalized = Object.fromEntries(
+    Object.entries(completedByMessage || {}).filter(([, isCompleted]) => Boolean(isCompleted))
+  );
+  const store = loadMiniQuizCompletedStore();
+  store[String(projectId)] = normalized;
+  window.localStorage.setItem(MINI_QUIZ_COMPLETED_STORAGE_KEY, JSON.stringify(store));
+}
+
+function loadMiniQuizDeferredStore() {
+  if (!canUseBrowserStorage()) return {};
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(MINI_QUIZ_DEFERRED_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function dedupeDeferredMiniQuizzes(items) {
+  const seenNodeIds = new Set();
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    if (!item?.nodeId || seenNodeIds.has(item.nodeId)) {
+      return false;
+    }
+    seenNodeIds.add(item.nodeId);
+    return true;
+  });
+}
+
+function loadProjectMiniQuizDeferred(projectId) {
+  if (!projectId) return [];
+
+  const projectStore = loadMiniQuizDeferredStore()[String(projectId)];
+  if (!Array.isArray(projectStore)) {
+    return [];
+  }
+
+  return dedupeDeferredMiniQuizzes(
+    projectStore
+      .map((item) => normalizeDeferredMiniQuizItem(item, projectId))
+      .filter(Boolean)
+  );
+}
+
+function saveProjectMiniQuizDeferred(projectId, deferredItems) {
+  if (!projectId || !canUseBrowserStorage()) return;
+
+  const normalized = dedupeDeferredMiniQuizzes(
+    (Array.isArray(deferredItems) ? deferredItems : [])
+      .map((item) => normalizeDeferredMiniQuizItem(item, projectId))
+      .filter(Boolean)
+  );
+  const store = loadMiniQuizDeferredStore();
+  store[String(projectId)] = normalized;
+  window.localStorage.setItem(MINI_QUIZ_DEFERRED_STORAGE_KEY, JSON.stringify(store));
 }
 
 function getKnowledgeStageColor(stageIndex) {
@@ -774,18 +866,33 @@ function normalizeDeferredMiniQuizItem(item, projectId) {
   const nodeId = item.node_id ?? item.nodeId ?? null;
   if (!nodeId) return null;
   const id = deferredId !== null ? `deferred-${deferredId}` : `deferred-${nodeId}`;
+  const existingPresetQuestion = item.presetQuestion ?? item.preset_question ?? null;
   const choices = Array.isArray(item.choices)
     ? item.choices.map((choice) => ({
         option_id: String(choice.option_id ?? choice.optionId ?? ""),
         text: choice.text ?? choice.label ?? "",
       }))
+    : Array.isArray(existingPresetQuestion?.choices)
+      ? existingPresetQuestion.choices.map((choice) => ({
+          option_id: String(choice.option_id ?? choice.optionId ?? ""),
+          text: choice.text ?? choice.label ?? "",
+        }))
     : [];
   const presetQuestion =
-    item.question_id || item.questionId
+    existingPresetQuestion
+      ? {
+          ...existingPresetQuestion,
+          question_id: String(existingPresetQuestion.question_id ?? existingPresetQuestion.questionId ?? ""),
+          concept_id: String(existingPresetQuestion.concept_id ?? existingPresetQuestion.conceptId ?? nodeId),
+          concept_name: existingPresetQuestion.concept_name ?? existingPresetQuestion.conceptName ?? item.node_name ?? item.nodeName ?? item.name ?? null,
+          question_type: existingPresetQuestion.question_type ?? existingPresetQuestion.questionType ?? "multi_select",
+          choices,
+        }
+      : item.question_id || item.questionId
       ? {
           question_id: String(item.question_id ?? item.questionId),
           concept_id: String(nodeId),
-          concept_name: item.node_name ?? item.nodeName ?? null,
+          concept_name: item.node_name ?? item.nodeName ?? item.name ?? null,
           question: item.question ?? "",
           // 백엔드 미니퀴즈는 multi_select 기준으로 채점됨 — DeferredMiniQuizItem 응답에 question_type 필드가 없어
           // 프론트에서 단일선택으로 잘못 처리되지 않도록 강제로 multi_select로 지정.
@@ -797,10 +904,11 @@ function normalizeDeferredMiniQuizItem(item, projectId) {
     id,
     deferredId,
     nodeId: String(nodeId),
-    name: item.node_name ?? item.nodeName ?? null,
+    name: item.node_name ?? item.nodeName ?? item.name ?? null,
     projectId,
     deferredAt: item.deferred_at ?? item.deferredAt ?? Date.now(),
     presetQuestion,
+    useMockMiniQuiz: Boolean(item.useMockMiniQuiz ?? item.use_mock_mini_quiz),
   };
 }
 
@@ -910,12 +1018,68 @@ function RecentChatList({
   error,
   selectedProjectTitle
 }) {
+  const [openChatMenu, setOpenChatMenu] = useState(null);
+  const chatListRef = useRef(null);
+  const chatMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!openChatMenu) return undefined;
+
+    function handleOutsidePointerDown(event) {
+      if (chatListRef.current?.contains(event.target)) {
+        return;
+      }
+
+      if (chatMenuRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setOpenChatMenu(null);
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    };
+  }, [openChatMenu]);
+
+  const chatMenuPortal =
+    openChatMenu && canUseBrowserStorage()
+      ? createPortal(
+          <div
+            ref={chatMenuRef}
+            className="workspace-chat-shortcut-menu"
+            role="menu"
+            style={{ left: `${openChatMenu.left}px`, top: `${openChatMenu.top}px` }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setOpenChatMenu(null)}
+            >
+              이름 수정하기
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="workspace-chat-shortcut-menu-danger"
+              onClick={() => setOpenChatMenu(null)}
+            >
+              채팅 삭제하기
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
+    <>
     <section className="workspace-sidebar-group workspace-sidebar-group-fill">
       <div className="workspace-sidebar-heading">
         <span>최근 채팅</span>
       </div>
-      <div className="workspace-sidebar-section-scroll workspace-chat-shortcuts">
+      <div ref={chatListRef} className="workspace-sidebar-section-scroll workspace-chat-shortcuts">
         {isLoading ? <div className="workspace-empty-copy">채팅 목록을 불러오는 중입니다.</div> : null}
         {error ? <div className="workspace-empty-copy">{error}</div> : null}
         {!isLoading && !error && !selectedProjectTitle ? (
@@ -926,17 +1090,56 @@ function RecentChatList({
         ) : null}
         {!isLoading && !error
           ? chats.map((chat) => (
-              <button
+              <div
                 key={chat.id}
-                type="button"
-                className={`workspace-chat-shortcut ${
-                  selectedChatId === chat.id ? "workspace-chat-shortcut-active" : ""
+                className={`workspace-chat-shortcut-row ${
+                  selectedChatId === chat.id ? "workspace-chat-shortcut-row-active" : ""
                 }`}
-                onClick={() => onSelect(chat.id)}
               >
-                <span className="workspace-chat-shortcut-title">{chat.title}</span>
-                <small className="workspace-chat-shortcut-meta">{formatUpdatedAt(chat.updatedAt)}</small>
-              </button>
+                <button
+                  type="button"
+                  className={`workspace-chat-shortcut ${
+                    selectedChatId === chat.id ? "workspace-chat-shortcut-active" : ""
+                  }`}
+                  onClick={() => {
+                    setOpenChatMenu(null);
+                    onSelect(chat.id);
+                  }}
+                >
+                  <span className="workspace-chat-shortcut-title">{chat.title}</span>
+                  <small className="workspace-chat-shortcut-meta">{formatUpdatedAt(chat.updatedAt)}</small>
+                </button>
+                <button
+                  type="button"
+                  className="workspace-chat-shortcut-menu-button"
+                  aria-label={`${chat.title} 채팅 메뉴 열기`}
+                  aria-haspopup="menu"
+                  aria-expanded={openChatMenu?.chatId === chat.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const buttonRect = event.currentTarget.getBoundingClientRect();
+                    const menuWidth = 184;
+                    const viewportPadding = 10;
+                    const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+                    const left = Math.min(
+                      Math.max(viewportPadding, buttonRect.right - menuWidth),
+                      maxLeft
+                    );
+
+                    setOpenChatMenu((current) =>
+                      current?.chatId === chat.id
+                        ? null
+                        : {
+                            chatId: chat.id,
+                            left,
+                            top: buttonRect.bottom + 6,
+                          }
+                    );
+                  }}
+                >
+                  <span aria-hidden="true">•••</span>
+                </button>
+              </div>
             ))
           : null}
       </div>
@@ -949,6 +1152,8 @@ function RecentChatList({
         + 새 채팅
       </button>
     </section>
+    {chatMenuPortal}
+    </>
   );
 }
 
@@ -957,6 +1162,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const graphSearchInputRef = useRef(null);
   const composerFileInputRef = useRef(null);
   const hasAppliedInitialChatRef = useRef(false);
+  const newlyCreatedChatIdRef = useRef(null);
   const latestProjectMemoDraftRef = useRef({ memoId: null, title: "", content: "" });
   const router = useRouter();
   const pathname = usePathname();
@@ -990,14 +1196,20 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [selectedReportGraphNodeId, setSelectedReportGraphNodeId] = useState(null);
   const [composerText, setComposerText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [miniQuizReadyByMessage, setMiniQuizReadyByMessage] = useState(() =>
-    loadProjectMiniQuizReady(initialProjectId)
-  );
+  const [miniQuizReadyByMessage, setMiniQuizReadyByMessage] = useState({});
+  const [miniQuizCompletedByMessage, setMiniQuizCompletedByMessage] = useState({});
   const [activeMiniQuiz, setActiveMiniQuiz] = useState(null);
   const [deferredMiniQuizzes, setDeferredMiniQuizzes] = useState([]);
   const [isDeferredMiniQuizListOpen, setIsDeferredMiniQuizListOpen] = useState(false);
+  const [miniQuizDeferredPanelPlacement, setMiniQuizDeferredPanelPlacement] = useState("below");
+  const [miniQuizFlyAnimation, setMiniQuizFlyAnimation] = useState(null);
   const [miniQuizFloatOffset, setMiniQuizFloatOffset] = useState({ x: 0, y: 0 });
+  const [miniQuizFloatDockSide, setMiniQuizFloatDockSide] = useState("right");
+  const [isMiniQuizFloatDragging, setIsMiniQuizFloatDragging] = useState(false);
+  const chatStageRef = useRef(null);
+  const miniQuizFloatWrapRef = useRef(null);
   const miniQuizFloatDragRef = useRef(null);
+  const previousDeferredMiniQuizCountRef = useRef(0);
 
   function updateMiniQuizReadyByMessage(updater) {
     const projectId = selectedProjectId;
@@ -1010,9 +1222,135 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     });
   }
 
+  function updateMiniQuizCompletedByMessage(updater) {
+    const projectId = selectedProjectId;
+    setMiniQuizCompletedByMessage((current) => {
+      const next = typeof updater === "function" ? updater(current) : updater;
+      if (projectId) {
+        saveProjectMiniQuizCompleted(projectId, next);
+      }
+      return next;
+    });
+  }
+
+  function updateDeferredMiniQuizzes(updater) {
+    const projectId = selectedProjectId;
+    setDeferredMiniQuizzes((current) => {
+      const next = dedupeDeferredMiniQuizzes(typeof updater === "function" ? updater(current) : updater);
+      if (projectId) {
+        saveProjectMiniQuizDeferred(projectId, next);
+      }
+      return next;
+    });
+  }
+
+  function startMiniQuizDeferFlyAnimation(originElement) {
+    if (!originElement || typeof window === "undefined") return;
+
+    const originRect = originElement.getBoundingClientRect();
+    const targetRect = miniQuizFloatWrapRef.current?.getBoundingClientRect();
+    const stageRect = chatStageRef.current?.getBoundingClientRect();
+    const fallbackTarget = stageRect
+      ? {
+          left: stageRect.right - 78,
+          top: stageRect.top + 18,
+          width: 54,
+          height: 54,
+        }
+      : {
+          left: window.innerWidth - 92,
+          top: 96,
+          width: 54,
+          height: 54,
+        };
+    const target = targetRect || fallbackTarget;
+    const targetCenterX = target.left + target.width / 2;
+    const targetCenterY = target.top + target.height / 2;
+
+    setMiniQuizFlyAnimation({
+      id: Date.now(),
+      phase: "to-ball",
+      left: originRect.left,
+      top: originRect.top,
+      width: originRect.width,
+      height: originRect.height,
+      shrinkX: (originRect.width - 52) / 2,
+      shrinkY: (originRect.height - 52) / 2,
+      targetX: targetCenterX - originRect.left - originRect.width / 2,
+      targetY: targetCenterY - originRect.top - originRect.height / 2,
+    });
+  }
+
+  function handleMiniQuizFlyAnimationEnd(event) {
+    if (!miniQuizFlyAnimation) return;
+
+    if (event.animationName === "workspaceMiniQuizToBall") {
+      setMiniQuizFlyAnimation((current) =>
+        current ? { ...current, phase: "suck" } : current
+      );
+      return;
+    }
+
+  }
+
+  function handleMiniQuizSuckComplete() {
+    setMiniQuizFlyAnimation(null);
+  }
+
+  function updateMiniQuizDeferredPanelPlacement() {
+    if (!miniQuizFloatWrapRef.current || typeof window === "undefined") return;
+
+    const buttonRect = miniQuizFloatWrapRef.current.getBoundingClientRect();
+    const gap = 12;
+    const estimatedHeaderHeight = 54;
+    const estimatedRowHeight = 50;
+    const estimatedListPadding = 16;
+    const maxListHeight = 352;
+    const estimatedPanelHeight =
+      estimatedHeaderHeight +
+      Math.min(maxListHeight, visibleDeferredMiniQuizzes.length * estimatedRowHeight + estimatedListPadding);
+    const belowSpace = window.innerHeight - buttonRect.bottom;
+
+    setMiniQuizDeferredPanelPlacement(belowSpace >= estimatedPanelHeight + gap ? "below" : "above");
+  }
+
+  function snapMiniQuizFloatToNearestEdge() {
+    if (!chatStageRef.current || !miniQuizFloatWrapRef.current || typeof window === "undefined") return;
+
+    const stageRect = chatStageRef.current.getBoundingClientRect();
+    const chatLogRect = chatLogRef.current?.getBoundingClientRect() || stageRect;
+    const buttonRect = miniQuizFloatWrapRef.current.getBoundingClientRect();
+    const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+    const horizontalInset = rootFontSize * 1.6;
+    const topInset = rootFontSize * 1.1;
+    const verticalInset = rootFontSize * 1.1;
+    const buttonSize = buttonRect.width || 54;
+    const baseLeft = stageRect.width - horizontalInset - buttonSize;
+    const leftDock = horizontalInset;
+    const rightDock = baseLeft;
+    const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+    const logCenterX = chatLogRect.left + chatLogRect.width / 2;
+    const nextDockSide = buttonCenterX < logCenterX ? "left" : "right";
+    const targetLeft = nextDockSide === "left" ? leftDock : rightDock;
+    const minTop = Math.max(verticalInset, chatLogRect.top - stageRect.top + verticalInset);
+    const maxTop = Math.max(
+      minTop,
+      chatLogRect.bottom - stageRect.top - buttonSize - verticalInset
+    );
+    const currentTop = buttonRect.top - stageRect.top;
+    const targetTop = Math.min(Math.max(currentTop, minTop), maxTop);
+
+    setMiniQuizFloatDockSide(nextDockSide);
+    setMiniQuizFloatOffset({
+      x: targetLeft - baseLeft,
+      y: targetTop - topInset,
+    });
+  }
+
   function handleMiniQuizFloatPointerDown(event) {
     if (event.button !== undefined && event.button !== 0) return;
     event.preventDefault();
+    setIsMiniQuizFloatDragging(true);
     miniQuizFloatDragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -1036,6 +1374,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
 
     function handleUp() {
+      snapMiniQuizFloatToNearestEdge();
+      setIsMiniQuizFloatDragging(false);
       document.removeEventListener("pointermove", handleMove);
       document.removeEventListener("pointerup", handleUp);
       document.removeEventListener("pointercancel", handleUp);
@@ -1050,7 +1390,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     const drag = miniQuizFloatDragRef.current;
     miniQuizFloatDragRef.current = null;
     if (drag?.moved) return;
-    setIsDeferredMiniQuizListOpen((current) => !current);
+    setIsDeferredMiniQuizListOpen((current) => {
+      const shouldOpen = !current;
+      if (shouldOpen) {
+        updateMiniQuizDeferredPanelPlacement();
+      }
+      return shouldOpen;
+    });
   }
   const [graphNodeQuizHistory, setGraphNodeQuizHistory] = useState([]);
   const [isGraphNodeQuizHistoryLoading, setIsGraphNodeQuizHistoryLoading] = useState(false);
@@ -1280,6 +1626,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
   useEffect(() => {
     setMiniQuizReadyByMessage(loadProjectMiniQuizReady(selectedProjectId));
+    setMiniQuizCompletedByMessage(loadProjectMiniQuizCompleted(selectedProjectId));
   }, [selectedProjectId]);
 
   const rawActiveChatMessages = activeChat?.messages || [];
@@ -1289,10 +1636,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const activeChatMessages = useMemo(() => {
     if (isDashboardBackendApiEnabled) return rawActiveChatMessages;
     if (!rawActiveChatMessages.length) return rawActiveChatMessages;
-    const hasGraphPreview = rawActiveChatMessages.some(
+    const graphPreviewIndex = rawActiveChatMessages.findIndex(
       (message) => message.attachment?.type === "graph-preview"
     );
-    if (!hasGraphPreview) return rawActiveChatMessages;
+    if (graphPreviewIndex === -1) return rawActiveChatMessages;
     const syntheticId = `${activeChat?.id || "chat"}-mock-mini-quiz`;
     if (rawActiveChatMessages.some((message) => message.id === syntheticId)) {
       return rawActiveChatMessages;
@@ -1306,13 +1653,55 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         name: concept.name,
       })),
     };
-    return [...rawActiveChatMessages, syntheticMessage];
+    return [
+      ...rawActiveChatMessages.slice(0, graphPreviewIndex + 1),
+      syntheticMessage,
+      ...rawActiveChatMessages.slice(graphPreviewIndex + 1),
+    ];
   }, [rawActiveChatMessages, activeChat?.id]);
 
   const visibleDeferredMiniQuizzes = useMemo(() => {
     if (!selectedProjectId) return [];
     return deferredMiniQuizzes.filter((item) => String(item.projectId) === String(selectedProjectId));
   }, [deferredMiniQuizzes, selectedProjectId]);
+
+  useEffect(() => {
+    if (previousDeferredMiniQuizCountRef.current === 0 && visibleDeferredMiniQuizzes.length > 0) {
+      setMiniQuizFloatOffset({ x: 0, y: 0 });
+      setMiniQuizFloatDockSide("right");
+    }
+
+    previousDeferredMiniQuizCountRef.current = visibleDeferredMiniQuizzes.length;
+  }, [visibleDeferredMiniQuizzes.length]);
+
+  useEffect(() => {
+    if (!isDeferredMiniQuizListOpen) return undefined;
+
+    updateMiniQuizDeferredPanelPlacement();
+    window.addEventListener("resize", updateMiniQuizDeferredPanelPlacement);
+
+    return () => {
+      window.removeEventListener("resize", updateMiniQuizDeferredPanelPlacement);
+    };
+  }, [isDeferredMiniQuizListOpen, miniQuizFloatOffset, visibleDeferredMiniQuizzes.length]);
+
+  useEffect(() => {
+    if (!isDeferredMiniQuizListOpen) return undefined;
+
+    function handleOutsidePointerDown(event) {
+      if (miniQuizFloatWrapRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setIsDeferredMiniQuizListOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    };
+  }, [isDeferredMiniQuizListOpen]);
 
   const activeChatLastMessage = activeChatMessages[activeChatMessages.length - 1] || null;
   const activeChatScrollKey = `${activeChatMessages.length}:${activeChatLastMessage?.id || ""}:${
@@ -1516,38 +1905,64 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   }, [activeProjectData?.projectId]);
 
   useEffect(() => {
-    if (!chatLogRef.current) {
+    if (!chatLogRef.current || activeTab !== "chat" || !selectedChatId || !activeChat) {
       return;
     }
 
-    const frameId = window.requestAnimationFrame(() => {
-      if (!chatLogRef.current) {
-        return;
-      }
+    if (newlyCreatedChatIdRef.current === selectedChatId) {
+      newlyCreatedChatIdRef.current = null;
+      return;
+    }
 
+    function scrollChatLogToBottom() {
+      if (!chatLogRef.current) return;
       chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
-    });
+    }
 
-    return () => window.cancelAnimationFrame(frameId);
-  }, [activeChatScrollKey, activeTab, selectedChatId, selectedProjectId]);
+    let secondFrameId = 0;
+    const firstFrameId = window.requestAnimationFrame(() => {
+      scrollChatLogToBottom();
+      secondFrameId = window.requestAnimationFrame(scrollChatLogToBottom);
+    });
+    const timeoutId = window.setTimeout(scrollChatLogToBottom, 120);
+
+    return () => {
+      window.cancelAnimationFrame(firstFrameId);
+      if (secondFrameId) {
+        window.cancelAnimationFrame(secondFrameId);
+      }
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeChat, activeChatScrollKey, activeTab, selectedChatId, selectedProjectId]);
 
   useEffect(() => {
-    if (!isMiniQuizBackendApiEnabled || !selectedProjectId) {
+    if (!selectedProjectId) {
       setDeferredMiniQuizzes([]);
       return undefined;
     }
 
+    const storedDeferredMiniQuizzes = loadProjectMiniQuizDeferred(selectedProjectId);
+    setDeferredMiniQuizzes(storedDeferredMiniQuizzes);
+
+    if (!isMiniQuizBackendApiEnabled) {
+      return undefined;
+    }
+
     let cancelled = false;
-    setDeferredMiniQuizzes([]);
 
     (async () => {
       try {
         const items = await getApiDeferredMiniQuizzes(selectedProjectId);
         if (cancelled) return;
-        const normalized = (Array.isArray(items) ? items : [])
+        const backendDeferredMiniQuizzes = (Array.isArray(items) ? items : [])
           .map((item) => normalizeDeferredMiniQuizItem(item, selectedProjectId))
           .filter(Boolean);
-        setDeferredMiniQuizzes(normalized);
+        const nextDeferredMiniQuizzes = dedupeDeferredMiniQuizzes([
+          ...storedDeferredMiniQuizzes,
+          ...backendDeferredMiniQuizzes,
+        ]);
+        setDeferredMiniQuizzes(nextDeferredMiniQuizzes);
+        saveProjectMiniQuizDeferred(selectedProjectId, nextDeferredMiniQuizzes);
       } catch (error) {
         if (!cancelled) {
           console.error(error);
@@ -1759,6 +2174,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
       setProjects(nextProjects);
       setRecentChats(nextChats);
+      newlyCreatedChatIdRef.current = nextChat.id;
       setSelectedChatId(nextChat.id);
       setActiveTab("chat");
       setWorkspaceState(loadWorkspaceState());
@@ -1816,6 +2232,59 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
       return [nextChat, ...currentChats.filter((chat) => chat.id !== nextChat.id)];
     });
+
+    if (!isDashboardBackendApiEnabled && nextMessage === ",") {
+      updateDeferredMiniQuizzes((current) =>
+        current.filter((item) => String(item.projectId) !== String(selectedProjectId))
+      );
+      setIsDeferredMiniQuizListOpen(false);
+      setMiniQuizFloatOffset({ x: 0, y: 0 });
+      setMiniQuizFloatDockSide("right");
+      setRecentChats((currentChats) =>
+        currentChats.map((chat) =>
+          chat.id === pendingChatId
+            ? {
+                ...chat,
+                messages: chat.messages.filter(
+                  (message) => message.id !== pendingUserMessage.id && message.id !== pendingAssistantMessage.id
+                ),
+              }
+            : chat
+        )
+      );
+      setIsSendingMessage(false);
+      return;
+    }
+
+    if (!isDashboardBackendApiEnabled && nextMessage === ".") {
+      const debugMiniQuizReady = MOCK_MINI_QUIZ_READY_CONCEPTS.map((concept) => ({
+        nodeId: concept.node_id,
+        name: concept.name,
+        useMockMiniQuiz: true,
+      }));
+
+      setRecentChats((currentChats) =>
+        currentChats.map((chat) =>
+          chat.id === pendingChatId
+            ? {
+                ...chat,
+                messages: chat.messages.map((message) =>
+                  message.id === pendingAssistantMessage.id
+                    ? {
+                        ...message,
+                        text: "디버깅용 mock 미니퀴즈를 준비했습니다.",
+                        isPending: false,
+                        miniQuizReady: debugMiniQuizReady,
+                      }
+                    : message
+                ),
+              }
+            : chat
+        )
+      );
+      setIsSendingMessage(false);
+      return;
+    }
 
     try {
       const sendResponse = await sendChatMessage(selectedProjectId, nextMessage);
@@ -2165,6 +2634,20 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       ? `${activeProjectData.title} - ${activeChat.title}`
       : activeProjectData.title
     : "프로젝트를 선택해주세요";
+  function getAssistantMessageText(message) {
+    if (miniQuizCompletedByMessage[message.id]) {
+      return "미니 퀴즈를 모두 마쳤습니다. 결과를 바탕으로 다음 학습을 이어가볼게요.";
+    }
+
+    const overriddenMiniQuizReady = miniQuizReadyByMessage[message.id];
+    const hasOriginalMiniQuizReady = Array.isArray(message.miniQuizReady) && message.miniQuizReady.length > 0;
+    const isMiniQuizDeferred =
+      hasOriginalMiniQuizReady &&
+      Array.isArray(overriddenMiniQuizReady) &&
+      overriddenMiniQuizReady.length === 0;
+
+    return isMiniQuizDeferred ? "적절한 진단을 위해서는 미니퀴즈를 꼭 풀어야 합니다." : message.text;
+  }
   const visibleGraphDetailDescription =
     graphNodeDetail?.node_id === visibleGraphDetailNode?.id && graphNodeDetail?.description
       ? graphNodeDetail.description
@@ -2271,7 +2754,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
       <main className="workspace-main">
         {activeTab === "chat" ? (
-          <section className="workspace-chat-stage">
+          <section className="workspace-chat-stage" ref={chatStageRef}>
             <div className="workspace-chat-log" ref={chatLogRef}>
               {!selectedProjectId && !isProjectsLoading ? (
                 <div className="workspace-empty-copy">프로젝트를 선택하면 해당 과목의 채팅이 표시됩니다.</div>
@@ -2314,9 +2797,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             {message.variant === "diagnosis-report" ? (
                               <DiagnosisMessageBody message={message} />
                             ) : (
-                              <p>{message.text}</p>
+                              <p>{getAssistantMessageText(message)}</p>
                             )}
                             {(() => {
+                              if (miniQuizCompletedByMessage[message.id]) return null;
                               const overridden = miniQuizReadyByMessage[message.id];
                               const triggers =
                                 overridden !== undefined ? overridden : message.miniQuizReady || null;
@@ -2341,6 +2825,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                           queue: triggers.map((target) => ({
                                             nodeId: target.nodeId,
                                             name: target.name,
+                                            useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
                                           })),
                                           sourceMessageId: message.id,
                                         })
@@ -2351,10 +2836,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                     <button
                                       type="button"
                                       className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
-                                      onClick={async () => {
+                                      onClick={async (event) => {
                                         const messageId = message.id;
+                                        startMiniQuizDeferFlyAnimation(
+                                          event.currentTarget.closest(".workspace-message-bubble")
+                                        );
 
-                                        if (isMiniQuizBackendApiEnabled && selectedProjectId) {
+                                        const shouldUseMockDeferred = triggers.some((target) => target.useMockMiniQuiz);
+
+                                        if (isMiniQuizBackendApiEnabled && selectedProjectId && !shouldUseMockDeferred) {
                                           // 백엔드 ground truth — defer가 실패한 항목은 로컬에도 추가하지 않는다.
                                           // 실패 시 trigger 버튼도 그대로 유지해 재시도할 수 있도록 한다.
                                           const results = await Promise.all(
@@ -2371,7 +2861,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                             .map((entry) => entry.target);
 
                                           if (successResults.length) {
-                                            setDeferredMiniQuizzes((current) => {
+                                            updateDeferredMiniQuizzes((current) => {
                                               const existingNodeIds = new Set(current.map((item) => item.nodeId));
                                               const additions = successResults
                                                 .map(({ target, response }) =>
@@ -2403,7 +2893,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                           }
                                         } else {
                                           // mock 모드: 백엔드 의존이 없으므로 로컬에 그대로 적재.
-                                          setDeferredMiniQuizzes((current) => {
+                                          updateDeferredMiniQuizzes((current) => {
                                             const existingNodeIds = new Set(current.map((item) => item.nodeId));
                                             const additions = triggers
                                               .map((target) => ({
@@ -2414,6 +2904,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                                 projectId: selectedProjectId,
                                                 deferredAt: Date.now(),
                                                 presetQuestion: null,
+                                                useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
                                               }))
                                               .filter((item) => !existingNodeIds.has(item.nodeId));
                                             return [...current, ...additions];
@@ -2463,9 +2954,21 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             </div>
 
             {visibleDeferredMiniQuizzes.length > 0 ? (
-              <div
-                className="workspace-mini-quiz-float-wrap"
-                style={{ transform: `translate(${miniQuizFloatOffset.x}px, ${miniQuizFloatOffset.y}px)` }}
+              <motion.div
+                ref={miniQuizFloatWrapRef}
+                className={`workspace-mini-quiz-float-wrap workspace-mini-quiz-float-wrap-${miniQuizFloatDockSide}${
+                  isMiniQuizFloatDragging ? " workspace-mini-quiz-float-wrap-dragging" : ""
+                }`}
+                style={{
+                  "--mini-quiz-float-x": `${miniQuizFloatOffset.x}px`,
+                  "--mini-quiz-float-y": `${miniQuizFloatOffset.y}px`,
+                }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.4,
+                  scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+                }}
               >
                 <button
                   type="button"
@@ -2475,14 +2978,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   onClick={handleMiniQuizFloatClick}
                 >
                   <span className="workspace-mini-quiz-float-icon" aria-hidden="true">
-                    Q
+                    <img src="/icons/dashboard/quiz.svg" alt="" />
                   </span>
                   <span className="workspace-mini-quiz-float-count">{visibleDeferredMiniQuizzes.length}</span>
                 </button>
 
                 {isDeferredMiniQuizListOpen ? (
                   <div
-                    className="workspace-mini-quiz-deferred-panel"
+                    className={`workspace-mini-quiz-deferred-panel workspace-mini-quiz-deferred-panel-${miniQuizDeferredPanelPlacement}`}
                     role="dialog"
                     aria-label="미뤄둔 미니퀴즈 목록"
                   >
@@ -2510,6 +3013,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                     nodeId: item.nodeId,
                                     name: item.name,
                                     presetQuestion: item.presetQuestion || null,
+                                    useMockMiniQuiz: Boolean(item.useMockMiniQuiz),
                                   },
                                 ],
                                 sourceMessageId: null,
@@ -2527,7 +3031,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                     </ul>
                   </div>
                 ) : null}
-              </div>
+              </motion.div>
             ) : null}
 
             <form className="workspace-composer" onSubmit={handleSendMessage}>
@@ -2572,6 +3076,64 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                 </button>
               </div>
             </form>
+            <AnimatePresence initial={false}>
+              {miniQuizFlyAnimation ? (
+                <motion.div
+                  key={miniQuizFlyAnimation.id}
+                  className={`workspace-mini-quiz-fly-card workspace-mini-quiz-fly-card-${miniQuizFlyAnimation.phase}`}
+                  style={{
+                    left: `${miniQuizFlyAnimation.left}px`,
+                    top: `${miniQuizFlyAnimation.top}px`,
+                    width: `${miniQuizFlyAnimation.width}px`,
+                    height: `${miniQuizFlyAnimation.height}px`,
+                    "--mini-quiz-fly-shrink-x": `${miniQuizFlyAnimation.shrinkX}px`,
+                    "--mini-quiz-fly-shrink-y": `${miniQuizFlyAnimation.shrinkY}px`,
+                  }}
+                  initial={false}
+                  animate={
+                    miniQuizFlyAnimation.phase === "suck"
+                      ? {
+                          x: miniQuizFlyAnimation.shrinkX + miniQuizFlyAnimation.targetX,
+                          y: miniQuizFlyAnimation.shrinkY + miniQuizFlyAnimation.targetY,
+                          scale: 0.05,
+                          opacity: 0,
+                        }
+                      : { x: 0, y: 0, scale: 1, opacity: 1 }
+                  }
+                  transition={
+                    miniQuizFlyAnimation.phase === "suck"
+                      ? { duration: 0.55, ease: [0.6, 0, 0.8, 1] }
+                      : { duration: 0 }
+                  }
+                  onAnimationEnd={handleMiniQuizFlyAnimationEnd}
+                  onAnimationComplete={() => {
+                    if (miniQuizFlyAnimation.phase === "suck") {
+                      handleMiniQuizSuckComplete();
+                    }
+                  }}
+                  aria-hidden="true"
+                >
+                  <motion.svg
+                    className="workspace-mini-quiz-fly-sparkle"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={
+                      miniQuizFlyAnimation.phase === "suck"
+                        ? { opacity: 1, scale: 1 }
+                        : { opacity: 0, scale: 0 }
+                    }
+                    exit={{ opacity: 0, scale: 0 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  >
+                    <path
+                      d="M12 2.8c.45 3.42 1.18 5.34 2.55 6.7 1.36 1.37 3.28 2.1 6.7 2.55-3.42.45-5.34 1.18-6.7 2.55-1.37 1.36-2.1 3.28-2.55 6.7-.45-3.42-1.18-5.34-2.55-6.7-1.36-1.37-3.28-2.1-6.7-2.55 3.42-.45 5.34-1.18 6.7-2.55C10.82 8.14 11.55 6.22 12 2.8Z"
+                      fill="currentColor"
+                    />
+                  </motion.svg>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </section>
         ) : (
           <section className="workspace-graph-stage">
@@ -3196,22 +3758,35 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             setActiveMiniQuiz(null);
 
             if (sourceId) {
-              // trigger 버튼은 풀이가 완료된 노드만 제거 — 닫기로 끝낸 미풀이 노드는 그대로 둔다.
-              updateMiniQuizReadyByMessage((current) => {
-                const previous = current[sourceId];
-                if (!Array.isArray(previous) || !previous.length) {
-                  return current;
-                }
-                const remaining = previous.filter((target) => !completedNodeIds.has(target.nodeId));
-                if (remaining.length === previous.length) {
-                  return current;
-                }
-                return { ...current, [sourceId]: remaining };
-              });
+              const sourceTargets = Array.isArray(activeMiniQuiz.queue)
+                ? activeMiniQuiz.queue
+                : activeMiniQuiz.nodeId
+                  ? [{ nodeId: activeMiniQuiz.nodeId }]
+                  : [];
+              const isSourceQuizCompleted =
+                sourceTargets.length > 0 && sourceTargets.every((target) => completedNodeIds.has(target.nodeId));
+
+              if (isSourceQuizCompleted) {
+                updateMiniQuizCompletedByMessage((current) => ({ ...current, [sourceId]: true }));
+                updateMiniQuizReadyByMessage((current) => ({ ...current, [sourceId]: [] }));
+              } else {
+                // trigger 버튼은 풀이가 완료된 노드만 제거 — 닫기로 끝낸 미풀이 노드는 그대로 둔다.
+                updateMiniQuizReadyByMessage((current) => {
+                  const previous = current[sourceId];
+                  if (!Array.isArray(previous) || !previous.length) {
+                    return current;
+                  }
+                  const remaining = previous.filter((target) => !completedNodeIds.has(target.nodeId));
+                  if (remaining.length === previous.length) {
+                    return current;
+                  }
+                  return { ...current, [sourceId]: remaining };
+                });
+              }
             }
 
             if (completedNodeIds.size) {
-              setDeferredMiniQuizzes((current) =>
+              updateDeferredMiniQuizzes((current) =>
                 current.filter((item) => !completedNodeIds.has(item.nodeId))
               );
             } else if (deferredId) {

@@ -28,18 +28,7 @@ STATUS_LABELS = {
 }
 
 
-def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> dict:
-    node = db.query(ConceptNode).filter(
-        ConceptNode.node_id == node_id,
-        ConceptNode.project_id == project_id,
-    ).first()
-    if not node:
-        raise ValueError("노드를 찾을 수 없습니다.")
-
-    subject_id = (node.subject_id or "").strip()
-    if not subject_id:
-        raise ValueError(f"노드에 subject_id가 없습니다: {node_id}")
-
+def _build_question_context(project_id: int, node: ConceptNode, db: Session) -> tuple[dict, dict]:
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     graph_context = {
         "project_id": project_id,
@@ -66,11 +55,21 @@ def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> d
         "is_core": node.is_core,
         "core_score": node.core_score,
     }
+    return graph_context, target_concept
 
+
+def _generate_one_question(
+    node: ConceptNode,
+    target_concept: dict,
+    graph_context: dict,
+    subject_id: str,
+    db: Session,
+) -> dict:
+    """단일 문제 생성 — reuse_key는 DB에서 최신 조회하여 중복 출제 방지"""
     previous_reuse_keys = [
         q.reuse_key
         for q in db.query(DiagnosisQuestion).filter(
-            DiagnosisQuestion.concept_id == node_id,
+            DiagnosisQuestion.concept_id == node.node_id,
             DiagnosisQuestion.reuse_key.isnot(None),
         ).all()
         if q.reuse_key
@@ -116,24 +115,43 @@ def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> d
     }
 
 
+def generate_mini_quiz_question(project_id: int, node_id: str, db: Session) -> dict:
+    node = db.query(ConceptNode).filter(
+        ConceptNode.node_id == node_id,
+        ConceptNode.project_id == project_id,
+    ).first()
+    if not node:
+        raise ValueError("노드를 찾을 수 없습니다.")
+
+    subject_id = (node.subject_id or "").strip()
+    if not subject_id:
+        raise ValueError(f"노드에 subject_id가 없습니다: {node_id}")
+
+    graph_context, target_concept = _build_question_context(project_id, node, db)
+
+    q1 = _generate_one_question(node, target_concept, graph_context, subject_id, db)
+    q2 = _generate_one_question(node, target_concept, graph_context, subject_id, db)
+
+    return {"questions": [q1, q2]}
+
+
 def defer_mini_quiz_question(project_id: int, node_id: str, db: Session) -> dict:
-    """나중에 풀기 — 문제 생성 후 deferred_mini_quizzes에 저장, 카운터 초기화"""
+    """나중에 풀기 — 2문제 생성 후 deferred_mini_quizzes에 저장, 카운터 초기화"""
     result = generate_mini_quiz_question(project_id, node_id, db)
 
-    deferred = DeferredMiniQuiz(
-        project_id=project_id,
-        node_id=node_id,
-        question_id=result["question_id"],
-        status="PENDING",
-    )
-    db.add(deferred)
+    for q in result["questions"]:
+        deferred = DeferredMiniQuiz(
+            project_id=project_id,
+            node_id=node_id,
+            question_id=q["question_id"],
+            status="PENDING",
+        )
+        db.add(deferred)
 
     reset_concept_quiz_counter(db, project_id, node_id)
-
     db.commit()
-    db.refresh(deferred)
 
-    return {**result, "deferred_id": deferred.id}
+    return result
 
 
 def get_deferred_mini_quizzes(project_id: int, db: Session) -> list[dict]:

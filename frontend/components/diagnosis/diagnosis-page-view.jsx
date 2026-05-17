@@ -348,12 +348,19 @@ export default function DiagnosisPageView({ projectId }) {
 
     setDraftAnswer((currentAnswer) => {
       const currentChoiceIds = getSelectedChoiceIds(currentAnswer);
+      const isUnknownChoice = value === unknownChoiceId;
 
-      if (currentChoiceIds.includes(value)) {
-        return currentChoiceIds.filter((choiceId) => choiceId !== value);
+      if (isUnknownChoice) {
+        return currentChoiceIds.includes(value) ? [] : [value];
       }
 
-      return [...currentChoiceIds, value];
+      const currentChoiceIdsWithoutUnknown = currentChoiceIds.filter((choiceId) => choiceId !== unknownChoiceId);
+
+      if (currentChoiceIdsWithoutUnknown.includes(value)) {
+        return currentChoiceIdsWithoutUnknown.filter((choiceId) => choiceId !== value);
+      }
+
+      return [...currentChoiceIdsWithoutUnknown, value];
     });
   }
 

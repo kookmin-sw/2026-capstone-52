@@ -12,15 +12,19 @@ SUBJECT_NAME_MAP = {
 }
 
 
-def create_project(db: Session, project_data: ProjectCreate, user_id: int | None = None):
+def create_project(db: Session, project_data: ProjectCreate, user_id: int):
     project_name = SUBJECT_NAME_MAP[project_data.project_domain]
-    resolved_user_id = user_id if user_id is not None else project_data.user_id
 
-    if resolved_user_id is None:
-        raise ValueError("user_id가 필요합니다.")
+    # 같은 user + domain 조합이 있으면 기존 project 반환 (중복 생성 방지)
+    existing = db.query(Project).filter(
+        Project.user_id == user_id,
+        Project.project_domain == project_data.project_domain,
+    ).first()
+    if existing:
+        return existing
 
     new_project = Project(
-        user_id=resolved_user_id,
+        user_id=user_id,
         project_name=project_name,
         project_description=project_data.project_description,
         project_domain=project_data.project_domain,
@@ -31,7 +35,7 @@ def create_project(db: Session, project_data: ProjectCreate, user_id: int | None
     db.refresh(new_project)
 
     log = LearningLog(
-        user_id=resolved_user_id,
+        user_id=user_id,
         project_id=new_project.project_id,
         activity_type="project_created",
         activity_summary=f"{new_project.project_name} 프로젝트를 생성했습니다."
