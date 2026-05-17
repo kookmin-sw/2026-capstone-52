@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.services import diagnosis_service
 from app.services.diagnosis_service import get_session_review
 from app.services.diagnosis_report_service import create_diagnosis_report_chats
+from app.services.quiz_report_service import build_quiz_report
 from app.schemas.quiz_review import QuizQuestionReview
 from app.schemas.diagnosis import (
     DiagnosisSessionCreateResponse,
@@ -141,6 +142,11 @@ def create_diagnosis_report(
             session_id=body.session_id,
             user_id=current_user.user_id,
         )
+        report = build_quiz_report(
+            db=db,
+            project_id=project_id,
+            session_id=body.session_id,
+        )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
@@ -157,7 +163,8 @@ def create_diagnosis_report(
                     "created_at": chat.created_at,
                 }
                 for chat in chats
-            ]
+            ],
+            "report": report.model_dump(),
         },
         "message": "수준진단 리포트 생성 성공",
     }
