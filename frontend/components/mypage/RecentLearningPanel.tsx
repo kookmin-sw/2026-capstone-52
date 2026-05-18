@@ -18,7 +18,7 @@ interface RecentLearningPanelProps {
 
 export default function RecentLearningPanel({ records }: RecentLearningPanelProps) {
   const router = useRouter();
-  const visibleRecords = records.slice(0, 7);
+  const visibleRecords = records.slice(0, 5);
 
   function handleRecordClick(record: RecentLearningRecord) {
     const params = new URLSearchParams({
@@ -33,10 +33,9 @@ export default function RecentLearningPanel({ records }: RecentLearningPanelProp
   }
 
   return (
-    <section className="flex h-[clamp(780px,87vh,960px)] min-h-0 flex-col rounded-[1.45rem] border border-[#ebe9f5] bg-white px-[clamp(32px,3vw,48px)] py-[clamp(28px,3vh,40px)] shadow-[0_24px_70px_rgba(42,38,73,0.06)]">
+    <section className="flex h-[clamp(560px,61vh,672px)] min-h-0 flex-col rounded-[1.45rem] border border-[#ebe9f5] bg-white px-[clamp(32px,3vw,48px)] py-[clamp(28px,3vh,40px)] shadow-[0_24px_70px_rgba(42,38,73,0.06)]">
       <div className="mb-7 flex items-center justify-between gap-3">
         <h3 className="text-[1.35rem] font-black text-[#24213d]">최근 학습 기록</h3>
-        <p className="rounded-full bg-[#f3f1ff] px-4 py-2.5 text-[0.84rem] font-black text-[#74708b]">최근 30일</p>
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-0">

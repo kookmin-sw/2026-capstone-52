@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import KnowledgeGraphScene from "../graph/knowledge-graph-scene";
 import EeumIcon from "@/components/common/EeumIcon";
 import { buildBackendKnowledgeGraph, buildProjectKnowledgeGraph } from "../../features/dashboard/graph";
@@ -19,6 +21,7 @@ import {
   createChat,
   createExplanation,
   createProjectMemo,
+  deleteProject,
   deleteProjectMemo,
   getGraphNodeDetail,
   getGraphNodeQuizHistory,
@@ -53,6 +56,13 @@ const rootKnowledgeColor = "#f5d38a";
 const knowledgeStageLabels = ["진단 전", "입문", "기초", "심화", "마스터"];
 const knowledgeStageColors = ["#fb923c", "#f9a8d4", "#a78bfa", "#60a5fa", "#34d399"];
 const fallbackKnowledgeStageCycle = [1, 2, 3, 4, 1, 2, 3, 4, 0];
+const backendStatusStageIndexMap = {
+  UNSEEN: 0,
+  WEAK: 1,
+  PARTIAL: 2,
+  FAMILIAR: 3,
+  MASTERED: 4,
+};
 const MINI_QUIZ_READY_STORAGE_KEY = "eeum-mini-quiz-ready-v1";
 const MINI_QUIZ_COMPLETED_STORAGE_KEY = "eeum-mini-quiz-completed-v1";
 const MINI_QUIZ_DEFERRED_STORAGE_KEY = "eeum-mini-quiz-deferred-v1";
@@ -377,6 +387,25 @@ function renderDiagnosisTextBlock(content, blockIndex) {
           </span>
         );
       })}
+    </div>
+  );
+}
+
+function MarkdownMessageBody({ content }) {
+  return (
+    <div className="workspace-message-markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -804,12 +833,80 @@ function getFallbackKnowledgeStageIndex(nodeIndex) {
   return fallbackKnowledgeStageCycle[nodeIndex % fallbackKnowledgeStageCycle.length];
 }
 
-function applyKnowledgeStagesToGraph(graph, projectData, workspaceState) {
+function normalizeKnowledgeStageIndex(stageIndex) {
+  const numericStageIndex = Number(stageIndex);
+
+  if (!Number.isFinite(numericStageIndex)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(Math.round(numericStageIndex), 0), knowledgeStageLabels.length - 1);
+}
+
+function getBackendNodeKnowledgeStageIndex(node) {
+  const diagnosisCount = Number(node?.diagnosisCount ?? 0);
+
+  if (!Number.isFinite(diagnosisCount) || diagnosisCount <= 0) {
+    return 0;
+  }
+
+  const backendStatus = String(node?.backendStatus || "").trim().toUpperCase();
+  let knowledgeStageIndex = backendStatusStageIndexMap[backendStatus];
+
+  if (knowledgeStageIndex === undefined) {
+    const understandingLevel = Number(node?.understandingLevel);
+
+    if (Number.isFinite(understandingLevel)) {
+      knowledgeStageIndex = understandingLevel - 1;
+    }
+  }
+
+  if (knowledgeStageIndex === undefined) {
+    const understandingScore = Number(node?.understandingScore);
+
+    if (Number.isFinite(understandingScore)) {
+      if (understandingScore <= 0) {
+        knowledgeStageIndex = 1;
+      } else if (understandingScore < 0.4) {
+        knowledgeStageIndex = 2;
+      } else if (understandingScore < 0.8) {
+        knowledgeStageIndex = 3;
+      } else {
+        knowledgeStageIndex = 4;
+      }
+    }
+  }
+
+  const normalizedStageIndex = normalizeKnowledgeStageIndex(knowledgeStageIndex ?? 0);
+
+  if (diagnosisCount < 2) {
+    return Math.min(normalizedStageIndex, 2);
+  }
+
+  if (diagnosisCount < 4) {
+    return Math.min(normalizedStageIndex, 3);
+  }
+
+  return normalizedStageIndex;
+}
+
+function applyKnowledgeStagesToGraph(graph, projectData, workspaceState, options = {}) {
   let conceptNodeIndex = 0;
 
   return {
     ...graph,
     nodes: graph.nodes.map((node) => {
+      if (options.useBackendNodeState) {
+        const knowledgeStageIndex = getBackendNodeKnowledgeStageIndex(node);
+
+        return {
+          ...node,
+          color: node.isCore ? rootKnowledgeColor : getKnowledgeStageColor(knowledgeStageIndex),
+          knowledgeStageIndex,
+          knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
+        };
+      }
+
       if (node.isCore) {
         const knowledgeStageIndex = getGraphNodeKnowledgeStageIndex(projectData, workspaceState, node);
 
@@ -1094,13 +1191,68 @@ function ProjectSelector({
   isExpanded,
   onToggle,
   onSelect,
+  onDeleteProject,
   isLoading,
   error
 }) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId) || null;
   const visibleProjects = isExpanded ? projects : selectedProject ? [selectedProject] : [];
+  const [openProjectMenu, setOpenProjectMenu] = useState(null);
+  const projectListRef = useRef(null);
+  const projectMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!openProjectMenu) return undefined;
+
+    function handleOutsidePointerDown(event) {
+      if (projectListRef.current?.contains(event.target)) {
+        return;
+      }
+
+      if (projectMenuRef.current?.contains(event.target)) {
+        return;
+      }
+
+      setOpenProjectMenu(null);
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    };
+  }, [openProjectMenu]);
+
+  const projectMenuPortal =
+    openProjectMenu && canUseBrowserStorage()
+      ? createPortal(
+          <div
+            ref={projectMenuRef}
+            className="workspace-shortcut-menu"
+            role="menu"
+            style={{ left: `${openProjectMenu.left}px`, top: `${openProjectMenu.top}px` }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="workspace-shortcut-menu-danger"
+              onClick={() => {
+                const project = projects.find((item) => item.id === openProjectMenu.projectId) || null;
+                setOpenProjectMenu(null);
+                if (project) {
+                  onDeleteProject(project);
+                }
+              }}
+            >
+              프로젝트 삭제하기
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
+    <>
     <section className="workspace-sidebar-group workspace-project-selector">
       <div className="workspace-sidebar-heading">
         <span>프로젝트</span>
@@ -1122,7 +1274,7 @@ function ProjectSelector({
       {!isLoading && !error && !selectedProject ? <div className="workspace-empty-copy">프로젝트가 없습니다.</div> : null}
 
       {!isLoading && !error && visibleProjects.length ? (
-        <div className={`workspace-sidebar-section-scroll workspace-project-list ${
+        <div ref={projectListRef} className={`workspace-sidebar-section-scroll workspace-project-list ${
           isExpanded ? "workspace-project-list-open" : ""
         }`}>
           {visibleProjects.map((project) => {
@@ -1130,27 +1282,66 @@ function ProjectSelector({
             const dotColor = projectDotColors[(projectIndex >= 0 ? projectIndex : 0) % projectDotColors.length];
 
             return (
-              <button
+              <div
                 key={project.id}
-                type="button"
-                className={`workspace-project-item workspace-project-item-${project.id} ${
+                className={`workspace-project-row ${
                   selectedProjectId === project.id ? "workspace-project-item-active" : ""
                 }`}
-                style={{ "--workspace-project-dot-color": dotColor }}
-                onClick={() => onSelect(project.id)}
               >
-                <em />
-                <span className="workspace-project-item-copy">
-                  <strong>
-                    {!isExpanded && selectedProjectId === project.id ? `${project.title}` : project.title}
-                  </strong>
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className={`workspace-project-item workspace-project-item-${project.id}`}
+                  style={{ "--workspace-project-dot-color": dotColor }}
+                  onClick={() => {
+                    setOpenProjectMenu(null);
+                    onSelect(project.id);
+                  }}
+                >
+                  <em />
+                  <span className="workspace-project-item-copy">
+                    <strong>
+                      {!isExpanded && selectedProjectId === project.id ? `${project.title}` : project.title}
+                    </strong>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="workspace-shortcut-menu-button"
+                  aria-label={`${project.title} 프로젝트 메뉴 열기`}
+                  aria-haspopup="menu"
+                  aria-expanded={openProjectMenu?.projectId === project.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const buttonRect = event.currentTarget.getBoundingClientRect();
+                    const menuWidth = 184;
+                    const viewportPadding = 10;
+                    const maxLeft = Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding);
+                    const left = Math.min(
+                      Math.max(viewportPadding, buttonRect.right - menuWidth),
+                      maxLeft
+                    );
+
+                    setOpenProjectMenu((current) =>
+                      current?.projectId === project.id
+                        ? null
+                        : {
+                            projectId: project.id,
+                            left,
+                            top: buttonRect.bottom + 6,
+                          }
+                    );
+                  }}
+                >
+                  <span aria-hidden="true">•••</span>
+                </button>
+              </div>
             );
           })}
         </div>
       ) : null}
     </section>
+    {projectMenuPortal}
+    </>
   );
 }
 
@@ -1935,7 +2126,9 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         baseGraph = buildProjectKnowledgeGraph(projectInput, recentChats);
       }
 
-      return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState);
+      return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState, {
+        useBackendNodeState: isDashboardBackendApiEnabled,
+      });
     },
     [activeProjectData, backendGraph, recentChats, workspaceState]
   );
@@ -2364,6 +2557,44 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setProjectError(error instanceof Error ? error.message : "프로젝트를 선택하지 못했습니다.");
     } finally {
       setIsCreatingProject(false);
+    }
+  }
+
+  async function handleDeleteProject(project) {
+    if (!project) {
+      return;
+    }
+
+    const confirmed = window.confirm(`'${project.title || "프로젝트"}' 프로젝트를 삭제할까요?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setProjectError(null);
+      setChatError(null);
+      await deleteProject(project.id);
+      const [nextProjects, nextCatalogOptions] = await Promise.all([getProjects(), getProjectCatalogOptions()]);
+      const selectedCatalogOptionIds = new Set(getSelectedCatalogOptionIds(nextProjects));
+      const deletedSelectedProject = selectedProjectId === project.id;
+      const nextSelectedProjectId = deletedSelectedProject
+        ? nextProjects[0]?.id || null
+        : nextProjects.some((item) => item.id === selectedProjectId)
+          ? selectedProjectId
+          : nextProjects[0]?.id || null;
+
+      setProjects(nextProjects);
+      setCatalogOptions(nextCatalogOptions);
+      setSelectedProjectId(nextSelectedProjectId);
+      setSelectedChatId(null);
+      setRecentChats([]);
+      setBackendGraph(null);
+      setRecentGraphNodes([]);
+      setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null);
+      setIsProjectListExpanded(false);
+      setWorkspaceState(loadWorkspaceState());
+    } catch (error) {
+      setProjectError(error instanceof Error ? error.message : "프로젝트를 삭제하지 못했습니다.");
     }
   }
 
@@ -3036,6 +3267,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             isExpanded={isProjectListExpanded}
             onToggle={() => setIsProjectListExpanded((current) => !current)}
             onSelect={handleSelectProject}
+            onDeleteProject={handleDeleteProject}
             isLoading={isProjectsLoading}
             error={projectError}
           />
@@ -3103,7 +3335,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             {message.variant === "diagnosis-report" ? (
                               <DiagnosisMessageBody message={message} />
                             ) : (
-                              <p>{getAssistantMessageText(message)}</p>
+                              <MarkdownMessageBody content={getAssistantMessageText(message)} />
                             )}
                             {(() => {
                               if (miniQuizCompletedByMessage[message.id]) return null;

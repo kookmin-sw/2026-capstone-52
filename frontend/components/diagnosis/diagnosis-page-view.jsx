@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EeumIcon from "@/components/common/EeumIcon";
+import { LandingBackgroundLayer } from "@/components/landing/landing-background-layer";
 import {
   buildApiDiagnosisConcepts,
   buildConceptStatuses,
@@ -17,12 +18,12 @@ import {
   createApiDiagnosisSession,
   createApiDiagnosisQuestion,
   createApiDiagnosisReport,
-  getApiProjectGraph,
+  getApiDiagnosisNodes,
   getApiDiagnosisStatus,
   isDiagnosisBackendApiEnabled,
   submitApiDiagnosisAnswer,
 } from "../../features/diagnosis/api-service";
-import { createDiagnosisReportChat } from "../../features/dashboard/service";
+import { createDiagnosisReportChat, getProjects } from "../../features/dashboard/service";
 import { createLearningLog } from "../../features/learning-log/service";
 import { getProjectData } from "../../features/project/model";
 import {
@@ -34,8 +35,6 @@ import {
 
 const ANALYZING_DELAY_MS = 2200;
 const FINAL_PROGRESS_DELAY_MS = 420;
-const DIAGNOSIS_REMAINING_UNITS = 12;
-const DIAGNOSIS_SECONDS_PER_UNIT = 30;
 const DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS = 12;
 const EEUM_SPARKLE_PATH =
   "M 0 -38 C 3 -12 12 -3 38 0 C 12 3 3 12 0 38 C -3 12 -12 3 -38 0 C -12 -3 -3 -12 0 -38 Z";
@@ -151,42 +150,133 @@ function normalizeApiChoice(choice, index) {
   };
 }
 
-function formatRemainingTime(solvedQuestionCount) {
-  const remainingSeconds = Math.max(0, DIAGNOSIS_REMAINING_UNITS - solvedQuestionCount) * DIAGNOSIS_SECONDS_PER_UNIT;
-  const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
-
-  return `${minutes}분 ${seconds}초`;
-}
-
 export default function DiagnosisPageView({ projectId }) {
   const router = useRouter();
-  const [projectData, setProjectData] = useState(() => getProjectData(projectId));
+  const [projectData, setProjectData] = useState(() => {
+    const initialProjectData = getProjectData(projectId);
+
+    return isDiagnosisBackendApiEnabled ? { ...initialProjectData, title: "프로젝트" } : initialProjectData;
+  });
+  const [isProjectDataReady, setIsProjectDataReady] = useState(!isDiagnosisBackendApiEnabled);
   const [step, setStep] = useState("intro");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [draftAnswer, setDraftAnswer] = useState("");
   const [apiSession, setApiSession] = useState(null);
+  const [isInitialQuestionLoading, setIsInitialQuestionLoading] = useState(false);
   const [diagnosisError, setDiagnosisError] = useState(null);
+  const initializedDiagnosisSessionRef = useRef(null);
+  const initialQuestionRequestRef = useRef(null);
 
   useEffect(() => {
-    const workspaceState = loadWorkspaceState();
-    setProjectData(getProjectData(projectId, workspaceState));
-  }, [projectId]);
-
-  const fallbackSession = useMemo(() => createDiagnosisSession(projectData), [projectData]);
-  const session = apiSession || fallbackSession;
-
-  useEffect(() => {
-    if (!isDiagnosisBackendApiEnabled || !projectId) {
-      setApiSession(null);
-      setDiagnosisError(null);
-      return undefined;
-    }
-
     let cancelled = false;
 
-    async function loadApiQuestion() {
+    async function loadProjectData() {
+      setIsProjectDataReady(false);
+
+      const workspaceState = loadWorkspaceState();
+      const fallbackProjectData = getProjectData(projectId, workspaceState);
+
+      if (!isDiagnosisBackendApiEnabled) {
+        if (!cancelled) {
+          setProjectData(fallbackProjectData);
+          setIsProjectDataReady(true);
+        }
+        return;
+      }
+
+      setProjectData({ ...fallbackProjectData, title: "프로젝트" });
+
+      try {
+        const projects = await getProjects();
+
+        if (cancelled) {
+          return;
+        }
+
+        const backendProject = projects.find((project) => project.id === String(projectId));
+        const fallbackTitle = fallbackProjectData.title === `${projectId} 프로젝트` ? "프로젝트" : fallbackProjectData.title;
+
+        setProjectData({
+          ...fallbackProjectData,
+          title: backendProject?.title || fallbackTitle,
+        });
+      } catch {
+        if (!cancelled) {
+          const fallbackTitle =
+            fallbackProjectData.title === `${projectId} 프로젝트` ? "프로젝트" : fallbackProjectData.title;
+
+          setProjectData({
+            ...fallbackProjectData,
+            title: fallbackTitle,
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProjectDataReady(true);
+        }
+      }
+    }
+
+    loadProjectData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  const fallbackSession = useMemo(
+    () => (isDiagnosisBackendApiEnabled ? null : createDiagnosisSession(projectData)),
+    [projectData]
+  );
+  const emptyApiSession = useMemo(
+    () => ({
+      id: null,
+      projectId,
+      projectTitle: projectData.title,
+      totalQuestions: DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS,
+      estimatedMinutes: 6,
+      concepts: [],
+      questions: [],
+    }),
+    [projectData.title, projectId]
+  );
+  const session = isDiagnosisBackendApiEnabled ? apiSession || emptyApiSession : fallbackSession;
+
+  useEffect(() => {
+    if (!isDiagnosisBackendApiEnabled) {
+      setApiSession(null);
+      setDiagnosisError(null);
+      setIsInitialQuestionLoading(false);
+      return;
+    }
+
+    initializedDiagnosisSessionRef.current = null;
+    initialQuestionRequestRef.current = null;
+    setApiSession(null);
+    setAnswers({});
+    setDraftAnswer("");
+    setQuestionIndex(0);
+    setStep("intro");
+    setDiagnosisError(null);
+    setIsInitialQuestionLoading(false);
+  }, [projectId]);
+
+  async function loadInitialApiSession() {
+    if (!isDiagnosisBackendApiEnabled || !projectId || !isProjectDataReady) {
+      return null;
+    }
+
+    if (apiSession?.questions?.length) {
+      return apiSession;
+    }
+
+    if (initialQuestionRequestRef.current) {
+      return initialQuestionRequestRef.current;
+    }
+
+    const request = (async () => {
+      setIsInitialQuestionLoading(true);
       setDiagnosisError(null);
 
       try {
@@ -197,23 +287,20 @@ export default function DiagnosisPageView({ projectId }) {
           throw new Error("진단 세션을 생성하지 못했습니다.");
         }
 
-        const [question, status, graphData] = await Promise.all([
+        const [question, status] = await Promise.all([
           createApiDiagnosisQuestion(projectId, sessionId),
           getApiDiagnosisStatus(projectId, sessionId).catch(() => null),
-          getApiProjectGraph(projectId).catch(() => null),
         ]);
 
-        if (cancelled) {
-          return;
-        }
-
         const choices = Array.isArray(question.choices) ? question.choices : [];
-        const graphNodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
         const apiQuestion = {
           ...question,
           node_id: question.concept_id || question.node_id,
         };
-        const concepts = buildApiDiagnosisConcepts(projectData, graphNodes, apiQuestion);
+        const diagnosisNodes = question.question_id
+          ? await getApiDiagnosisNodes(projectId, question.question_id).catch(() => [])
+          : [];
+        const concepts = buildApiDiagnosisConcepts(diagnosisNodes, apiQuestion);
         const fallbackConceptId = question.concept_id || question.node_id || "api-concept";
         const normalizedQuestion = normalizeDiagnosisQuestion({
           id: question.question_id,
@@ -242,7 +329,7 @@ export default function DiagnosisPageView({ projectId }) {
             ? status.total_questions
             : DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
 
-        setApiSession({
+        const nextSession = {
           id: sessionId,
           projectId,
           projectTitle: projectData.title,
@@ -257,28 +344,61 @@ export default function DiagnosisPageView({ projectId }) {
                 },
               ],
           questions: [normalizedQuestion],
-        });
+        };
+
+        initializedDiagnosisSessionRef.current = `${projectId || nextSession.projectId || "project"}:${nextSession.id}`;
+        setAnswers(createEmptyAnswers(nextSession));
+        setDraftAnswer(createEmptyDraftAnswer(normalizedQuestion));
+        setQuestionIndex(0);
+        setApiSession(nextSession);
+        return nextSession;
       } catch (error) {
-        if (!cancelled) {
-          setDiagnosisError(error instanceof Error ? error.message : "진단 질문을 불러오지 못했습니다.");
-          setApiSession(null);
-        }
+        setDiagnosisError(error instanceof Error ? error.message : "진단 질문을 불러오지 못했습니다.");
+        setApiSession(null);
+        return null;
+      } finally {
+        initialQuestionRequestRef.current = null;
+        setIsInitialQuestionLoading(false);
       }
+    })();
+
+    initialQuestionRequestRef.current = request;
+    return request;
+  }
+
+  async function handleStartDiagnosis() {
+    if (!isDiagnosisBackendApiEnabled) {
+      setStep("quiz");
+      return;
     }
 
-    loadApiQuestion();
+    const readySession = apiSession?.questions?.length ? apiSession : await loadInitialApiSession();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [projectData.title, projectId]);
+    if (readySession?.questions?.length) {
+      setStep("quiz");
+    }
+  }
 
   useEffect(() => {
+    if (isDiagnosisBackendApiEnabled) {
+      return;
+    }
+
+    if (!session.id || !session.questions.length) {
+      return;
+    }
+
+    const sessionKey = `${projectId || session.projectId || "project"}:${session.id}`;
+    if (initializedDiagnosisSessionRef.current === sessionKey) {
+      return;
+    }
+
+    initializedDiagnosisSessionRef.current = sessionKey;
     setAnswers(createEmptyAnswers(session));
     setDraftAnswer(createEmptyDraftAnswer(session.questions[0]));
     setQuestionIndex(0);
     setStep("intro");
-  }, [session]);
+  }, [projectId, session.id, session.projectId, session.questions.length]);
 
   useEffect(() => {
     if (step !== "analyzing") {
@@ -327,9 +447,6 @@ export default function DiagnosisPageView({ projectId }) {
   const questionProgressRatio = session.totalQuestions
     ? Math.min(Math.max((questionIndex + 1) / session.totalQuestions, 0), 1)
     : 0;
-  const introTimeLabel = "약 6분 소요";
-  const completedQuestionCount = questionIndex;
-  const remainingTimeValue = formatRemainingTime(completedQuestionCount);
 
   function updateCurrentAnswer(value) {
     if (!currentQuestion) {
@@ -407,6 +524,8 @@ export default function DiagnosisPageView({ projectId }) {
       return;
     }
 
+    setDiagnosisError(null);
+
     const nextAnswers = {
       ...answers,
       [currentQuestion.id]: resolvedAnswer,
@@ -476,14 +595,28 @@ export default function DiagnosisPageView({ projectId }) {
           try {
             nextQuestion = await createApiDiagnosisQuestion(projectId, session.id);
           } catch (fetchError) {
-            // 다음 질문이 없으면 (404 등) 진단을 종료한 것으로 간주
-            nextQuestion = null;
+            setDiagnosisError(
+              fetchError instanceof Error ? fetchError.message : "다음 진단 질문을 불러오지 못했습니다."
+            );
+            setDraftAnswer(resolvedAnswer);
+            setApiSession(sessionAfterCheck);
+            setStep("quiz");
+            return;
           }
 
           if (nextQuestion?.question_id) {
             const choices = Array.isArray(nextQuestion.choices) ? nextQuestion.choices : [];
             const fallbackConceptId =
               nextQuestion.concept_id || nextQuestion.node_id || `api-concept-${answeredCount + 1}`;
+            const apiQuestion = {
+              ...nextQuestion,
+              node_id: nextQuestion.concept_id || nextQuestion.node_id,
+            };
+            const diagnosisNodes = await getApiDiagnosisNodes(projectId, nextQuestion.question_id).catch(() => []);
+            const concepts = buildApiDiagnosisConcepts(
+              diagnosisNodes.length ? diagnosisNodes : sessionAfterCheck.concepts,
+              apiQuestion
+            );
             const normalizedNext = normalizeDiagnosisQuestion({
               id: nextQuestion.question_id,
               diagnosisId: nextQuestion.question_id,
@@ -508,6 +641,7 @@ export default function DiagnosisPageView({ projectId }) {
 
             setApiSession({
               ...sessionAfterCheck,
+              concepts: concepts.length ? concepts : sessionAfterCheck.concepts,
               questions: [...sessionAfterCheck.questions, normalizedNext],
             });
             setDraftAnswer(createEmptyDraftAnswer(normalizedNext));
@@ -589,9 +723,15 @@ export default function DiagnosisPageView({ projectId }) {
 
   return (
     <main className={`diagnosis-flow-shell diagnosis-flow-shell-${step}`}>
-      <div className="diagnosis-flow-orb diagnosis-flow-orb-left" aria-hidden="true" />
-      <div className="diagnosis-flow-orb diagnosis-flow-orb-right" aria-hidden="true" />
-      <div className="diagnosis-flow-stars" aria-hidden="true" />
+      {step === "intro" ? (
+        <LandingBackgroundLayer />
+      ) : (
+        <>
+          <div className="diagnosis-flow-orb diagnosis-flow-orb-left" aria-hidden="true" />
+          <div className="diagnosis-flow-orb diagnosis-flow-orb-right" aria-hidden="true" />
+          <div className="diagnosis-flow-stars" aria-hidden="true" />
+        </>
+      )}
 
       {step === "intro" ? (
         <section className="diagnosis-flow-centered">
@@ -604,12 +744,18 @@ export default function DiagnosisPageView({ projectId }) {
               답하기 어려우면 &quot;잘 모르겠어요&quot;를 눌러도 괜찮아요 ☺
             </p>
             {diagnosisError ? <small className="diagnosis-flow-error">{diagnosisError}</small> : null}
-            <button type="button" className="diagnosis-flow-start-button" onClick={() => setStep("quiz")}>
-              진단 시작하기 <span>→</span>
+            <button
+              type="button"
+              className="diagnosis-flow-start-button"
+              onClick={handleStartDiagnosis}
+              disabled={isDiagnosisBackendApiEnabled && (!isProjectDataReady || isInitialQuestionLoading)}
+            >
+              {isDiagnosisBackendApiEnabled && (!isProjectDataReady || isInitialQuestionLoading)
+                ? "진단 준비 중"
+                : "진단 시작하기"} <span>→</span>
             </button>
             <div className="diagnosis-flow-meta">
-              <span>📋 약 {session.totalQuestions}문항</span>
-              <span>⏱ {introTimeLabel}</span>
+              <span>📋 약 15문항</span>
               <span>🎯 수준 자동 분석</span>
             </div>
           </div>
@@ -636,10 +782,6 @@ export default function DiagnosisPageView({ projectId }) {
               <strong>
                 {questionIndex + 1} / {session.totalQuestions}
               </strong>
-            </div>
-            <div>
-              <span>예상 남은 시간</span>
-              <strong>약 {remainingTimeValue}</strong>
             </div>
           </section>
 

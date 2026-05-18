@@ -427,7 +427,8 @@ export function createDiagnosisConcept(value) {
   return {
     id,
     label,
-    sourceStatus: typeof value === "object" ? value.status : undefined,
+    sourceStatus:
+      typeof value === "object" ? value.status || value.diagnosis_label || value.diagnosisLabel : undefined,
   };
 }
 
@@ -523,10 +524,10 @@ function buildDiagnosisConcepts(projectData, template) {
   return [...conceptMap.values()];
 }
 
-export function buildApiDiagnosisConcepts(projectData, graphNodes = [], question = null) {
+export function buildApiDiagnosisConcepts(graphNodes = [], question = null) {
   const conceptMap = new Map();
 
-  [...(graphNodes || []), ...(projectData.graphNodes || [])].forEach((conceptLike) => {
+  (graphNodes || []).forEach((conceptLike) => {
     const concept = createDiagnosisConcept(conceptLike);
 
     if (concept && !conceptMap.has(concept.id)) {
@@ -555,6 +556,24 @@ export function buildApiDiagnosisConcepts(projectData, graphNodes = [], question
   }
 
   return [...conceptMap.values()];
+}
+
+function getDiagnosisStatusFromLabel(label) {
+  if (label === diagnosisStatusMap.understood.label || label === "이해") {
+    return diagnosisStatusMap.understood;
+  }
+  if (
+    label === diagnosisStatusMap.needsReview.label ||
+    label === "추가 학습" ||
+    label === "추가 학습 필요"
+  ) {
+    return diagnosisStatusMap.needsReview;
+  }
+  if (label === diagnosisStatusMap.inProgress.label || label === "진행 중") {
+    return diagnosisStatusMap.inProgress;
+  }
+
+  return diagnosisStatusMap.unknown;
 }
 
 export function normalizeDiagnosisQuestion(question) {
@@ -712,14 +731,18 @@ export function evaluateQuestion(question, answer) {
 
 export function buildConceptStatuses(session, answers, currentQuestionIndex = 0, isComplete = false) {
   const statuses = new Map(
-    session.concepts.map((concept) => [
-      concept.id,
-      {
-        ...concept,
-        status: diagnosisStatusMap.unknown.label,
-        tone: diagnosisStatusMap.unknown.tone,
-      },
-    ])
+    session.concepts.map((concept) => {
+      const initialStatus = getDiagnosisStatusFromLabel(concept.sourceStatus);
+
+      return [
+        concept.id,
+        {
+          ...concept,
+          status: initialStatus.label,
+          tone: initialStatus.tone,
+        },
+      ];
+    })
   );
 
   session.questions.forEach((question, index) => {

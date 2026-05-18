@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
+from app.ai.language import detect_user_response_language, response_language_instruction
 
 
 # 설명 AI / 헬퍼 모듈
@@ -52,6 +53,9 @@ def generate_explanation(
     if explanation_style not in SUPPORTED_EXPLANATION_STYLES:
         raise ExplanationValidationError(f"Unsupported explanation_style: {explanation_style}")
 
+    response_language = detect_user_response_language(
+        (graph_context or {}).get("user_question") if isinstance(graph_context, dict) else None
+    )
     compact_context = _compact_context(
         target_concept=validated_target,
         user_state=user_state,
@@ -62,10 +66,12 @@ def generate_explanation(
         explanation_style=explanation_style,
         user_level=user_level,
         explanation_level=explanation_level,
+        response_language=response_language,
     )
 
     system_prompt = (
         "You are a personalized CS tutor for a learning support system. "
+        f"{response_language_instruction(response_language)} "
         "Generate an explanation for one target concept only. "
         "Adjust difficulty to the user's understanding level. "
         "Interpret explanation_style as follows: "
@@ -250,9 +256,11 @@ def _compact_context(
     explanation_style: str,
     user_level: int,
     explanation_level: str,
+    response_language: str,
 ) -> dict[str, Any]:
     return {
         "target_concept": target_concept,
+        "response_language": response_language,
         "user_state": user_state or {},
         "prerequisite_concepts": [
             {

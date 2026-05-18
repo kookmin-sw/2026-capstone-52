@@ -4,7 +4,7 @@ import { ensureCurrentUser } from "../api/session";
 import {
   createProjectMemo as createLocalProjectMemo,
   deleteProjectMemo as deleteLocalProjectMemo,
-  getDefaultWorkspaceState,
+  deleteProjectState,
   getProjectMemos as getLocalProjectMemos,
   loadWorkspaceState,
   saveWorkspaceState,
@@ -775,6 +775,25 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
   }
 
   return nextProject;
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  if (isBackendApiEnabled) {
+    await apiRequest(`/projects/${encodeURIComponent(projectId)}`, {
+      method: "DELETE",
+    });
+    return;
+  }
+
+  const nextWorkspaceState = deleteProjectState(loadWorkspaceState(), projectId);
+  saveWorkspaceState(nextWorkspaceState);
+
+  const chatStore = loadChatStore();
+  const { [projectId]: _removed, ...nextChatsByProject } = chatStore.chatsByProject;
+  saveChatStore({
+    ...chatStore,
+    chatsByProject: nextChatsByProject,
+  });
 }
 
 export async function createChat(projectId: string): Promise<Chat> {
