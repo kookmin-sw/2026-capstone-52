@@ -7,7 +7,13 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
-from app.schemas.mini_quiz import MiniQuizAnswerRequest, MiniQuizAnswerResponse, DeferredMiniQuizItem
+from app.schemas.mini_quiz import (
+    DeferredMiniQuizGroup,
+    DeferredMiniQuizItem,
+    MiniQuizAnswerRequest,
+    MiniQuizAnswerResponse,
+    MiniQuizDeferRequest,
+)
 from app.schemas.diagnosis import DiagnosisQuestionResponse
 from app.schemas.quiz_review import QuizQuestionReview
 from app.services import mini_quiz_service
@@ -48,6 +54,7 @@ def generate_mini_quiz(
     return {
         "success": True,
         "data": [DiagnosisQuestionResponse(**q) for q in result["questions"]],
+        "group": result["group"],
         "message": "",
     }
 
@@ -63,6 +70,33 @@ def submit_mini_quiz(
     _get_project_or_403(project_id, current_user, db)
 
     try:
+        if body.groups:
+            result = mini_quiz_service.submit_mini_quiz_groups(
+                project_id=project_id,
+                user_id=current_user.user_id,
+                groups=[
+                    {
+                        "question_ids": group.question_ids,
+                        "answers": [answer.model_dump() for answer in group.answers],
+                    }
+                    for group in body.groups
+                ],
+                db=db,
+            )
+            return {"success": True, "data": result, "message": "미니 퀴즈 그룹 완료"}
+
+        if body.answers:
+            result = mini_quiz_service.submit_mini_quiz_group(
+                project_id=project_id,
+                user_id=current_user.user_id,
+                answers=[answer.model_dump() for answer in body.answers],
+                db=db,
+            )
+            return {"success": True, "data": MiniQuizAnswerResponse(**result), "message": "미니 퀴즈 완료"}
+
+        if not body.question_id:
+            raise ValueError("question_id 또는 answers가 필요합니다.")
+
         result = mini_quiz_service.submit_mini_quiz_answer(
             project_id=project_id,
             user_id=current_user.user_id,
@@ -105,7 +139,8 @@ def get_mini_quiz_review(
 @router.post("/{project_id}/defer", response_model=None)
 def defer_mini_quiz(
     project_id: int,
-    node_id: str,
+    node_id: str | None = None,
+    body: MiniQuizDeferRequest | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -113,7 +148,12 @@ def defer_mini_quiz(
     _get_project_or_403(project_id, current_user, db)
 
     try:
-        result = mini_quiz_service.defer_mini_quiz_question(project_id, node_id, db)
+        result = mini_quiz_service.defer_mini_quiz_question(
+            project_id=project_id,
+            node_id=node_id,
+            db=db,
+            question_ids=body.question_ids if body else None,
+        )
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except QuestionValidationError as error:
@@ -124,6 +164,7 @@ def defer_mini_quiz(
     return {
         "success": True,
         "data": [DiagnosisQuestionResponse(**q) for q in result["questions"]],
+        "group": result["group"],
         "message": "",
     }
 
@@ -138,8 +179,15 @@ def get_deferred_mini_quizzes(
     _get_project_or_403(project_id, current_user, db)
 
     items = mini_quiz_service.get_deferred_mini_quizzes(project_id, db)
+    groups = [DeferredMiniQuizGroup(**item) for item in items]
+    legacy_items = [
+        DeferredMiniQuizItem(**question)
+        for group in items
+        for question in group["questions"]
+    ]
     return {
         "success": True,
-        "data": [DeferredMiniQuizItem(**item) for item in items],
+        "data": legacy_items,
+        "groups": groups,
         "message": "",
     }

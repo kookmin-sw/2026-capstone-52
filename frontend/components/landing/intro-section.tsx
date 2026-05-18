@@ -1,5 +1,9 @@
+"use client";
+
+import { MiniGraphFloat } from "@/components/graph/mini-graph-float";
+import type { KnowledgeGraphEdge, KnowledgeGraphNode } from "@/components/graph/knowledge-graph-scene";
 import { motion, type Variants } from "framer-motion";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const introItemVariants: Variants = {
   hidden: {
@@ -66,61 +70,185 @@ function ExplanationPreview() {
   );
 }
 
+const miniGraphPreviewNodes: KnowledgeGraphNode[] = [
+  { id: "sched", label: "스케줄링", color: "#817cf2", x: 0.22, y: 0.5, size: 6.4, isCore: true },
+  { id: "fcfs", label: "FCFS", color: "#62ceb0", x: 0.55, y: 0.28, size: 5.1 },
+  { id: "rr", label: "RR", color: "#ff9a72", x: 0.55, y: 0.72, size: 5.1 },
+  { id: "starv", label: "기아 현상", color: "#f36f7b", x: 0.88, y: 0.5, size: 5.1 },
+  { id: "aging", label: "에이징", color: "#7dd3fc", x: 0.88, y: 0.2, size: 4.5 },
+  { id: "preempt", label: "선점형", color: "#c4b5fd", x: 0.3, y: 0.18, size: 4.5 },
+];
+
+const miniGraphPreviewEdges: KnowledgeGraphEdge[] = [
+  { source: "sched", target: "fcfs" },
+  { source: "sched", target: "rr" },
+  { source: "fcfs", target: "starv" },
+  { source: "rr", target: "starv" },
+  { source: "starv", target: "aging" },
+  { source: "sched", target: "preempt" },
+];
+
 function MiniGraphPreview() {
   return (
-    <div className="relative h-[171px] overflow-hidden rounded-[1rem] bg-[#f0eefb]">
-      <svg className="h-full w-full" viewBox="0 0 600 172" role="img" aria-label="스케줄링, FCFS, RR, 기아현상이 연결된 지식 그래프">
-        <defs>
-          <filter id="landing-graph-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#4d467a" floodOpacity="0.12" />
-          </filter>
-        </defs>
-
-        <g fill="none" stroke="#bdb7f7" strokeLinecap="round" strokeWidth="4">
-          <path d="M152 88 C218 62 266 50 326 48" />
-          <path d="M152 88 C218 104 264 118 326 122" />
-          <path d="M382 122 C430 112 466 100 518 86" />
-        </g>
-
-        <g filter="url(#landing-graph-node-shadow)">
-          <g transform="translate(118 88)">
-            <circle r="30" fill="#817cf2" />
-            <text y="4" fill="#fff" fontSize="10.5" fontWeight="850" textAnchor="middle">스케줄링</text>
-          </g>
-
-          <g transform="translate(352 46)">
-            <circle r="31" fill="#62ceb0" />
-            <text y="5" fill="#fff" fontSize="13" fontWeight="850" textAnchor="middle">FCFS</text>
-          </g>
-
-          <g transform="translate(352 124)">
-            <circle r="31" fill="#ff9a72" />
-            <text y="5" fill="#fff" fontSize="13" fontWeight="850" textAnchor="middle">RR</text>
-          </g>
-
-          <g transform="translate(536 84)">
-            <circle r="31" fill="#f36f7b" />
-            <text y="4" fill="#fff" fontSize="10.5" fontWeight="850" textAnchor="middle">기아 현상</text>
-          </g>
-        </g>
-      </svg>
+    <div
+      className="relative h-[220px] overflow-hidden rounded-[1rem] bg-[#f0eefb]"
+      role="img"
+      aria-label="스케줄링, FCFS, RR, 기아 현상이 연결된 지식 그래프"
+    >
+      <MiniGraphFloat
+        nodes={miniGraphPreviewNodes}
+        edges={miniGraphPreviewEdges}
+        showLabels
+        nodeSizeScale={0.85}
+      />
     </div>
   );
 }
 
-function LogPreview() {
+type Phase = "enter" | "selecting1" | "selecting2" | "reveal" | "exit";
+
+const miniQuizOptions = [
+  { id: "A", text: "마지막 데이터가 먼저 나온다", isCorrect: true },
+  { id: "B", text: "먼저 데이터가 먼저 나온다", isCorrect: false },
+  { id: "C", text: "push / pop 연산을 사용한다", isCorrect: true },
+  { id: "D", text: "트리 형태의 자료구조이다", isCorrect: false },
+];
+
+const miniQuizPhaseDuration: Record<Phase, number> = {
+  enter: 650,
+  selecting1: 600,
+  selecting2: 700,
+  reveal: 1200,
+  exit: 1550,
+};
+
+const nextMiniQuizPhase: Record<Phase, Phase> = {
+  enter: "selecting1",
+  selecting1: "selecting2",
+  selecting2: "reveal",
+  reveal: "exit",
+  exit: "enter",
+};
+
+const miniQuizCardVariants: Variants = {
+  enter: {
+    x: 560,
+    y: 0,
+    opacity: 1,
+    rotate: 0,
+  },
+  settled: {
+    x: [560, -18, 10, -4, 0],
+    y: 0,
+    opacity: 1,
+    rotate: [0, 0, -1.2, 0.8, 0],
+    transition: {
+      duration: 0.65,
+      ease: [0.15, 0.7, 0.2, 1],
+    },
+  },
+  exit: {
+    x: [0, -10, 14, -620],
+    y: 0,
+    opacity: [1, 1, 1, 0],
+    rotate: [0, -1.4, 1.8, -3],
+    transition: {
+      duration: 1.15,
+      times: [0, 0.12, 0.25, 1],
+      ease: [0.15, 0.7, 0.2, 1],
+    },
+  },
+};
+
+const miniQuizTone = {
+  default: {
+    backgroundColor: "#f0eefb",
+    color: "#24213d",
+  },
+  selected: {
+    backgroundColor: "#dcd6ff",
+    color: "#5a4fd9",
+  },
+  correct: {
+    backgroundColor: "#d4f5e6",
+    color: "#10b981",
+  },
+  wrong: {
+    backgroundColor: "#fde2e4",
+    color: "#ef4444",
+  },
+};
+
+function getMiniQuizOptionTone(option: (typeof miniQuizOptions)[number], phase: Phase) {
+  const isSelected =
+    (phase === "selecting1" && option.id === "A") ||
+    ((phase === "selecting2" || phase === "reveal" || phase === "exit") && (option.id === "A" || option.id === "B"));
+  const isRevealed = phase === "reveal" || phase === "exit";
+
+  if (isRevealed && option.isCorrect) {
+    return miniQuizTone.correct;
+  }
+
+  if (isRevealed && isSelected && !option.isCorrect) {
+    return miniQuizTone.wrong;
+  }
+
+  if (isSelected) {
+    return miniQuizTone.selected;
+  }
+
+  return miniQuizTone.default;
+}
+
+function MiniQuizPreview() {
+  const [phase, setPhase] = useState<Phase>("enter");
+  const [cycle, setCycle] = useState(0);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (phase === "exit") {
+        setCycle((current) => current + 1);
+      }
+
+      setPhase(nextMiniQuizPhase[phase]);
+    }, miniQuizPhaseDuration[phase]);
+
+    return () => window.clearTimeout(timeout);
+  }, [phase]);
+
   return (
-    <div className="space-y-2.5">
-      {["기아 현상", "에이징", "Round Robin"].map((item, index) => (
-        <div
-          key={item}
-          className={`rounded-[0.85rem] bg-[#f0eefb] px-4 py-3.5 text-[0.86rem] font-black ${
-            index === 0 ? "text-[#817cf2]" : "text-[#24213d]"
-          }`}
-        >
-          {item}
+    <div key={cycle} className="overflow-hidden rounded-[1rem]" aria-label="스택 개념 미니퀴즈 미리보기">
+      <motion.div
+        className="rounded-[1rem] border border-[#ece9f7] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(42,38,73,0.08)]"
+        variants={miniQuizCardVariants}
+        initial="enter"
+        animate={phase === "exit" ? "exit" : "settled"}
+      >
+        <p className="text-[0.86rem] font-black leading-6 text-[#24213d]">
+          스택(Stack)에 대한 설명으로 옳은 것을 모두 고르세요
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {miniQuizOptions.map((option) => {
+            const tone = getMiniQuizOptionTone(option, phase);
+            const isWrongReveal = phase === "reveal" && option.id === "B";
+
+            return (
+              <motion.div
+                key={option.id}
+                className="rounded-[0.7rem] bg-[#f0eefb] px-3 py-2.5 text-left text-[0.78rem] font-bold leading-5 text-[#24213d]"
+                animate={{
+                  ...tone,
+                  x: isWrongReveal ? [0, -6, 6, -6, 6, -3, 3, 0] : 0,
+                }}
+                transition={isWrongReveal ? { duration: 0.5 } : { duration: 0.22 }}
+              >
+                {option.id}. {option.text}
+              </motion.div>
+            );
+          })}
         </div>
-      ))}
+      </motion.div>
     </div>
   );
 }
@@ -194,12 +322,12 @@ export function IntroSection() {
           </FeatureCard>
 
           <FeatureCard
-            iconSrc="/icons/landing/landing_report.svg"
-            title="학습 기록과 메모"
-            description="최근 업데이트된 개념, 질문 기록, 메모를 함께 남겨 다음 학습으로 이어갑니다."
+            iconSrc="/icons/landing/quiz.svg"
+            title="개념 확인 미니퀴즈"
+            description="대화에서 충분히 다룬 개념을 짧은 퀴즈로 점검하고, 헷갈린 선택지는 바로 피드백합니다."
             animationIndex={6}
           >
-            <LogPreview />
+            <MiniQuizPreview />
           </FeatureCard>
         </div>
       </motion.div>
