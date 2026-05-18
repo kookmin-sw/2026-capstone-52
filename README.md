@@ -1,8 +1,15 @@
-# EEUM : PDF 기반 개인화 학습 및 수준 진단 AI 서비스
-
 <p align="center">
-  <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
+  <img src="./docs/assets/images/eeum_banner.png" alt="EEUM 헤더 배너" width="100%" />
 </p>
+
+<div align="center">
+  <h1>EEUM : PDF 기반 개인화 학습 및 수준 진단 AI 서비스</h1>
+  <h3>나의 이해를 읽고, 배움의 흐름을 잇다</h3>
+  <p>
+    PDF 학습 자료와 수준 진단 결과를 기반으로 AI가 현재 이해 수준을 분석하고,<br />
+    선수 개념부터 맞춤형 질의응답까지 이어주는 자기주도 AI 학습 튜터 서비스입니다.
+  </p>
+</div>
 
 
 ## 목차
@@ -20,9 +27,9 @@
 ---
 
 ## 📌 프로젝트 소개
-
-### 프로젝트 배경
->서비스 소개 이미지 추가 예정
+<p align="center">
+  <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
+</p>
 
 기존 LLM 기반 학습 서비스는 사용자의 현재 이해 수준을 충분히 반영하지 못하고,
 단순 질의응답 중심으로 동작하는 경우가 많습니다.
@@ -37,6 +44,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 - PDF + Knowledge Graph + RAG 결합 구조
 - 프로젝트 단위 학습 상태 추적
 - 학습 로그 및 메모 기반 학습 관리
+- N-term 간 집중 학습 개념에 대한 미니 퀴즈
 
 ---
 
@@ -69,6 +77,10 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 - 프로젝트별 채팅 기록 저장
 - 학습 로그 저장
 - 프로젝트 메모장 기능
+
+### 6. 미니 퀴즈
+- N-term 간 집중 학습 개념에 대한 미니 퀴즈
+- 지속적인 사용자 수준 업데이트
 
 ---
 ## 🎬 소개 영상
@@ -426,3 +438,9 @@ http://localhost:3000
 ```
 
 ## 📚 참고 자료
+
+| 번호 | 종류 | 제목 | 출처 | 발행년도 | 저자 | 기타 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 논문 | Generative AI without guardrails can harm learning: Evidence from high school mathematics | Proceedings of the National Academy of Sciences | 2025 | Bastani, Hamsa, et al. |  |
+| 2 | 논문 | The science of effective learning with spacing and retrieval practice | Nature Reviews Psychology | 2022 | Carpenter, Shana K., Steven C. Pan, and Andrew C. Butler. |  |
+| 3 | 논문 | AI meets the classroom: When do large language models harm learning? | arXiv preprint | 2024 | Lehmann, Matthias, Philipp B. Cornelius, and Fabian J. Sting. |  |
