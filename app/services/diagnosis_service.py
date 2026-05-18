@@ -157,6 +157,7 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
             tag_group=teacher_question["tag_group"],
             reuse_key=teacher_question["reuse_key"],
             diagnosis_purpose=teacher_question["diagnosis_purpose"],
+            explanation=_build_question_explanation(teacher_question),
         )
 
         return {
@@ -391,6 +392,23 @@ def _json_loads_list(value: str | None) -> list:
     if isinstance(parsed, list):
         return parsed
     raise ValueError("Expected JSON list value.")
+
+
+def _build_question_explanation(teacher_question: dict) -> str:
+    explanations = []
+    for choice in teacher_question.get("choices", []):
+        if not isinstance(choice, dict):
+            continue
+
+        option_id = choice.get("option_id")
+        text = choice.get("text")
+        explanation = choice.get("explanation")
+        if option_id and explanation:
+            explanations.append(f"{option_id}. {text}: {explanation}" if text else f"{option_id}. {explanation}")
+
+    if explanations:
+        return "\n".join(explanations)
+    return str(teacher_question.get("llm_reason") or "").strip()
 
 
 def _json_dumps(value: list) -> str:
@@ -642,4 +660,3 @@ def get_questions_review(question_ids: list[str], db: Session) -> list[dict]:
             "explanation": q.explanation,
         })
     return result
-

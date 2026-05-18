@@ -45,6 +45,9 @@ def process_chat(
     recent_diagnosis: list[dict] | None = None,
     conversation_context: list[dict] | None = None,
     allowed_concepts: list[dict] | None = None,
+    uploaded_context: str | None = None,
+    backbone_context: str | None = None,
+    grounding_metadata: dict | None = None,
     chat_mode: str = "learning_assistant",
 ) -> dict[str, Any]:
     validated_message = _validate_message(message)
@@ -59,19 +62,24 @@ def process_chat(
         recent_diagnosis=recent_diagnosis,
         conversation_context=conversation_context,
         allowed_concepts=allowed_concepts,
+        uploaded_context=uploaded_context,
+        backbone_context=backbone_context,
+        grounding_metadata=grounding_metadata,
         chat_mode=chat_mode,
     )
 
     system_prompt = (
         "You are a personalized CS learning assistant. "
-        "Answer the learner's message using only the provided graph and user context. "
+        "Answer the learner's message using the provided context in this priority order: "
+        "uploaded/project context, subject backbone context, then general CS knowledge only when context is insufficient. "
         "If context is insufficient, say what is missing. "
         "Do not invent graph nodes. "
         "Only create actionable graph update signals for allowed_concepts. "
         "Understanding signals must be conservative. "
         "score_delta must be between -0.05 and +0.05. "
-        "Do not claim that any DB update or score update was applied. "
+        "Do not claim that any DB update, graph update, or understanding_score update was applied. "
         "Do not expose internal metadata names to the learner. "
+        "Include a short confidence_note when grounding is limited. "
         "Return JSON only."
     )
     user_prompt = json.dumps(
@@ -101,6 +109,11 @@ def process_chat(
                 "suggested_next_actions": ["ask_followup_question"],
                 "followup_question": "string",
                 "safety_note": "string",
+                "grounding_source": "project_graph",
+                "grounding_level": "high",
+                "confidence_note": "string",
+                "used_uploaded_context": True,
+                "used_backbone": False,
             },
         },
         ensure_ascii=False,
@@ -117,7 +130,7 @@ def process_chat(
     except LLMClientError as error:
         raise ChatGenerationError(f"Chat generation failed: {error}") from error
 
-    result = _sanitize_chat_payload(payload, allowed_concepts)
+    result = _sanitize_chat_payload(payload, allowed_concepts, grounding_metadata)
     logger.info(
         "chat_processed chat_mode=%s mentions=%d actionable_signals=%d",
         chat_mode,
@@ -154,6 +167,9 @@ def _compact_chat_context(
     recent_diagnosis: list[dict] | None,
     conversation_context: list[dict] | None,
     allowed_concepts: list[dict] | None,
+    uploaded_context: str | None,
+    backbone_context: str | None,
+    grounding_metadata: dict | None,
     chat_mode: str,
 ) -> dict[str, Any]:
     return {
@@ -165,6 +181,9 @@ def _compact_chat_context(
         "recent_diagnosis": _compact_recent_diagnosis(recent_diagnosis),
         "conversation_context": _compact_conversation_context(conversation_context),
         "allowed_concepts": _compact_allowed_concepts(allowed_concepts),
+        "uploaded_context": uploaded_context or "",
+        "backbone_context": backbone_context or "",
+        "grounding_metadata": grounding_metadata if isinstance(grounding_metadata, dict) else {},
     }
 
 
@@ -176,6 +195,7 @@ def _compact_chat_context(
 def _sanitize_chat_payload(
     payload: dict,
     allowed_concepts: list[dict] | None,
+    grounding_metadata: dict | None = None,
 ) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ChatValidationError("Chat payload must be a dict.")
@@ -196,6 +216,30 @@ def _sanitize_chat_payload(
     followup_question = _coerce_non_empty_string(payload.get("followup_question")) or ""
     safety_note = _coerce_non_empty_string(payload.get("safety_note")) or ""
     needs_graph_update = bool(understanding_signals)
+    fallback_grounding = grounding_metadata if isinstance(grounding_metadata, dict) else {}
+    grounding_source = (
+        _coerce_non_empty_string(payload.get("grounding_source"))
+        or _coerce_non_empty_string(fallback_grounding.get("grounding_source"))
+        or "general"
+    )
+    grounding_level = (
+        _coerce_non_empty_string(payload.get("grounding_level"))
+        or _coerce_non_empty_string(fallback_grounding.get("grounding_level"))
+        or "low"
+    )
+    confidence_note = (
+        _coerce_non_empty_string(payload.get("confidence_note"))
+        or _coerce_non_empty_string(fallback_grounding.get("confidence_note"))
+        or safety_note
+    )
+    used_uploaded_context = _coerce_bool(
+        payload.get("used_uploaded_context"),
+        bool(fallback_grounding.get("used_uploaded_context")),
+    )
+    used_backbone = _coerce_bool(
+        payload.get("used_backbone"),
+        bool(fallback_grounding.get("used_backbone")),
+    )
 
     return {
         "reply": reply,
@@ -205,7 +249,18 @@ def _sanitize_chat_payload(
         "suggested_next_actions": suggested_next_actions,
         "followup_question": followup_question,
         "safety_note": safety_note,
+        "grounding_source": grounding_source,
+        "grounding_level": grounding_level,
+        "confidence_note": confidence_note,
+        "used_uploaded_context": used_uploaded_context,
+        "used_backbone": used_backbone,
     }
+
+
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    return default
 
 
 def _sanitize_mentioned_concepts(

@@ -9,11 +9,19 @@ class NodeResponse(BaseModel):
     node_id: str
     project_id: int
     file_id: Optional[str]
+    concept_id: Optional[str] = None
+    subject_id: Optional[str] = None
     name: str
     description: Optional[str]
     group: Optional[str]
     status: str
     understanding_score: Optional[float]
+    understanding_level: Optional[int] = None
+    confidence: Optional[float] = None
+    diagnosis_count: Optional[int] = None
+    core_score: Optional[float] = None
+    is_core: Optional[bool] = None
+    node_source: Optional[str] = None
     updated_at: datetime
 
 

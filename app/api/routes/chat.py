@@ -1,20 +1,16 @@
 # 채팅 라우터 — AI 응답 반환, 대화 기록 저장
 
-import json
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, get_optional_current_user
 from app.db.session import get_db
 from app.schemas.chat import ChatRequest, ChatSessionCreate, ChatSessionResponse
-from app.models.chat import Chat
-from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
-from app.models.graph import ConceptNode, ConceptEdge
 from app.models.project import Project
-from app.models.user import User, UserProfile
+from app.models.user import User
 from app.ai.chat_ai import process_chat
 from app.services.chat_service import (
+    build_chat_context,
     save_chat,
     get_chats_by_project,
     create_chat_session,
@@ -61,34 +57,6 @@ def chat(
         if project.user_id != current_user.user_id:
             raise HTTPException(status_code=403, detail="프로젝트 접근 권한이 없습니다.")
 
-    nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
-    allowed_concepts = [
-        {
-            "node_id": n.node_id,
-            "concept_id": n.concept_id,
-            "concept_name": n.name,
-            "understanding_score": n.understanding_score,
-            "understanding_level": n.understanding_level,
-        }
-        for n in nodes
-    ]
-
-    edges = db.query(ConceptEdge).filter(ConceptEdge.project_id == project_id).all()
-    graph_context = {
-        "related_concepts": [
-            {"concept_id": n.concept_id or n.node_id, "concept_name": n.name}
-            for n in nodes
-        ],
-        "relations": [
-            {
-                "source_concept_id": e.source_node_id,
-                "target_concept_id": e.target_node_id,
-                "relation_type": e.relation_type,
-            }
-            for e in edges
-        ],
-    }
-
     if session_id:
         chat_session = get_chat_session(db, project_id, session_id)
         if not chat_session:
@@ -98,58 +66,36 @@ def chat(
         chat_session = get_or_create_default_session(db, project_id)
     resolved_session_id = chat_session.id
 
-    # AI 문맥, 저장 위치, 미니퀴즈 카운트 기준을 같은 채팅방으로 맞춤
-    recent_chats = (
-        db.query(Chat)
-        .filter(Chat.project_id == project_id, Chat.session_id == resolved_session_id)
-        .order_by(Chat.created_at.desc())
-        .limit(10)
-        .all()
+    chat_context = build_chat_context(
+        db=db,
+        project_id=project_id,
+        user_id=user_id,
+        session_id=resolved_session_id,
+        message=body.message,
     )
-    conversation_context: list[dict] = []
-    for chat_item in reversed(recent_chats):
-        conversation_context.append({"role": "user", "content": chat_item.user_message})
-        if chat_item.ai_response:
-            conversation_context.append({"role": "assistant", "content": chat_item.ai_response})
-
-    node_ids = [n.node_id for n in nodes]
-    q_ids = [
-        row.question_id
-        for row in db.query(DiagnosisQuestion.question_id)
-        .filter(DiagnosisQuestion.concept_id.in_(node_ids))
-        .all()
-    ]
-    recent_answers = (
-        db.query(DiagnosisAnswer)
-        .filter(DiagnosisAnswer.question_id.in_(q_ids))
-        .order_by(DiagnosisAnswer.created_at.desc())
-        .limit(5)
-        .all()
-    ) if q_ids else []
-    recent_diagnosis = [
-        {
-            "question_id": a.question_id,
-            "answer_score": a.answer_score,
-            "feedback_tags": json.loads(a.feedback_tags) if a.feedback_tags else [],
-        }
-        for a in recent_answers
-    ]
-
-    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
-    user_state = {"preferred_explanation_style": profile.preferred_explanation_style} if profile else None
 
     try:
         result = process_chat(
             body.message,
-            allowed_concepts=allowed_concepts,
-            user_state=user_state,
-            graph_context=graph_context,
-            conversation_context=conversation_context,
-            recent_diagnosis=recent_diagnosis,
+            allowed_concepts=chat_context["allowed_concepts"],
+            user_state=chat_context["user_state"],
+            graph_context=chat_context["graph_context"],
+            conversation_context=chat_context["conversation_context"],
+            recent_diagnosis=chat_context["recent_diagnosis"],
+            uploaded_context=chat_context["uploaded_context"],
+            backbone_context=chat_context["backbone_context"],
+            grounding_metadata=chat_context["grounding_metadata"],
         )
         ai_reply = result["reply"]
     except NotImplementedError:
         ai_reply = "AI 응답 생성 로직 연결 전입니다."
+        result = {
+            "grounding_source": chat_context["grounding_metadata"]["grounding_source"],
+            "grounding_level": chat_context["grounding_metadata"]["grounding_level"],
+            "confidence_note": chat_context["grounding_metadata"]["confidence_note"],
+            "used_uploaded_context": chat_context["grounding_metadata"]["used_uploaded_context"],
+            "used_backbone": chat_context["grounding_metadata"]["used_backbone"],
+        }
 
     chat_log = save_chat(
         db=db,
@@ -193,6 +139,13 @@ def chat(
         "mini_quiz_trigger": {
             "needed": bool(mini_quiz_trigger_concepts),
             "concepts": mini_quiz_trigger_concepts,
+        },
+        "grounding": {
+            "grounding_source": result.get("grounding_source", chat_context["grounding_metadata"]["grounding_source"]),
+            "grounding_level": result.get("grounding_level", chat_context["grounding_metadata"]["grounding_level"]),
+            "confidence_note": result.get("confidence_note", chat_context["grounding_metadata"]["confidence_note"]),
+            "used_uploaded_context": result.get("used_uploaded_context", chat_context["grounding_metadata"]["used_uploaded_context"]),
+            "used_backbone": result.get("used_backbone", chat_context["grounding_metadata"]["used_backbone"]),
         },
         "concept_counting": {
             "turn_count": turn_count,
