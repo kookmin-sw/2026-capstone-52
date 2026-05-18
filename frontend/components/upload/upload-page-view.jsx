@@ -9,6 +9,7 @@ import { getProjectChats, getProjects } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import {
   hasCompletedAnalysis,
+  isBackendApiEnabled,
   listProjectFiles,
   refreshAnalysisStatuses,
   startAnalysis,
@@ -63,6 +64,7 @@ export default function UploadPageView({ initialProjectId = null }) {
   const loggedGraphUpdateFileIdsRef = useRef(new Set());
   const [projectId, setProjectId] = useState(initialProjectId);
   const [projectTitle, setProjectTitle] = useState("");
+  const [projects, setProjects] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [recentChats, setRecentChats] = useState([]);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -82,6 +84,8 @@ export default function UploadPageView({ initialProjectId = null }) {
         return;
       }
 
+      setProjects(projects);
+
       const resolvedProjectId =
         (initialProjectId && projects.some((project) => project.id === initialProjectId) && initialProjectId) ||
         projects[0]?.id ||
@@ -91,6 +95,7 @@ export default function UploadPageView({ initialProjectId = null }) {
 
       if (!resolvedProjectId) {
         setProjectTitle("");
+        setProjects([]);
         setIsProjectResolved(true);
         return;
       }
@@ -109,6 +114,10 @@ export default function UploadPageView({ initialProjectId = null }) {
   }, [initialProjectId]);
 
   useEffect(() => {
+    if (!isProjectResolved) {
+      return;
+    }
+
     if (!projectId) {
       setUploadedFiles([]);
       setRecentChats([]);
@@ -124,7 +133,7 @@ export default function UploadPageView({ initialProjectId = null }) {
 
     async function loadFiles() {
       try {
-        const files = await listProjectFiles(projectId);
+        const files = await listProjectFiles(projectId, projectTitle || "새 프로젝트");
         const hasCompleted = await hasCompletedAnalysis(projectId);
         const chats = await getProjectChats(projectId);
 
@@ -156,7 +165,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     return () => {
       isMounted = false;
     };
-  }, [projectId]);
+  }, [isProjectResolved, projectId, projectTitle]);
 
   useEffect(() => {
     if (!projectId) {
@@ -196,9 +205,19 @@ export default function UploadPageView({ initialProjectId = null }) {
 
   const sidebarChats = useMemo(() => recentChats.slice(0, 6), [recentChats]);
   const sidebarProjects = useMemo(() => {
+    if (isBackendApiEnabled) {
+      return projects.slice(0, 4);
+    }
+
     const projectNames = [projectTitle, ...uploadSidebarProjectFallbacks].filter(Boolean);
-    return [...new Set(projectNames)].slice(0, 4);
-  }, [projectTitle]);
+    return [...new Set(projectNames)]
+      .slice(0, 4)
+      .map((title, index) => ({
+        id: index === 0 && projectId ? projectId : `upload-fallback-${title}`,
+        title,
+      }));
+  }, [projectId, projectTitle, projects]);
+  const visibleUploadedFiles = useMemo(() => uploadedFiles.slice(0, 7), [uploadedFiles]);
   const hasPendingFiles = pendingFiles.length > 0;
   const canStartAnalysis = Boolean(projectId) && pendingFiles.length > 0 && !isSubmitting;
   const dashboardHref = projectId
@@ -273,7 +292,8 @@ export default function UploadPageView({ initialProjectId = null }) {
       }
       const nextFiles = await startAnalysis(
         projectId,
-        uploaded.map((file) => file.id)
+        uploaded.map((file) => file.id),
+        projectTitle || "새 프로젝트"
       );
       const hasCompleted = await hasCompletedAnalysis(projectId);
 
@@ -325,20 +345,25 @@ export default function UploadPageView({ initialProjectId = null }) {
                   <span>프로젝트</span>
                 </div>
                 <div className="workspace-sidebar-section-scroll workspace-project-list">
-                  {sidebarProjects.map((title, index) => {
-                    const isActive = title === projectTitle;
+                  {sidebarProjects.map((project, index) => {
+                    const isActive = project.id === projectId;
                     const dotColor = uploadProjectDotColors[index % uploadProjectDotColors.length];
+                    const href = isActive
+                      ? dashboardHref
+                      : isBackendApiEnabled
+                        ? `/upload?projectId=${encodeURIComponent(project.id)}`
+                        : "/dashboard";
 
                     return (
                       <Link
-                        key={`${title}-${index}`}
-                        href={isActive ? dashboardHref : "/dashboard"}
+                        key={project.id || `${project.title}-${index}`}
+                        href={href}
                         className={`workspace-project-item ${isActive ? "workspace-project-item-active" : ""}`}
                         style={{ "--workspace-project-dot-color": dotColor }}
                       >
                         <em />
                         <span className="workspace-project-item-copy">
-                          <strong>{title}</strong>
+                          <strong>{project.title}</strong>
                         </span>
                       </Link>
                     );
@@ -456,7 +481,7 @@ export default function UploadPageView({ initialProjectId = null }) {
                     <span>상태</span>
                   </div>
 
-                  {uploadedFiles.map((file) => (
+                  {visibleUploadedFiles.map((file) => (
                     <div key={file.id} className="workspace-upload-files-row">
                       <div className="workspace-upload-file-name">
                         <span className="workspace-upload-file-icon">📄</span>

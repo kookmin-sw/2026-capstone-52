@@ -28,18 +28,35 @@ function formatUploadedAt(value) {
   return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
 }
 
-function normalizeApiFile(file) {
+function normalizeApiFile(file, projectTitle = "") {
   const statusInfo = STATUS_LABELS[file.analysis_status] || STATUS_LABELS.UPLOADED;
 
   return {
     id: file.file_id,
     name: file.file_name,
-    subject: file.project_id,
+    subject: projectTitle || file.project_title || file.project_name || "프로젝트",
     uploadedAt: formatUploadedAt(file.uploaded_at),
     status: statusInfo.status,
     statusTone: statusInfo.statusTone,
     rawStatus: file.analysis_status,
   };
+}
+
+function getUploadedAtTime(file) {
+  const time = new Date(file?.uploaded_at || 0).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortApiFilesByRecentUpload(files) {
+  return [...files].sort((left, right) => {
+    const uploadedAtDiff = getUploadedAtTime(right) - getUploadedAtTime(left);
+
+    if (uploadedAtDiff !== 0) {
+      return uploadedAtDiff;
+    }
+
+    return String(right?.file_id || "").localeCompare(String(left?.file_id || ""));
+  });
 }
 
 function applyStatus(file, rawStatus) {
@@ -53,15 +70,17 @@ function applyStatus(file, rawStatus) {
   };
 }
 
-export async function listApiProjectFiles(projectId) {
+export async function listApiProjectFiles(projectId, projectTitle = "") {
   const files = await apiRequest(`/upload/${encodeURIComponent(projectId)}`, {
     method: "GET",
   });
 
-  return Array.isArray(files) ? files.map(normalizeApiFile) : [];
+  return Array.isArray(files)
+    ? sortApiFilesByRecentUpload(files).map((file) => normalizeApiFile(file, projectTitle))
+    : [];
 }
 
-export async function uploadApiFiles(projectId, files) {
+export async function uploadApiFiles(projectId, files, projectTitle = "") {
   const uploadedFiles = [];
 
   for (const file of files) {
@@ -73,7 +92,7 @@ export async function uploadApiFiles(projectId, files) {
       body: formData,
     });
 
-    uploadedFiles.push(normalizeApiFile(uploadedFile));
+    uploadedFiles.push(normalizeApiFile(uploadedFile, projectTitle));
   }
 
   return uploadedFiles;
