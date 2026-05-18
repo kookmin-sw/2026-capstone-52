@@ -3092,7 +3092,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                           // 실패 시 trigger 버튼도 그대로 유지해 재시도할 수 있도록 한다.
                                           const results = await Promise.all(
                                             triggers.map((target) =>
-                                              deferApiMiniQuizQuestion(selectedProjectId, target.nodeId)
+                                              deferApiMiniQuizQuestion(selectedProjectId, target.nodeId, target.group?.questionIds)
                                                 .then((response) => ({ target, response, error: null }))
                                                 .catch((error) => ({ target, response: null, error }))
                                             )

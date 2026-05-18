@@ -95,10 +95,13 @@ export async function getApiMiniQuizReview(projectId, questionIds) {
   });
 }
 
-export async function deferApiMiniQuizQuestion(projectId, nodeId) {
-  const query = `?node_id=${encodeURIComponent(nodeId)}`;
+export async function deferApiMiniQuizQuestion(projectId, nodeId, questionIds) {
+  const hasQuestionIds = Array.isArray(questionIds) && questionIds.length > 0;
+  const query = hasQuestionIds ? "" : `?node_id=${encodeURIComponent(nodeId)}`;
+  const body = hasQuestionIds ? { question_ids: questionIds.map(String) } : undefined;
   const payload = await apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/defer${query}`, {
     method: "POST",
+    body,
     unwrap: false,
   });
   return normalizeQuestionPayload(payload);

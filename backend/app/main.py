@@ -20,7 +20,11 @@ app = FastAPI(title="EEUM Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://eeum-study.kr",
+        "http://www.eeum-study.kr",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
