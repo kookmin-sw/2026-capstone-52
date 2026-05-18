@@ -288,12 +288,18 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   └── README.md                     # 프로젝트 README
 ```
 
+
 ## 실행 방법
 
 ### 📖 사용법 (개발 환경 설정)
 
-이 섹션은 EEUM 프로젝트의 개발 환경을 로컬에서 설정하고 실행하는 방법에 대한 안내입니다.
+이 섹션은 이음 프로젝트의 개발 환경을 로컬에서 설정하고 실행하는 방법에 대한 안내입니다.  
 프로젝트는 FastAPI 백엔드, Next.js 프론트엔드, Amazon Bedrock 기반 AI 기능으로 구성되어 있습니다.
+
+배포된 서비스는 아래 주소에서 확인할 수 있습니다.
+
+- 서비스: `http://eeum-study.kr`
+- Swagger 문서: `http://eeum-study.kr/docs`
 
 ### 1. 저장소 복제
 
@@ -304,7 +310,7 @@ cd 2026-capstone-52
 
 ### 2. 백엔드 (FastAPI)
 
-백엔드 API 서버를 로컬에서 실행하는 방법입니다.
+백엔드 API 서버를 로컬에서 실행하는 방법입니다.  
 기본 실행 주소는 `http://localhost:8000`입니다.
 
 1. 가상 환경 생성 및 활성화
@@ -336,10 +342,14 @@ S3_BUCKET_NAME=your-bucket-name
 AWS_REGION=us-east-1
 BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 USE_S3=false
+JWT_SECRET_KEY=replace-with-your-jwt-secret
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ```
 
 - `DATABASE_URL`: 로컬 개발 시 SQLite 사용 가능
 - `USE_S3=false`: S3 업로드를 비활성화하고 기본 API 기능을 테스트할 때 사용
+- `JWT_SECRET_KEY`: 로그인 후 발급되는 서비스 access token 서명에 사용
 - AI 기능 및 실제 PDF 분석을 사용하려면 AWS 자격 증명, S3 버킷, Bedrock 권한이 필요합니다.
 
 4. 개발 서버 실행
@@ -355,7 +365,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ### 3. 프론트엔드 (Next.js)
 
-프론트엔드 애플리케이션을 로컬에서 실행하는 방법입니다.
+프론트엔드 애플리케이션을 로컬에서 실행하는 방법입니다.  
 기본 실행 주소는 `http://localhost:3000`입니다.
 
 1. 프론트엔드 디렉토리로 이동
@@ -391,8 +401,14 @@ Google 로그인을 사용할 경우 아래 값도 추가합니다.
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
-참고로 일반 로컬 개발에서는 `NEXT_PUBLIC_API_BASE_URL`을 따로 설정하지 않아도 됩니다.
+참고로 일반 로컬 개발에서는 `NEXT_PUBLIC_API_BASE_URL`을 따로 설정하지 않아도 됩니다.  
 기본적으로 프론트엔드는 `/api/backend/*` 요청을 Next.js rewrite를 통해 `http://localhost:8000/api/*`로 전달합니다.
+
+만약 `NEXT_PUBLIC_API_BASE_URL`을 직접 설정할 경우에는 `/api` 경로까지 포함해야 합니다.
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+```
 
 4. 개발 서버 실행
 
@@ -414,12 +430,12 @@ BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 
 - PDF 업로드 및 그래프 분석 기능은 다음 흐름으로 동작합니다.
   - PDF 업로드
-  - S3 저장
+  - PDF 원본 저장
   - PDF 텍스트 추출
   - Bedrock Claude를 통한 개념 및 관계 추출
   - 개념 그래프 DB 저장
 
-로컬에서 단순 API/프론트 기능만 확인할 경우 `USE_S3=false`로 실행할 수 있습니다.
+로컬에서 단순 API/프론트 기능만 확인할 경우 `USE_S3=false`로 실행할 수 있습니다.  
 다만 실제 PDF 분석, S3 저장, Bedrock 기반 AI 응답을 테스트하려면 AWS 인증 정보와 권한 설정이 필요합니다.
 
 ### 5. 실행 순서 요약
@@ -446,6 +462,9 @@ npm run dev
 ```text
 http://localhost:3000
 ```
+```
+
+
 
 ## 참고 자료
 
