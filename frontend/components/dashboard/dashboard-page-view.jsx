@@ -28,6 +28,7 @@ import {
   getProjectChats,
   getProjects,
   getRecentGraphNodes,
+  removeChat,
   selectProjectFromCatalog,
   sendChatMessage,
   updateProjectMemo,
@@ -42,6 +43,7 @@ import { isDashboardBackendApiEnabled } from "../../features/dashboard/service";
 import { MOCK_MINI_QUIZ_READY_CONCEPTS } from "../../features/mini-quiz/mock-data";
 import {
   deferApiMiniQuizQuestion,
+  generateApiMiniQuizQuestion,
   getApiDeferredMiniQuizzes,
   isMiniQuizBackendApiEnabled,
 } from "../../features/mini-quiz/api-service";
@@ -166,12 +168,22 @@ function loadMiniQuizDeferredStore() {
 }
 
 function dedupeDeferredMiniQuizzes(items) {
-  const seenNodeIds = new Set();
+  const seenKeys = new Set();
   return (Array.isArray(items) ? items : []).filter((item) => {
-    if (!item?.nodeId || seenNodeIds.has(item.nodeId)) {
+    const key =
+      item?.groupId !== undefined && item?.groupId !== null
+        ? `group:${item.groupId}`
+        : item?.deferredId !== undefined && item?.deferredId !== null
+          ? `deferred:${item.deferredId}`
+          : item?.presetQuestion?.question_id
+            ? `question:${item.presetQuestion.question_id}`
+            : item?.nodeId
+              ? `node:${item.nodeId}`
+              : null;
+    if (!key || seenKeys.has(key)) {
       return false;
     }
-    seenNodeIds.add(item.nodeId);
+    seenKeys.add(key);
     return true;
   });
 }
@@ -860,6 +872,78 @@ function getSelectedCatalogOptionIds(projects) {
   return projects.map((project) => CATALOG_OPTION_ID_BY_PROJECT_DOMAIN[project.domain] || project.id);
 }
 
+function normalizeMiniQuizPresetQuestion(question, fallback = {}) {
+  if (!question) return null;
+  const nodeId = question.concept_id ?? question.conceptId ?? question.node_id ?? question.nodeId ?? fallback.nodeId ?? null;
+  const choices = Array.isArray(question.choices)
+    ? question.choices.map((choice, index) => {
+        if (choice && typeof choice === "object") {
+          return {
+            option_id: String(choice.option_id ?? choice.optionId ?? choice.id ?? index),
+            text: choice.text ?? choice.label ?? String(choice.value ?? index),
+          };
+        }
+        return {
+          option_id: String(index),
+          text: String(choice),
+        };
+      })
+    : [];
+
+  return {
+    ...question,
+    question_id: String(question.question_id ?? question.questionId ?? ""),
+    concept_id: nodeId !== null ? String(nodeId) : "",
+    concept_name:
+      question.concept_name ??
+      question.conceptName ??
+      question.node_name ??
+      question.nodeName ??
+      fallback.name ??
+      null,
+    question: question.question ?? "",
+    question_type: question.question_type ?? question.questionType ?? "multi_select",
+    choices,
+  };
+}
+
+function buildMiniQuizGroupMeta(group, fallbackTarget = {}) {
+  const questionIds = Array.isArray(group?.question_ids)
+    ? group.question_ids.map(String)
+    : Array.isArray(group?.questionIds)
+      ? group.questionIds.map(String)
+      : [];
+
+  return {
+    nodeId: String(group?.node_id ?? group?.nodeId ?? fallbackTarget.nodeId ?? ""),
+    name: group?.node_name ?? group?.nodeName ?? fallbackTarget.name ?? null,
+    questionIds,
+  };
+}
+
+function buildMiniQuizQueueFromQuestionPayload(payload, target = {}) {
+  const questions = Array.isArray(payload?.questions) ? payload.questions : [];
+  const group = buildMiniQuizGroupMeta(payload?.group, target);
+
+  return questions
+    .map((question) => {
+      const presetQuestion = normalizeMiniQuizPresetQuestion(question, {
+        nodeId: group.nodeId || target.nodeId,
+        name: group.name || target.name,
+      });
+      if (!presetQuestion?.question_id) return null;
+
+      return {
+        nodeId: group.nodeId || target.nodeId,
+        name: group.name || target.name,
+        presetQuestion,
+        group,
+        useMockMiniQuiz: false,
+      };
+    })
+    .filter(Boolean);
+}
+
 function normalizeDeferredMiniQuizItem(item, projectId) {
   if (!item) return null;
   const deferredId = item.deferred_id ?? item.deferredId ?? null;
@@ -910,6 +994,68 @@ function normalizeDeferredMiniQuizItem(item, projectId) {
     presetQuestion,
     useMockMiniQuiz: Boolean(item.useMockMiniQuiz ?? item.use_mock_mini_quiz),
   };
+}
+
+function normalizeDeferredMiniQuizGroup(group, projectId) {
+  if (!group) return null;
+  const nodeId = group.node_id ?? group.nodeId ?? null;
+  if (!nodeId) return null;
+  const groupId = group.group_id ?? group.groupId ?? null;
+  const name = group.node_name ?? group.nodeName ?? group.name ?? null;
+  const questionIds = Array.isArray(group.question_ids)
+    ? group.question_ids.map(String)
+    : Array.isArray(group.questionIds)
+      ? group.questionIds.map(String)
+      : [];
+  const questions = Array.isArray(group.questions) ? group.questions : [];
+  const groupMeta = {
+    nodeId: String(nodeId),
+    name,
+    questionIds,
+  };
+  const queue = questions
+    .map((question) => {
+      const presetQuestion = normalizeMiniQuizPresetQuestion(question, {
+        nodeId,
+        name,
+      });
+      if (!presetQuestion?.question_id) return null;
+      return {
+        nodeId: String(nodeId),
+        name,
+        presetQuestion,
+        group: groupMeta,
+        useMockMiniQuiz: false,
+      };
+    })
+    .filter(Boolean);
+
+  if (!queue.length) return null;
+
+  return {
+    id: groupId !== null ? `deferred-group-${groupId}` : `deferred-group-${nodeId}-${questionIds.join("-")}`,
+    groupId,
+    deferredId: null,
+    nodeId: String(nodeId),
+    name,
+    projectId,
+    deferredAt: group.deferred_at ?? group.deferredAt ?? Date.now(),
+    presetQuestion: queue[0]?.presetQuestion || null,
+    queue,
+    useMockMiniQuiz: false,
+  };
+}
+
+function normalizeDeferredMiniQuizApiResponse(response, projectId) {
+  if (Array.isArray(response?.groups) && response.groups.length > 0) {
+    return response.groups
+      .map((group) => normalizeDeferredMiniQuizGroup(group, projectId))
+      .filter(Boolean);
+  }
+
+  return (Array.isArray(response?.items) ? response.items : [])
+    .map((item) => normalizeDeferredMiniQuizItem(item, projectId))
+    .filter(Boolean);
 }
 
 function formatUpdatedAt(isoString) {
@@ -1013,6 +1159,7 @@ function RecentChatList({
   selectedChatId,
   onSelect,
   onCreateChat,
+  onDeleteChat,
   canCreateChat,
   isLoading,
   error,
@@ -1053,6 +1200,7 @@ function RecentChatList({
             role="menu"
             style={{ left: `${openChatMenu.left}px`, top: `${openChatMenu.top}px` }}
           >
+            {/* Rename requires a backend PATCH route; keep the menu placeholder for now. */}
             <button
               type="button"
               role="menuitem"
@@ -1064,7 +1212,13 @@ function RecentChatList({
               type="button"
               role="menuitem"
               className="workspace-chat-shortcut-menu-danger"
-              onClick={() => setOpenChatMenu(null)}
+              onClick={() => {
+                const chat = chats.find((item) => item.id === openChatMenu.chatId) || null;
+                setOpenChatMenu(null);
+                if (chat) {
+                  onDeleteChat(chat);
+                }
+              }}
             >
               채팅 삭제하기
             </button>
@@ -1952,11 +2106,9 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     (async () => {
       try {
-        const items = await getApiDeferredMiniQuizzes(selectedProjectId);
+        const response = await getApiDeferredMiniQuizzes(selectedProjectId);
         if (cancelled) return;
-        const backendDeferredMiniQuizzes = (Array.isArray(items) ? items : [])
-          .map((item) => normalizeDeferredMiniQuizItem(item, selectedProjectId))
-          .filter(Boolean);
+        const backendDeferredMiniQuizzes = normalizeDeferredMiniQuizApiResponse(response, selectedProjectId);
         const nextDeferredMiniQuizzes = dedupeDeferredMiniQuizzes([
           ...storedDeferredMiniQuizzes,
           ...backendDeferredMiniQuizzes,
@@ -2183,6 +2335,35 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
   }
 
+  async function handleDeleteChat(chat) {
+    if (!selectedProjectId || !chat) {
+      return;
+    }
+
+    const confirmed = window.confirm(`'${chat.title || "채팅방"}' 채팅방을 삭제할까요?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setChatError(null);
+      await removeChat(selectedProjectId, chat.id);
+      const nextChats = await getProjectChats(selectedProjectId);
+
+      setRecentChats(nextChats);
+      setSelectedChatId((currentChatId) => {
+        if (currentChatId && currentChatId !== chat.id && nextChats.some((item) => item.id === currentChatId)) {
+          return currentChatId;
+        }
+
+        return nextChats[0]?.id || null;
+      });
+      setWorkspaceState(loadWorkspaceState());
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : "채팅방을 삭제하지 못했습니다.");
+    }
+  }
+
   async function handleSendMessage(event) {
     event.preventDefault();
 
@@ -2192,8 +2373,30 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       return;
     }
 
+    let pendingChatId = selectedChatId || recentChats[0]?.id || null;
+
+    if (isDashboardBackendApiEnabled && !pendingChatId) {
+      setIsSendingMessage(true);
+      setChatError(null);
+
+      try {
+        const nextChat = await createChat(selectedProjectId);
+        pendingChatId = nextChat.id;
+        newlyCreatedChatIdRef.current = nextChat.id;
+        setSelectedChatId(nextChat.id);
+        setRecentChats((currentChats) => [nextChat, ...currentChats.filter((chat) => chat.id !== nextChat.id)]);
+      } catch (error) {
+        setChatError(error instanceof Error ? error.message : "새 채팅방을 생성하지 못했습니다.");
+        setIsSendingMessage(false);
+        return;
+      }
+    }
+
+    if (!pendingChatId) {
+      pendingChatId = `${selectedProjectId}-api-thread`;
+    }
+
     const now = new Date().toISOString();
-    const pendingChatId = selectedChatId || recentChats[0]?.id || `${selectedProjectId}-api-thread`;
     const pendingUserMessage = {
       id: `${pendingChatId}-pending-user-${Date.now()}`,
       role: "user",
@@ -2287,7 +2490,9 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
 
     try {
-      const sendResponse = await sendChatMessage(selectedProjectId, nextMessage);
+      const sendResponse = await sendChatMessage(selectedProjectId, pendingChatId, nextMessage);
+      // 정책: 현재 미니퀴즈 트리거 UI는 concept_counting.quiz_ready_concepts를 기준으로 유지한다.
+      // mini_quiz_trigger/grounding은 별도 UI 기획이 생기면 연결한다.
       const quizReady = Array.isArray(sendResponse?.concept_counting?.quiz_ready_concepts)
         ? sendResponse.concept_counting.quiz_ready_concepts
         : [];
@@ -2313,9 +2518,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats(nextChats);
       setBackendGraph(nextGraph);
       setRecentGraphNodes(nextRecentGraphNodes);
-      setSelectedChatId((currentChatId) =>
-        currentChatId && nextChats.some((chat) => chat.id === currentChatId) ? currentChatId : nextChats[0]?.id || null
-      );
+      setSelectedChatId(nextChats.some((chat) => chat.id === pendingChatId) ? pendingChatId : nextChats[0]?.id || null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "채팅 메시지를 전송하지 못했습니다.";
 
@@ -2616,6 +2819,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         projectId: activeProjectData.projectId,
         nodeId: visibleGraphDetailNode.id,
         question: `${visibleGraphDetailNode.label} 개념을 현재 학습 맥락에 맞게 설명해줘.`,
+        explanationStyle: profile.explanationStyle,
       });
 
       setNodeExplanations((current) => ({
@@ -2627,6 +2831,54 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     } finally {
       setIsExplanationGenerating(false);
     }
+  }
+
+  async function openMiniQuizFromTriggers(messageId, triggers) {
+    const safeTriggers = Array.isArray(triggers) ? triggers : [];
+    if (!safeTriggers.length || !selectedProjectId) {
+      return;
+    }
+
+    const shouldUseMockQuiz = safeTriggers.some((target) => target.useMockMiniQuiz);
+
+    if (isMiniQuizBackendApiEnabled && !shouldUseMockQuiz) {
+      try {
+        const responses = await Promise.all(
+          safeTriggers.map((target) =>
+            generateApiMiniQuizQuestion(selectedProjectId, target.nodeId).then((response) => ({
+              target,
+              response,
+            }))
+          )
+        );
+        const queue = responses.flatMap(({ target, response }) =>
+          buildMiniQuizQueueFromQuestionPayload(response, target)
+        );
+
+        if (!queue.length) {
+          throw new Error("생성된 미니퀴즈가 없습니다.");
+        }
+
+        setActiveMiniQuiz({
+          projectId: selectedProjectId,
+          queue,
+          sourceMessageId: messageId,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
+    setActiveMiniQuiz({
+      projectId: selectedProjectId,
+      queue: safeTriggers.map((target) => ({
+        nodeId: target.nodeId,
+        name: target.name,
+        useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
+      })),
+      sourceMessageId: messageId,
+    });
   }
 
   const workspaceHeading = activeProjectData
@@ -2740,6 +2992,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             selectedChatId={selectedChatId}
             onSelect={setSelectedChatId}
             onCreateChat={handleCreateChat}
+            onDeleteChat={handleDeleteChat}
             canCreateChat={Boolean(selectedProjectId) && !isProjectsLoading}
             isLoading={isChatsLoading}
             error={chatError}
@@ -2819,17 +3072,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                     <button
                                       type="button"
                                       className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-primary"
-                                      onClick={() =>
-                                        setActiveMiniQuiz({
-                                          projectId: selectedProjectId,
-                                          queue: triggers.map((target) => ({
-                                            nodeId: target.nodeId,
-                                            name: target.name,
-                                            useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
-                                          })),
-                                          sourceMessageId: message.id,
-                                        })
-                                      }
+                                      onClick={() => openMiniQuizFromTriggers(message.id, triggers)}
                                     >
                                       퀴즈 풀기
                                     </button>
@@ -2862,19 +3105,36 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
                                           if (successResults.length) {
                                             updateDeferredMiniQuizzes((current) => {
-                                              const existingNodeIds = new Set(current.map((item) => item.nodeId));
-                                              const additions = successResults
-                                                .map(({ target, response }) =>
-                                                  normalizeDeferredMiniQuizItem(
-                                                    {
-                                                      ...response,
-                                                      node_id: response.node_id || target.nodeId,
-                                                      node_name: response.node_name || target.name,
-                                                    },
-                                                    selectedProjectId
-                                                  )
+                                              const existingKeys = new Set(
+                                                current.map((item) =>
+                                                  item.groupId !== undefined && item.groupId !== null
+                                                    ? `group:${item.groupId}`
+                                                    : item.nodeId
+                                                      ? `node:${item.nodeId}`
+                                                      : item.id
                                                 )
-                                                .filter((item) => item && !existingNodeIds.has(item.nodeId));
+                                              );
+                                              const additions = successResults
+                                                .map(({ target, response }) => {
+                                                  const group = {
+                                                    ...(response.group || {}),
+                                                    node_id: response.group?.node_id || target.nodeId,
+                                                    node_name: response.group?.node_name || target.name,
+                                                    questions: response.questions,
+                                                    deferred_at: Date.now(),
+                                                  };
+                                                  return normalizeDeferredMiniQuizGroup(group, selectedProjectId);
+                                                })
+                                                .filter((item) => {
+                                                  if (!item) return false;
+                                                  const key =
+                                                    item.groupId !== undefined && item.groupId !== null
+                                                      ? `group:${item.groupId}`
+                                                      : `node:${item.nodeId}`;
+                                                  if (existingKeys.has(key)) return false;
+                                                  existingKeys.add(key);
+                                                  return true;
+                                                });
                                               return [...current, ...additions];
                                             });
                                           }
@@ -3008,14 +3268,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                 projectId: item.projectId || selectedProjectId,
                                 nodeId: item.nodeId,
                                 name: item.name,
-                                queue: [
-                                  {
-                                    nodeId: item.nodeId,
-                                    name: item.name,
-                                    presetQuestion: item.presetQuestion || null,
-                                    useMockMiniQuiz: Boolean(item.useMockMiniQuiz),
-                                  },
-                                ],
+                                queue: Array.isArray(item.queue) && item.queue.length
+                                  ? item.queue
+                                  : [
+                                      {
+                                        nodeId: item.nodeId,
+                                        name: item.name,
+                                        presetQuestion: item.presetQuestion || null,
+                                        useMockMiniQuiz: Boolean(item.useMockMiniQuiz),
+                                      },
+                                    ],
                                 sourceMessageId: null,
                                 deferredId: item.id,
                               });

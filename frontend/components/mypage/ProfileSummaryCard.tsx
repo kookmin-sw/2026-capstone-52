@@ -9,7 +9,9 @@ interface ProfileSummaryCardProps {
   profileImage: string | null;
   badges: ProfileBadge[];
   stats: MyPageStats;
+  hasUnsavedProfileImage?: boolean;
   onImageChange: (file: File) => void;
+  onOpenProfileEdit?: () => void;
   onOpenGraph: () => void;
 }
 
@@ -18,7 +20,9 @@ export default function ProfileSummaryCard({
   profileImage,
   badges,
   stats,
+  hasUnsavedProfileImage = false,
   onImageChange,
+  onOpenProfileEdit,
   onOpenGraph,
 }: ProfileSummaryCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -91,6 +95,15 @@ export default function ProfileSummaryCard({
                     {badge.value}
                   </span>
                 ))}
+                {hasUnsavedProfileImage ? (
+                  <button
+                    type="button"
+                    onClick={onOpenProfileEdit}
+                    className="rounded-full bg-[#fff4de] px-3 py-2 text-[0.72rem] font-black text-[#b87517] transition hover:bg-[#ffe8bd]"
+                  >
+                    이미지 변경사항 저장 필요
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

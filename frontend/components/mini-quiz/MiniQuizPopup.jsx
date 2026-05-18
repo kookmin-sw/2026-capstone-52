@@ -5,6 +5,7 @@ import {
   generateApiMiniQuizQuestion,
   isMiniQuizBackendApiEnabled,
   submitApiMiniQuizAnswer,
+  submitApiMiniQuizAnswers,
 } from "../../features/mini-quiz/api-service";
 import { buildMockMiniQuizAnswerResponse, getMockMiniQuizQuestion } from "../../features/mini-quiz/mock-data";
 
@@ -38,7 +39,7 @@ function buildReviewEntry({ question, choices, result, selectedOptionIds, curren
   const selectedSet = new Set(selectedFromResult);
 
   return {
-    question_id: question.question_id,
+    question_id: getQuestionId(question),
     concept_id: question.concept_id || currentTarget.nodeId,
     question: question.question,
     choices: choices.map((choice) => ({
@@ -55,6 +56,18 @@ function buildReviewEntry({ question, choices, result, selectedOptionIds, curren
     // 백엔드 QuizQuestionReview.source 와 동일 값 — 추후 백엔드 응답으로 대체될 수 있음.
     source: "mini_quiz",
   };
+}
+
+function getQuestionId(question) {
+  return question?.question_id ?? question?.questionId ?? null;
+}
+
+function getTargetGroupKey(target) {
+  const questionIds = target?.group?.questionIds ?? target?.group?.question_ids;
+  if (Array.isArray(questionIds) && questionIds.length > 0) {
+    return questionIds.join("|");
+  }
+  return target?.groupKey || null;
 }
 
 export default function MiniQuizPopup({
@@ -92,6 +105,7 @@ export default function MiniQuizPopup({
   const [choices, setChoices] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [submittedResults, setSubmittedResults] = useState([]);
+  const [pendingBackendAnswers, setPendingBackendAnswers] = useState([]);
   const [answerIndex, setAnswerIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   // 제출이 완료된 노드만 부모에게 보고 — 닫기로 끝낸 미풀이 항목은 제외해 deferred/trigger를 유지한다.
@@ -107,6 +121,7 @@ export default function MiniQuizPopup({
     setVisibleQuestionIndex(0);
     setSelectedIds([]);
     setSubmittedResults([]);
+    setPendingBackendAnswers([]);
     setAnswerIndex(0);
     setErrorMessage("");
     completedNodeIdsRef.current.clear();
@@ -135,6 +150,87 @@ export default function MiniQuizPopup({
     setStep("complete");
   }
 
+  async function submitBackendAnswerGroups(answerEntries) {
+    const groupedEntries = [];
+    const groupedEntryByKey = new Map();
+
+    answerEntries.forEach((entry) => {
+      const groupKey = getTargetGroupKey(entry.currentTarget) || `single:${getQuestionId(entry.question)}`;
+      if (!groupedEntryByKey.has(groupKey)) {
+        const group = { key: groupKey, entries: [] };
+        groupedEntryByKey.set(groupKey, group);
+        groupedEntries.push(group);
+      }
+      groupedEntryByKey.get(groupKey).entries.push(entry);
+    });
+
+    const completedEntries = [];
+
+    for (const group of groupedEntries) {
+      const hasBackendGroup =
+        group.entries.length > 1 ||
+        Array.isArray(group.entries[0]?.currentTarget?.group?.questionIds) ||
+        Array.isArray(group.entries[0]?.currentTarget?.group?.question_ids);
+
+      if (hasBackendGroup) {
+        const result = await submitApiMiniQuizAnswers(
+          projectId,
+          group.entries.map((entry) => ({
+            questionId: getQuestionId(entry.question),
+            selectedOptionIds: entry.selectedOptionIds,
+            isSkipped: entry.isSkipped,
+          }))
+        );
+        const questionResultById = new Map(
+          (Array.isArray(result?.question_results) ? result.question_results : []).map((questionResult) => [
+            questionResult.question_id,
+            questionResult,
+          ])
+        );
+
+        group.entries.forEach((entry) => {
+          const questionId = getQuestionId(entry.question);
+          const questionResult = questionResultById.get(questionId) || result;
+          const reviewEntry = buildReviewEntry({
+            question: entry.question,
+            choices: entry.choices,
+            result: questionResult,
+            selectedOptionIds: entry.selectedOptionIds,
+            currentTarget: entry.currentTarget,
+          });
+          completedEntries.push({
+            ...entry,
+            result: questionResult,
+            selectedOptionIds: reviewEntry.selected_option_ids,
+            reviewEntry,
+          });
+        });
+        continue;
+      }
+
+      const entry = group.entries[0];
+      const result = await submitApiMiniQuizAnswer(projectId, getQuestionId(entry.question), {
+        selectedOptionIds: entry.isSkipped ? null : entry.selectedOptionIds.length ? entry.selectedOptionIds : null,
+        isSkipped: entry.isSkipped,
+      });
+      const reviewEntry = buildReviewEntry({
+        question: entry.question,
+        choices: entry.choices,
+        result,
+        selectedOptionIds: entry.selectedOptionIds,
+        currentTarget: entry.currentTarget,
+      });
+      completedEntries.push({
+        ...entry,
+        result,
+        selectedOptionIds: reviewEntry.selected_option_ids,
+        reviewEntry,
+      });
+    }
+
+    return completedEntries;
+  }
+
   useEffect(() => {
     if (!projectId || !currentTarget) {
       return undefined;
@@ -146,7 +242,7 @@ export default function MiniQuizPopup({
     setErrorMessage("");
 
     const preset = currentTarget.presetQuestion;
-    if (preset && preset.question_id) {
+    if (preset && getQuestionId(preset)) {
       const rawChoices = Array.isArray(preset.choices) ? preset.choices : [];
       setQuestion(preset);
       setChoices(rawChoices.map(normalizeChoice).filter((choice) => !isUnknownChoice(choice)));
@@ -163,8 +259,12 @@ export default function MiniQuizPopup({
           ? await generateApiMiniQuizQuestion(projectId, currentTarget.nodeId)
           : await delay(MOCK_LATENCY_MS).then(() => getMockMiniQuizQuestion(currentTarget.nodeId));
         if (cancelled) return;
-        const rawChoices = Array.isArray(data?.choices) ? data.choices : [];
-        setQuestion(data);
+        const generatedQuestion = Array.isArray(data?.questions) ? data.questions[0] : data;
+        if (!generatedQuestion) {
+          throw new Error("생성된 미니퀴즈가 없습니다.");
+        }
+        const rawChoices = Array.isArray(generatedQuestion?.choices) ? generatedQuestion.choices : [];
+        setQuestion(generatedQuestion);
         setChoices(rawChoices.map(normalizeChoice).filter((choice) => !isUnknownChoice(choice)));
         setVisibleQuestionIndex(currentIndex);
         setStep("quiz");
@@ -217,14 +317,34 @@ export default function MiniQuizPopup({
 
     setStep("loading");
     try {
-      const data = isMiniQuizBackendApiEnabled && !shouldUseMockMiniQuiz
-        ? await submitApiMiniQuizAnswer(projectId, question.question_id, {
-            selectedOptionIds: skipped ? null : selectedOptionIds.length ? selectedOptionIds : null,
+      if (isMiniQuizBackendApiEnabled && !shouldUseMockMiniQuiz) {
+        const nextPendingBackendAnswers = [
+          ...pendingBackendAnswers,
+          {
+            currentTarget,
+            question,
+            choices,
+            selectedOptionIds: skipped ? [] : selectedOptionIds,
             isSkipped: skipped,
-          })
-        : await delay(MOCK_LATENCY_MS).then(() =>
-            buildMockMiniQuizAnswerResponse(question.question_id, skipped ? [] : selectedOptionIds, skipped)
-          );
+          },
+        ];
+
+        setPendingBackendAnswers(nextPendingBackendAnswers);
+
+        if (isLastInQueue) {
+          const nextSubmittedResults = await submitBackendAnswerGroups(nextPendingBackendAnswers);
+          setSubmittedResults(nextSubmittedResults);
+          completeQuiz(nextSubmittedResults);
+          return;
+        }
+
+        setCurrentIndex((current) => current + 1);
+        return;
+      }
+
+      const data = await delay(MOCK_LATENCY_MS).then(() =>
+        buildMockMiniQuizAnswerResponse(getQuestionId(question), skipped ? [] : selectedOptionIds, skipped)
+      );
       const reviewEntry = buildReviewEntry({
         question,
         choices,

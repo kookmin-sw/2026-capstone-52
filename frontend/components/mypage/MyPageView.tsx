@@ -17,8 +17,11 @@ import type { MyPageStats, RecentLearningRecord } from "@/types/profile";
 export default function MyPageView() {
   const profile = useProfileStore((state) => state.profile);
   const profileImage = useProfileStore((state) => state.profileImage);
+  const profileImageDirty = useProfileStore((state) => state.profileImageDirty);
   const updateProfile = useProfileStore((state) => state.updateProfile);
   const updateProfileImage = useProfileStore((state) => state.updateProfileImage);
+  const setUserProfileImage = useProfileStore((state) => state.setUserProfileImage);
+  const resetProfileImageDirty = useProfileStore((state) => state.resetProfileImageDirty);
   const hydrated = useProfileStore((state) => state.hydrated);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAllGraphOpen, setIsAllGraphOpen] = useState(false);
@@ -63,7 +66,7 @@ export default function MyPageView() {
       const result = typeof reader.result === "string" ? reader.result : null;
 
       if (result) {
-        updateProfileImage(result);
+        setUserProfileImage(result);
       }
     };
 
@@ -80,7 +83,9 @@ export default function MyPageView() {
           profileImage={hydrated ? profileImage : null}
           badges={badges}
           stats={stats}
+          hasUnsavedProfileImage={profileImageDirty}
           onImageChange={handleImageChange}
+          onOpenProfileEdit={() => setIsEditOpen(true)}
           onOpenGraph={() => setIsAllGraphOpen(true)}
         />
 
@@ -94,8 +99,11 @@ export default function MyPageView() {
         profile={profile}
         onClose={() => setIsEditOpen(false)}
         onSave={async (nextProfile) => {
-          const savedProfile = await saveApiProfile(nextProfile, profileImage);
+          const savedProfile = await saveApiProfile(nextProfile, profileImage, {
+            includeProfileImage: profileImageDirty,
+          });
           updateProfile(savedProfile);
+          resetProfileImageDirty();
           setIsEditOpen(false);
         }}
       />

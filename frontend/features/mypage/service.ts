@@ -4,11 +4,15 @@ import { ensureCurrentUser, mapApiUserToProfile, updateCurrentUserProfile } from
 
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
+const MY_PAGE_DETAIL_FETCH_LIMIT = 5;
 
 type ApiProject = {
   project_id: number | string;
   project_name: string;
   project_domain?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  last_accessed_at?: string | null;
 };
 
 type ApiLearningLog = {
@@ -34,6 +38,16 @@ function normalizeDate(value?: string | null) {
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function getProjectActivityTime(project: ApiProject) {
+  const timestamp = project.last_accessed_at || project.updated_at || project.created_at;
+  if (!timestamp) {
+    return 0;
+  }
+
+  const time = Date.parse(timestamp);
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function buildRecentRecords(logs: ApiLearningLog[], graphNodes: ApiGraphNode[]): RecentLearningRecord[] {
@@ -77,14 +91,19 @@ export async function getApiMyPageViewData(): Promise<{
   ]);
   const safeProjects = Array.isArray(projects) ? (projects as ApiProject[]) : [];
   const safeLogs = Array.isArray(logs) ? (logs as ApiLearningLog[]) : [];
+  const projectsForDetailStats = safeProjects
+    .slice()
+    .sort((left, right) => getProjectActivityTime(right) - getProjectActivityTime(left))
+    .slice(0, MY_PAGE_DETAIL_FETCH_LIMIT);
+  // 백엔드에 전체 concept/chat 집계 필드가 없어 최근 프로젝트만 조회해 마이페이지 N+1 비용을 제한한다.
   const graphs = await Promise.all(
-    safeProjects.map((project) =>
+    projectsForDetailStats.map((project) =>
       apiRequest(`/graph/${encodeURIComponent(project.project_id)}`, { method: "GET" }).catch(() => null)
     )
   );
   const graphNodes = graphs.flatMap((graph) => (Array.isArray(graph?.nodes) ? (graph.nodes as ApiGraphNode[]) : []));
   const chatCounts = await Promise.all(
-    safeProjects.map((project) =>
+    projectsForDetailStats.map((project) =>
       apiRequest(`/chat/project/${encodeURIComponent(project.project_id)}`, { method: "GET" })
         .then((chats) => (Array.isArray(chats) ? chats.length : 0))
         .catch(() => 0)
@@ -99,16 +118,22 @@ export async function getApiMyPageViewData(): Promise<{
       totalChats: chatCounts.reduce((sum, count) => sum + count, 0),
       diagnosisCount: safeLogs.filter((log) => log.activity_type === "diagnosis_completed").length,
       conceptCount: graphNodes.length,
+      detailStatsLimit: MY_PAGE_DETAIL_FETCH_LIMIT,
+      detailStatsAreCapped: safeProjects.length > projectsForDetailStats.length,
     },
     recentRecords: buildRecentRecords(safeLogs, graphNodes),
   };
 }
 
-export async function saveApiProfile(profile: ProfileInfo, profileImage: string | null) {
+export async function saveApiProfile(
+  profile: ProfileInfo,
+  profileImage: string | null,
+  options: { includeProfileImage?: boolean } = {}
+) {
   if (!isBackendApiEnabled) {
     return profile;
   }
 
-  await updateCurrentUserProfile(profile, profileImage);
+  await updateCurrentUserProfile(profile, profileImage, options);
   return profile;
 }

@@ -11,7 +11,7 @@ import {
   updateProjectMemo as updateLocalProjectMemo,
   upsertProjectState,
 } from "../workspace/storage";
-import type { Chat, DashboardChatStore, Project, ProjectCatalogOption, ProjectMemo } from "./types";
+import type { Chat, ChatSession, DashboardChatStore, Project, ProjectCatalogOption, ProjectMemo } from "./types";
 
 const DASHBOARD_CHAT_STORAGE_KEY = "eeum-dashboard-chats-v1";
 const DASHBOARD_CHAT_STORE_VERSION = 2;
@@ -105,6 +105,14 @@ type ApiChatLog = {
   } | null;
 };
 
+type ApiChatSession = {
+  id: number | string;
+  project_id: number | string;
+  title?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 type ApiProjectMemo = {
   memo_id: number | string;
   project_id: number | string;
@@ -170,11 +178,39 @@ function isCatalogProject(project: Project) {
   return CATALOG_PROJECT_IDS.has(project.id);
 }
 
+function hasServerActivityTimestamp(project: ApiProject) {
+  return Boolean(project.last_accessed_at);
+}
+
 function getLatestApiChatUpdatedAt(logs: ApiChatLog[]) {
   return logs.reduce((latest, log) => {
     const chatTime = Date.parse(normalizeApiDate(log.created_at));
     return Number.isNaN(chatTime) ? latest : Math.max(latest, chatTime);
   }, 0);
+}
+
+function buildChatSessionThreadId(projectId: string, sessionId: number | string) {
+  return `${projectId}-session-${sessionId}`;
+}
+
+function getChatSessionIdFromThreadId(projectId: string, chatId: string | null | undefined) {
+  const prefix = `${projectId}-session-`;
+  if (!chatId || !chatId.startsWith(prefix)) {
+    return null;
+  }
+
+  const sessionId = Number(chatId.slice(prefix.length));
+  return Number.isFinite(sessionId) ? sessionId : null;
+}
+
+function normalizeApiChatSession(session: ApiChatSession): ChatSession {
+  return {
+    id: Number(session.id),
+    project_id: Number(session.project_id),
+    title: session.title?.trim() || "새 채팅방",
+    created_at: normalizeApiDate(session.created_at),
+    updated_at: normalizeApiDate(session.updated_at || session.created_at),
+  };
 }
 
 async function applyApiChatUpdatedAt(project: Project): Promise<Project> {
@@ -195,10 +231,12 @@ async function applyApiChatUpdatedAt(project: Project): Promise<Project> {
   }
 }
 
-function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLog[]): Chat {
+function buildApiThread(projectId: string, session: ChatSession, logs: ApiChatLog[]): Chat {
   const sortedLogs = logs
     .slice()
     .sort((left, right) => Date.parse(normalizeApiDate(left.created_at)) - Date.parse(normalizeApiDate(right.created_at)));
+  const threadId = buildChatSessionThreadId(projectId, session.id);
+  const threadTitle = session.title?.trim() || "새 채팅방";
   const messages = sortedLogs.flatMap((log) => {
     const isDiagnosisReport = typeof log.response_type === "string" && log.response_type.startsWith("diagnosis_report");
     const isDiagnosisReportSummary = log.response_type === "diagnosis_report_summary";
@@ -237,20 +275,27 @@ function buildApiThread(projectId: string, projectTitle: string, logs: ApiChatLo
     return parts;
   });
   const latest = sortedLogs[sortedLogs.length - 1];
-  const firstQuestion = sortedLogs.find((log) => log.user_message)?.user_message;
+  const sessionUpdatedTime = Date.parse(normalizeApiDate(session.updated_at || session.created_at));
+  const latestLogTime = latest ? Date.parse(normalizeApiDate(latest.created_at)) : 0;
+  const effectiveUpdatedTime = Math.max(
+    Number.isNaN(sessionUpdatedTime) ? 0 : sessionUpdatedTime,
+    Number.isNaN(latestLogTime) ? 0 : latestLogTime
+  );
 
   return {
-    id: `${projectId}-api-thread`,
+    id: threadId,
     projectId,
-    title: firstQuestion || `${projectTitle} 대화`,
-    updatedAt: normalizeApiDate(latest?.created_at),
+    title: threadTitle,
+    updatedAt: effectiveUpdatedTime
+      ? new Date(effectiveUpdatedTime).toISOString()
+      : normalizeApiDate(session.updated_at || latest?.created_at || session.created_at),
     messages: messages.length
       ? messages
       : [
           {
-            id: `${projectId}-api-thread-assistant-starter`,
+            id: `${threadId}-assistant-starter`,
             role: "assistant",
-            text: `${projectTitle} 프로젝트를 시작했어요. 업로드한 자료나 그래프를 바탕으로 궁금한 점을 물어보세요.`,
+            text: `${threadTitle}에서 업로드한 자료나 그래프를 바탕으로 궁금한 점을 물어보세요.`,
           },
         ],
   };
@@ -586,10 +631,20 @@ export async function getProjects(): Promise<Project[]> {
       return [];
     }
 
-    const catalogProjects = projects.map(normalizeApiProject).filter(isCatalogProject);
-    const projectsWithChatTimes = await Promise.all(catalogProjects.map(applyApiChatUpdatedAt));
+    const catalogProjectEntries = (projects as ApiProject[])
+      .map((apiProject) => ({
+        apiProject,
+        project: normalizeApiProject(apiProject),
+      }))
+      .filter(({ project }) => isCatalogProject(project));
+    // TODO: 백엔드가 채팅 저장 시 last_accessed_at을 항상 갱신하면 applyApiChatUpdatedAt 보정을 제거한다.
+    const effectiveProjects = await Promise.all(
+      catalogProjectEntries.map(({ apiProject, project }) =>
+        hasServerActivityTimestamp(apiProject) ? project : applyApiChatUpdatedAt(project)
+      )
+    );
 
-    return projectsWithChatTimes.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+    return effectiveProjects.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
   }
 
   const workspaceState = loadWorkspaceState();
@@ -602,21 +657,59 @@ export async function getProjectCatalogOptions(): Promise<ProjectCatalogOption[]
   return clone(MOCK_PROJECT_CATALOG);
 }
 
+export async function listChatSessions(projectId: string): Promise<ChatSession[]> {
+  if (!isBackendApiEnabled) {
+    return [];
+  }
+
+  const sessions = await apiRequest(`/projects/${encodeURIComponent(projectId)}/chat-sessions`, {
+    method: "GET",
+  });
+
+  return Array.isArray(sessions)
+    ? sessions
+        .map((session) => normalizeApiChatSession(session as ApiChatSession))
+        .filter((session) => Number.isFinite(session.id))
+    : [];
+}
+
+export async function createChatSession(projectId: string, title?: string): Promise<ChatSession> {
+  const session = await apiRequest(`/projects/${encodeURIComponent(projectId)}/chat-sessions`, {
+    method: "POST",
+    body: title?.trim() ? { title: title.trim() } : {},
+  });
+
+  return normalizeApiChatSession(session as ApiChatSession);
+}
+
+export async function deleteChatSession(projectId: string, sessionId: number): Promise<void> {
+  await apiRequest(`/projects/${encodeURIComponent(projectId)}/chat-sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getSessionChats(projectId: string, sessionId: number): Promise<ApiChatLog[]> {
+  const chats = await apiRequest(
+    `/chat/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      method: "GET",
+    }
+  );
+
+  return Array.isArray(chats) ? (chats as ApiChatLog[]) : [];
+}
+
 export async function getProjectChats(projectId: string): Promise<Chat[]> {
   const chatStore = loadChatStore();
   const localChats = sortChatsByUpdatedAt(chatStore.chatsByProject[projectId] || []);
 
   if (isBackendApiEnabled) {
-    const projects = await getProjects();
-    const projectTitle = projects.find((project) => project.id === projectId)?.title || `${projectId} 프로젝트`;
-    const chats = await apiRequest(`/chat/project/${encodeURIComponent(projectId)}`, {
-      method: "GET",
-    });
+    const sessions = await listChatSessions(projectId);
+    const chats = await Promise.all(
+      sessions.map(async (session) => buildApiThread(projectId, session, await getSessionChats(projectId, session.id)))
+    );
 
-    return sortChatsByUpdatedAt([
-      ...localChats,
-      buildApiThread(projectId, projectTitle, Array.isArray(chats) ? chats : []),
-    ]);
+    return sortChatsByUpdatedAt(chats);
   }
 
   return localChats;
@@ -686,14 +779,8 @@ export async function selectProjectFromCatalog(projectId: string): Promise<Proje
 
 export async function createChat(projectId: string): Promise<Chat> {
   if (isBackendApiEnabled) {
-    const projects = await getProjects();
-    const project = projects.find((item) => item.id === projectId);
-
-    if (!project) {
-      throw new Error("선택한 프로젝트를 찾을 수 없습니다.");
-    }
-
-    return buildApiThread(projectId, project.title, []);
+    const session = await createChatSession(projectId);
+    return buildApiThread(projectId, session, []);
   }
 
   const projects = await getProjects();
@@ -712,6 +799,24 @@ export async function createChat(projectId: string): Promise<Chat> {
   persistProjectUpdatedAt(projectId, nextChat.updatedAt);
 
   return nextChat;
+}
+
+export async function removeChat(projectId: string, chatId: string): Promise<void> {
+  if (isBackendApiEnabled) {
+    const sessionId = getChatSessionIdFromThreadId(projectId, chatId);
+    if (!sessionId) {
+      throw new Error("삭제할 채팅방 세션을 찾을 수 없습니다.");
+    }
+
+    await deleteChatSession(projectId, sessionId);
+    return;
+  }
+
+  const chatStore = loadChatStore();
+  const existingChats = chatStore.chatsByProject[projectId] || [];
+
+  chatStore.chatsByProject[projectId] = existingChats.filter((chat) => chat.id !== chatId);
+  saveChatStore(chatStore);
 }
 
 export async function createDiagnosisReportChat(projectId: string): Promise<Chat> {
@@ -739,13 +844,18 @@ export async function createDiagnosisReportChat(projectId: string): Promise<Chat
   return nextChat;
 }
 
-export async function sendChatMessage(projectId: string, message: string, responseType = "default") {
+export async function sendChatMessage(projectId: string, chatId: string, message: string, responseType = "default") {
   if (!isBackendApiEnabled) {
     await delay(MOCK_CHAT_RESPONSE_DELAY_MS);
     throw new Error("백엔드 API 모드에서만 채팅 전송을 사용할 수 있습니다.");
   }
 
-  return apiRequest(`/chat/${encodeURIComponent(projectId)}`, {
+  const sessionId = getChatSessionIdFromThreadId(projectId, chatId);
+  if (!sessionId) {
+    throw new Error("메시지를 보낼 채팅방 세션을 찾을 수 없습니다.");
+  }
+
+  return apiRequest(`/chat/${encodeURIComponent(projectId)}?session_id=${encodeURIComponent(sessionId)}`, {
     method: "POST",
     body: {
       message,
@@ -824,21 +934,34 @@ export async function createExplanation({
   projectId,
   nodeId = null,
   question,
+  explanationStyle = null,
 }: {
   projectId: string;
   nodeId?: string | null;
   question: string;
+  explanationStyle?: "example" | "concise" | "step" | "deep" | null;
 }): Promise<string> {
   if (!isBackendApiEnabled) {
     return "";
   }
 
+  const numericProjectId = Number(projectId);
+  if (!Number.isFinite(numericProjectId)) {
+    throw new Error("백엔드 프로젝트 ID가 올바르지 않습니다.");
+  }
+
+  const allowedExplanationStyle =
+    explanationStyle === "example" || explanationStyle === "concise" || explanationStyle === "step"
+      ? explanationStyle
+      : null;
+
   const result = await apiRequest("/explanation", {
     method: "POST",
     body: {
-      project_id: projectId,
+      project_id: numericProjectId,
       node_id: nodeId,
       question,
+      ...(allowedExplanationStyle ? { explanation_style: allowedExplanationStyle } : {}),
     },
   });
 

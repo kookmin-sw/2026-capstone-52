@@ -104,16 +104,30 @@ export function mapApiUserToProfile(user) {
     learningType: ["exam", "concept", "project", "light"].includes(user?.learning_goal)
       ? user.learning_goal
       : DEFAULT_USER_PROFILE.learning_type,
-    learningGoal: user?.interest_field || user?.learning_goal || DEFAULT_USER_PROFILE.learning_goal,
+    learningGoal: user?.learning_goal || DEFAULT_USER_PROFILE.learning_goal,
   };
 }
 
-export function mapProfileToApiUpdate(profile, profileImage = null) {
-  return {
+export function mapProfileToApiUpdate(profile, profileImage = null, { includeProfileImage = false } = {}) {
+  const body = {
     nickname: profile.name,
-    profile_image: profileImage,
     preferred_explanation_style: profile.explanationStyle,
   };
+
+  if (includeProfileImage) {
+    body.profile_image = profileImage;
+  }
+  if (profile.major) {
+    body.major = profile.major;
+  }
+  if (profile.job) {
+    body.learning_fields = profile.job;
+  }
+  if (profile.learningGoal) {
+    body.learning_goal = profile.learningGoal;
+  }
+
+  return body;
 }
 
 export async function getApiUser(userId) {
@@ -205,12 +219,13 @@ export async function getCurrentUserId() {
 /**
  * @param {import("@/types/profile").ProfileInfo} profile
  * @param {string | null} profileImage
+ * @param {{ includeProfileImage?: boolean }} options
  */
-export async function updateCurrentUserProfile(profile, profileImage = null) {
+export async function updateCurrentUserProfile(profile, profileImage = null, options = {}) {
   const path = isBackendApiEnabled ? "/users/me" : `/users/${encodeURIComponent(await getCurrentUserId())}`;
   const user = await apiRequest(path, {
     method: "PATCH",
-    body: mapProfileToApiUpdate(profile, profileImage),
+    body: mapProfileToApiUpdate(profile, profileImage, options),
   });
 
   return mapApiUserToProfile(user);

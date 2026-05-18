@@ -9,7 +9,6 @@ import { getProjectChats, getProjects } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import {
   hasCompletedAnalysis,
-  isBackendApiEnabled,
   listProjectFiles,
   refreshAnalysisStatuses,
   startAnalysis,
@@ -210,7 +209,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     : "/diagnosis";
 
   function normalizeIncomingFiles(fileList) {
-    const acceptedPattern = isBackendApiEnabled ? /\.pdf$/i : /\.(pdf|txt)$/i;
+    const acceptedPattern = /\.pdf$/i;
     const files = Array.from(fileList);
     const acceptedFiles = files.filter((file) => acceptedPattern.test(file.name));
 
@@ -224,8 +223,7 @@ export default function UploadPageView({ initialProjectId = null }) {
     const { acceptedFiles, rejectedCount } = normalizeIncomingFiles(fileList);
 
     if (rejectedCount > 0) {
-      const supportedTypes = isBackendApiEnabled ? "PDF" : "PDF 또는 TXT";
-      setUploadFeedback(`${supportedTypes} 파일만 업로드할 수 있어 ${rejectedCount}개 파일을 제외했습니다.`);
+      setUploadFeedback(`PDF 파일만 업로드할 수 있어 ${rejectedCount}개 파일을 제외했습니다.`);
     } else {
       setUploadFeedback(null);
     }
@@ -402,7 +400,7 @@ export default function UploadPageView({ initialProjectId = null }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.txt"
+                accept=".pdf"
                 multiple
                 className="workspace-upload-file-input"
                 onChange={handleFileInputChange}

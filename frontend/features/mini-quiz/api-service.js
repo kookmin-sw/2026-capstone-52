@@ -2,11 +2,44 @@ import { apiRequest } from "../api/client";
 
 export const isMiniQuizBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 
+function normalizeQuestionList(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+  return value ? [value] : [];
+}
+
+function normalizeQuestionPayload(payload) {
+  const questions = normalizeQuestionList(payload?.data ?? payload);
+
+  return {
+    questions,
+    group: payload?.group ?? null,
+    message: payload?.message ?? "",
+    raw: payload,
+  };
+}
+
+function normalizeDeferredPayload(payload) {
+  return {
+    items: normalizeQuestionList(payload?.data ?? payload),
+    groups: Array.isArray(payload?.groups) ? payload.groups : [],
+    message: payload?.message ?? "",
+    raw: payload,
+  };
+}
+
+/**
+ * generate/defer payload shape:
+ * { success: true, data: DiagnosisQuestionResponse[], group: { node_id, node_name, question_ids }, message }
+ */
 export async function generateApiMiniQuizQuestion(projectId, nodeId) {
   const query = `?node_id=${encodeURIComponent(nodeId)}`;
-  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/generate${query}`, {
+  const payload = await apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/generate${query}`, {
     method: "POST",
+    unwrap: false,
   });
+  return normalizeQuestionPayload(payload);
 }
 
 export async function submitApiMiniQuizAnswer(
@@ -29,6 +62,29 @@ export async function submitApiMiniQuizAnswer(
   });
 }
 
+export async function submitApiMiniQuizAnswers(projectId, answers) {
+  const body = {
+    answers: (Array.isArray(answers) ? answers : []).map((answer) => {
+      const item = {
+        question_id: answer.questionId ?? answer.question_id,
+        is_skipped: Boolean(answer.isSkipped ?? answer.is_skipped),
+      };
+
+      const selectedOptionIds = answer.selectedOptionIds ?? answer.selected_option_ids;
+      if (Array.isArray(selectedOptionIds) && selectedOptionIds.length > 0) {
+        item.selected_option_ids = selectedOptionIds;
+      }
+
+      return item;
+    }),
+  };
+
+  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/submit`, {
+    method: "POST",
+    body,
+  });
+}
+
 export async function getApiMiniQuizReview(projectId, questionIds) {
   if (!questionIds?.length) {
     return [];
@@ -41,13 +97,21 @@ export async function getApiMiniQuizReview(projectId, questionIds) {
 
 export async function deferApiMiniQuizQuestion(projectId, nodeId) {
   const query = `?node_id=${encodeURIComponent(nodeId)}`;
-  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/defer${query}`, {
+  const payload = await apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/defer${query}`, {
     method: "POST",
+    unwrap: false,
   });
+  return normalizeQuestionPayload(payload);
 }
 
+/**
+ * deferred payload shape:
+ * { success: true, data: DeferredMiniQuizItem[], groups: DeferredMiniQuizGroup[], message }
+ */
 export async function getApiDeferredMiniQuizzes(projectId) {
-  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/deferred`, {
+  const payload = await apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/deferred`, {
     method: "GET",
+    unwrap: false,
   });
+  return normalizeDeferredPayload(payload);
 }

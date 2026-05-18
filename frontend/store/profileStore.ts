@@ -8,10 +8,13 @@ import type { ProfileBadge, ProfileInfo } from "@/types/profile";
 interface ProfileStoreState {
   profile: ProfileInfo;
   profileImage: string | null;
+  profileImageDirty: boolean;
   hydrated: boolean;
   setHydrated: (hydrated: boolean) => void;
   updateProfile: (nextProfile: ProfileInfo) => void;
   updateProfileImage: (profileImage: string | null) => void;
+  setUserProfileImage: (profileImage: string | null) => void;
+  resetProfileImageDirty: () => void;
 }
 
 export const useProfileStore = create<ProfileStoreState>()(
@@ -19,10 +22,13 @@ export const useProfileStore = create<ProfileStoreState>()(
     (set) => ({
       profile: defaultProfile,
       profileImage: null,
+      profileImageDirty: false,
       hydrated: false,
       setHydrated: (hydrated) => set({ hydrated }),
       updateProfile: (profile) => set({ profile }),
       updateProfileImage: (profileImage) => set({ profileImage }),
+      setUserProfileImage: (profileImage) => set({ profileImage, profileImageDirty: true }),
+      resetProfileImageDirty: () => set({ profileImageDirty: false }),
     }),
     {
       name: "eeum-profile-store",
@@ -71,6 +77,7 @@ export const useProfileStore = create<ProfileStoreState>()(
       partialize: (state) => ({
         profile: state.profile,
         profileImage: state.profileImage,
+        // Dirty flags are intentionally session-only. Persisting them can cause stale profile_image PATCHes.
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);
