@@ -122,7 +122,7 @@ curl http://eeum-study.kr/openapi.json
 
 ## Backend 환경변수
 
-백엔드 루트의 `.env` 예시입니다. 실제 값은 서버에서만 관리하고 GitHub에 올리지 않습니다.
+`backend/.env` 예시입니다. 실제 값은 서버에서만 관리하고 GitHub에 올리지 않습니다.
 
 ```env
 DATABASE_URL=
@@ -166,9 +166,9 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 EC2에서 백엔드 실행 예시:
 
 ```bash
-cd /home/ec2-user/2026-capstone-52
-python -m venv .venv
-source .venv/bin/activate
+cd /home/ec2-user/2026-capstone-52/backend
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
@@ -211,9 +211,9 @@ After=network.target
 [Service]
 User=ec2-user
 Group=ec2-user
-WorkingDirectory=/home/ec2-user/2026-capstone-52
-EnvironmentFile=/home/ec2-user/2026-capstone-52/.env
-ExecStart=/home/ec2-user/2026-capstone-52/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/home/ec2-user/2026-capstone-52/backend
+EnvironmentFile=/home/ec2-user/2026-capstone-52/backend/.env
+ExecStart=/home/ec2-user/2026-capstone-52/backend/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 
