@@ -1,7 +1,11 @@
 "use client";
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { hasGoogleLoginSession } from "@/features/api/session";
+
+const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 
 const featureCards = [
   {
@@ -114,11 +118,21 @@ function TutorAppMockup({ isAnimating }: { isAnimating: boolean }) {
 }
 
 export function HeroSection() {
+  const router = useRouter();
   const heroRef = useRef<HTMLElement | null>(null);
   const hasPlayedIntroRef = useRef(false);
   const shouldReduceMotion = useReducedMotion();
   const [heroAnimationState, setHeroAnimationState] = useState<"hidden" | "visible">("hidden");
   const [isMockupAnimating, setIsMockupAnimating] = useState(false);
+
+  function handleStartLearning() {
+    if (!isBackendApiEnabled || hasGoogleLoginSession()) {
+      router.push("/dashboard");
+      return;
+    }
+
+    router.push("/login");
+  }
 
   useEffect(() => {
     if (hasPlayedIntroRef.current) {
@@ -184,12 +198,13 @@ export function HeroSection() {
               variants={heroItemVariants}
               custom={3}
             >
-              <a
-                href="/dashboard"
+              <button
+                type="button"
+                onClick={handleStartLearning}
                 className="inline-flex min-h-14 items-center justify-center rounded-full bg-[#817cf2] px-10 text-[1.06rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8]"
               >
                 시작하기 <span className="ml-3 text-[1.3rem] leading-none">→</span>
-              </a>
+              </button>
               <a
                 href="#intro"
                 className="inline-flex min-h-14 items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-10 text-[1.06rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:border-[#cac5ef] hover:text-[#817cf2]"

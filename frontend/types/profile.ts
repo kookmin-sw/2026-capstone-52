@@ -59,6 +59,7 @@ export interface GraphNodeRecord {
 export interface RecentLearningRecord {
   id: string;
   projectId: string;
+  chatId?: string;
   subject: string;
   nodeName: string;
   updatedAt: string;

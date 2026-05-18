@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import KnowledgeGraphScene from "../graph/knowledge-graph-scene";
@@ -1468,37 +1468,68 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     setMiniQuizDeferredPanelPlacement(belowSpace >= estimatedPanelHeight + gap ? "below" : "above");
   }
 
-  function snapMiniQuizFloatToNearestEdge() {
-    if (!chatStageRef.current || !miniQuizFloatWrapRef.current || typeof window === "undefined") return;
+  function getClampedMiniQuizFloatOffset(nextOffset) {
+    if (!miniQuizFloatWrapRef.current || typeof window === "undefined") {
+      return {
+        offset: nextOffset,
+        dockSide: miniQuizFloatDockSide,
+      };
+    }
 
-    const stageRect = chatStageRef.current.getBoundingClientRect();
-    const chatLogRect = chatLogRef.current?.getBoundingClientRect() || stageRect;
     const buttonRect = miniQuizFloatWrapRef.current.getBoundingClientRect();
     const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
     const horizontalInset = rootFontSize * 1.6;
     const topInset = rootFontSize * 1.1;
-    const verticalInset = rootFontSize * 1.1;
     const buttonSize = buttonRect.width || 54;
-    const baseLeft = stageRect.width - horizontalInset - buttonSize;
-    const leftDock = horizontalInset;
-    const rightDock = baseLeft;
-    const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-    const logCenterX = chatLogRect.left + chatLogRect.width / 2;
-    const nextDockSide = buttonCenterX < logCenterX ? "left" : "right";
-    const targetLeft = nextDockSide === "left" ? leftDock : rightDock;
-    const minTop = Math.max(verticalInset, chatLogRect.top - stageRect.top + verticalInset);
-    const maxTop = Math.max(
-      minTop,
-      chatLogRect.bottom - stageRect.top - buttonSize - verticalInset
-    );
-    const currentTop = buttonRect.top - stageRect.top;
-    const targetTop = Math.min(Math.max(currentTop, minTop), maxTop);
+    const baseLeft = window.innerWidth - horizontalInset - buttonSize;
+    const baseTop = topInset;
+    const minLeft = 0;
+    const minTop = 0;
+    const maxLeft = Math.max(minLeft, window.innerWidth - buttonSize);
+    const maxTop = Math.max(minTop, window.innerHeight - buttonSize);
+    const nextLeft = baseLeft + nextOffset.x;
+    const nextTop = baseTop + nextOffset.y;
+    const clampedLeft = Math.min(Math.max(nextLeft, minLeft), maxLeft);
+    const clampedTop = Math.min(Math.max(nextTop, minTop), maxTop);
 
-    setMiniQuizFloatDockSide(nextDockSide);
-    setMiniQuizFloatOffset({
+    return {
+      offset: {
+        x: clampedLeft - baseLeft,
+        y: clampedTop - baseTop,
+      },
+      dockSide: clampedLeft + buttonSize / 2 < window.innerWidth / 2 ? "left" : "right",
+    };
+  }
+
+  function getInitialMiniQuizFloatOffset() {
+    if (!chatStageRef.current || !miniQuizFloatWrapRef.current || typeof window === "undefined") {
+      return {
+        offset: { x: 0, y: 0 },
+        dockSide: "right",
+      };
+    }
+
+    const stageRect = chatStageRef.current.getBoundingClientRect();
+    const buttonRect = miniQuizFloatWrapRef.current.getBoundingClientRect();
+    const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+    const horizontalInset = rootFontSize * 1.6;
+    const topInset = rootFontSize * 1.1;
+    const buttonSize = buttonRect.width || 54;
+    const baseLeft = window.innerWidth - horizontalInset - buttonSize;
+    const baseTop = topInset;
+    const targetLeft = stageRect.right - horizontalInset - buttonSize;
+    const targetTop = stageRect.top + topInset;
+
+    return getClampedMiniQuizFloatOffset({
       x: targetLeft - baseLeft,
-      y: targetTop - topInset,
+      y: targetTop - baseTop,
     });
+  }
+
+  function clampMiniQuizFloatToViewport() {
+    const { offset, dockSide } = getClampedMiniQuizFloatOffset(miniQuizFloatOffset);
+    setMiniQuizFloatDockSide(dockSide);
+    setMiniQuizFloatOffset(offset);
   }
 
   function handleMiniQuizFloatPointerDown(event) {
@@ -1510,6 +1541,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       startY: event.clientY,
       initialOffsetX: miniQuizFloatOffset.x,
       initialOffsetY: miniQuizFloatOffset.y,
+      currentOffset: miniQuizFloatOffset,
       moved: false,
     };
 
@@ -1521,14 +1553,20 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       if (!drag.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
         drag.moved = true;
       }
-      setMiniQuizFloatOffset({
+      const { offset, dockSide } = getClampedMiniQuizFloatOffset({
         x: drag.initialOffsetX + dx,
         y: drag.initialOffsetY + dy,
       });
+      drag.currentOffset = offset;
+      setMiniQuizFloatDockSide(dockSide);
+      setMiniQuizFloatOffset(offset);
     }
 
     function handleUp() {
-      snapMiniQuizFloatToNearestEdge();
+      const drag = miniQuizFloatDragRef.current;
+      const { offset, dockSide } = getClampedMiniQuizFloatOffset(drag?.currentOffset || miniQuizFloatOffset);
+      setMiniQuizFloatDockSide(dockSide);
+      setMiniQuizFloatOffset(offset);
       setIsMiniQuizFloatDragging(false);
       document.removeEventListener("pointermove", handleMove);
       document.removeEventListener("pointerup", handleUp);
@@ -1819,10 +1857,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     return deferredMiniQuizzes.filter((item) => String(item.projectId) === String(selectedProjectId));
   }, [deferredMiniQuizzes, selectedProjectId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousDeferredMiniQuizCountRef.current === 0 && visibleDeferredMiniQuizzes.length > 0) {
-      setMiniQuizFloatOffset({ x: 0, y: 0 });
-      setMiniQuizFloatDockSide("right");
+      const { offset, dockSide } = getInitialMiniQuizFloatOffset();
+      setMiniQuizFloatOffset(offset);
+      setMiniQuizFloatDockSide(dockSide);
     }
 
     previousDeferredMiniQuizCountRef.current = visibleDeferredMiniQuizzes.length;
@@ -1838,6 +1877,20 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       window.removeEventListener("resize", updateMiniQuizDeferredPanelPlacement);
     };
   }, [isDeferredMiniQuizListOpen, miniQuizFloatOffset, visibleDeferredMiniQuizzes.length]);
+
+  useEffect(() => {
+    if (visibleDeferredMiniQuizzes.length === 0) return undefined;
+
+    function handleWindowResize() {
+      clampMiniQuizFloatToViewport();
+    }
+
+    window.addEventListener("resize", handleWindowResize);
+
+    return () => {
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  }, [miniQuizFloatOffset, visibleDeferredMiniQuizzes.length]);
 
   useEffect(() => {
     if (!isDeferredMiniQuizListOpen) return undefined;

@@ -71,12 +71,12 @@ function ExplanationPreview() {
 }
 
 const miniGraphPreviewNodes: KnowledgeGraphNode[] = [
-  { id: "sched", label: "스케줄링", color: "#817cf2", x: 0.22, y: 0.5, size: 6.4, isCore: true },
-  { id: "fcfs", label: "FCFS", color: "#62ceb0", x: 0.55, y: 0.28, size: 5.1 },
-  { id: "rr", label: "RR", color: "#ff9a72", x: 0.55, y: 0.72, size: 5.1 },
-  { id: "starv", label: "기아 현상", color: "#f36f7b", x: 0.88, y: 0.5, size: 5.1 },
-  { id: "aging", label: "에이징", color: "#7dd3fc", x: 0.88, y: 0.2, size: 4.5 },
-  { id: "preempt", label: "선점형", color: "#c4b5fd", x: 0.3, y: 0.18, size: 4.5 },
+  { id: "sched", label: "스케줄링", color: "#817cf2", x: 0.32, y: 0.5, size: 6.4, isCore: true },
+  { id: "fcfs", label: "FCFS", color: "#62ceb0", x: 0.55, y: 0.34, size: 5.1 },
+  { id: "rr", label: "RR", color: "#ff9a72", x: 0.55, y: 0.66, size: 5.1 },
+  { id: "starv", label: "기아 현상", color: "#f36f7b", x: 0.74, y: 0.5, size: 5.1 },
+  { id: "aging", label: "에이징", color: "#7dd3fc", x: 0.72, y: 0.28, size: 4.5 },
+  { id: "preempt", label: "선점형", color: "#c4b5fd", x: 0.38, y: 0.27, size: 4.5 },
 ];
 
 const miniGraphPreviewEdges: KnowledgeGraphEdge[] = [
@@ -99,13 +99,13 @@ function MiniGraphPreview() {
         nodes={miniGraphPreviewNodes}
         edges={miniGraphPreviewEdges}
         showLabels
-        nodeSizeScale={0.85}
+        nodeSizeScale={1.7}
       />
     </div>
   );
 }
 
-type Phase = "enter" | "selecting1" | "selecting2" | "reveal" | "exit";
+type Phase = "idle" | "selecting1" | "selecting2" | "reveal";
 
 const miniQuizOptions = [
   { id: "A", text: "마지막 데이터가 먼저 나온다", isCorrect: true },
@@ -115,49 +115,17 @@ const miniQuizOptions = [
 ];
 
 const miniQuizPhaseDuration: Record<Phase, number> = {
-  enter: 650,
+  idle: 520,
   selecting1: 600,
   selecting2: 700,
-  reveal: 1200,
-  exit: 1550,
+  reveal: 1300,
 };
 
 const nextMiniQuizPhase: Record<Phase, Phase> = {
-  enter: "selecting1",
+  idle: "selecting1",
   selecting1: "selecting2",
   selecting2: "reveal",
-  reveal: "exit",
-  exit: "enter",
-};
-
-const miniQuizCardVariants: Variants = {
-  enter: {
-    x: 560,
-    y: 0,
-    opacity: 1,
-    rotate: 0,
-  },
-  settled: {
-    x: [560, -18, 10, -4, 0],
-    y: 0,
-    opacity: 1,
-    rotate: [0, 0, -1.2, 0.8, 0],
-    transition: {
-      duration: 0.65,
-      ease: [0.15, 0.7, 0.2, 1],
-    },
-  },
-  exit: {
-    x: [0, -10, 14, -620],
-    y: 0,
-    opacity: [1, 1, 1, 0],
-    rotate: [0, -1.4, 1.8, -3],
-    transition: {
-      duration: 1.15,
-      times: [0, 0.12, 0.25, 1],
-      ease: [0.15, 0.7, 0.2, 1],
-    },
-  },
+  reveal: "idle",
 };
 
 const miniQuizTone = {
@@ -182,8 +150,8 @@ const miniQuizTone = {
 function getMiniQuizOptionTone(option: (typeof miniQuizOptions)[number], phase: Phase) {
   const isSelected =
     (phase === "selecting1" && option.id === "A") ||
-    ((phase === "selecting2" || phase === "reveal" || phase === "exit") && (option.id === "A" || option.id === "B"));
-  const isRevealed = phase === "reveal" || phase === "exit";
+    ((phase === "selecting2" || phase === "reveal") && (option.id === "A" || option.id === "B"));
+  const isRevealed = phase === "reveal";
 
   if (isRevealed && option.isCorrect) {
     return miniQuizTone.correct;
@@ -201,15 +169,10 @@ function getMiniQuizOptionTone(option: (typeof miniQuizOptions)[number], phase: 
 }
 
 function MiniQuizPreview() {
-  const [phase, setPhase] = useState<Phase>("enter");
-  const [cycle, setCycle] = useState(0);
+  const [phase, setPhase] = useState<Phase>("idle");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      if (phase === "exit") {
-        setCycle((current) => current + 1);
-      }
-
       setPhase(nextMiniQuizPhase[phase]);
     }, miniQuizPhaseDuration[phase]);
 
@@ -217,12 +180,9 @@ function MiniQuizPreview() {
   }, [phase]);
 
   return (
-    <div key={cycle} className="overflow-hidden rounded-[1rem]" aria-label="스택 개념 미니퀴즈 미리보기">
-      <motion.div
+    <div className="rounded-[1rem]" aria-label="스택 개념 미니퀴즈 미리보기">
+      <div
         className="rounded-[1rem] border border-[#ece9f7] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(42,38,73,0.08)]"
-        variants={miniQuizCardVariants}
-        initial="enter"
-        animate={phase === "exit" ? "exit" : "settled"}
       >
         <p className="text-[0.86rem] font-black leading-6 text-[#24213d]">
           스택(Stack)에 대한 설명으로 옳은 것을 모두 고르세요
@@ -248,7 +208,7 @@ function MiniQuizPreview() {
             );
           })}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

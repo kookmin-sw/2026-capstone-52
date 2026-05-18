@@ -12,7 +12,7 @@ const DEFAULT_USER_PROFILE = {
   learning_fields: "대학생",
   current_level: "beginner",
   preferred_explanation_style: "example",
-  learning_goal: "컴퓨터공학",
+  learning_goal: "Computer Science",
   learning_type: "project",
 };
 

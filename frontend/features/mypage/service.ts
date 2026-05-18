@@ -1,6 +1,8 @@
 import type { MyPageStats, ProfileInfo, RecentLearningRecord } from "@/types/profile";
 import { apiRequest } from "@/features/api/client";
 import { ensureCurrentUser, mapApiUserToProfile, updateCurrentUserProfile } from "@/features/api/session";
+import { getProjectChats } from "@/features/dashboard/service";
+import type { Chat } from "@/features/dashboard/types";
 
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
@@ -48,6 +50,25 @@ function getProjectActivityTime(project: ApiProject) {
 
   const time = Date.parse(timestamp);
   return Number.isNaN(time) ? 0 : time;
+}
+
+function buildRecentRecordsFromChats(projects: ApiProject[], chatsByProject: Record<string, Chat[]>): RecentLearningRecord[] {
+  const projectTitleById = new Map(projects.map((project) => [String(project.project_id), project.project_name]));
+  const chatRecords = Object.entries(chatsByProject).flatMap(([projectId, chats]) =>
+    chats.map((chat, index) => ({
+      id: chat.id,
+      projectId,
+      chatId: chat.id,
+      subject: projectTitleById.get(projectId) || "채팅방",
+      nodeName: chat.title,
+      updatedAt: normalizeDate(chat.updatedAt),
+      accentColor: activityColors[index % activityColors.length],
+    }))
+  );
+
+  return chatRecords
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+    .slice(0, 6);
 }
 
 function buildRecentRecords(logs: ApiLearningLog[], graphNodes: ApiGraphNode[]): RecentLearningRecord[] {
@@ -109,6 +130,14 @@ export async function getApiMyPageViewData(): Promise<{
         .catch(() => 0)
     )
   );
+  const chatsByProjectEntries = await Promise.all(
+    projectsForDetailStats.map(async (project) => {
+      const projectId = String(project.project_id);
+      const chats = await getProjectChats(projectId).catch(() => []);
+      return [projectId, chats] as const;
+    })
+  );
+  const recentChatRecords = buildRecentRecordsFromChats(safeProjects, Object.fromEntries(chatsByProjectEntries));
 
   return {
     profile: mapApiUserToProfile(mypage?.user || user),
@@ -121,7 +150,7 @@ export async function getApiMyPageViewData(): Promise<{
       detailStatsLimit: MY_PAGE_DETAIL_FETCH_LIMIT,
       detailStatsAreCapped: safeProjects.length > projectsForDetailStats.length,
     },
-    recentRecords: buildRecentRecords(safeLogs, graphNodes),
+    recentRecords: recentChatRecords.length ? recentChatRecords : buildRecentRecords(safeLogs, graphNodes),
   };
 }
 

@@ -32,7 +32,7 @@ export const useProfileStore = create<ProfileStoreState>()(
     }),
     {
       name: "eeum-profile-store",
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<ProfileStoreState>;
@@ -68,6 +68,21 @@ export const useProfileStore = create<ProfileStoreState>()(
               ...state.profile,
               job: state.profile.job === "Frontend Engineer" ? defaultProfile.job : state.profile.job,
               major: state.profile.major === "컴퓨터공학과" ? defaultProfile.major : state.profile.major,
+            },
+          };
+        }
+
+        if (version < 6 && state.profile) {
+          return {
+            ...state,
+            profile: {
+              ...defaultProfile,
+              ...state.profile,
+              job: state.profile.job || defaultProfile.job,
+              learningGoal:
+                state.profile.learningGoal === "컴퓨터공학" || !state.profile.learningGoal
+                  ? defaultProfile.learningGoal
+                  : state.profile.learningGoal,
             },
           };
         }
