@@ -5298,6 +5298,10 @@ a {
   color: #24213d;
 }
 
+.workspace-upload-page-sidebar .workspace-sidebar-top {
+  margin-top: 0;
+}
+
 .workspace-upload-brand {
   display: inline-flex;
   align-items: center;
@@ -5355,7 +5359,7 @@ a {
 
 .workspace-upload-page-main-inner {
   width: min(100%, 82rem);
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 1.35rem;
   padding: 2.6rem 2.4rem 0;
 }
@@ -5390,10 +5394,12 @@ a {
 .workspace-upload-page-dropzone-wrap .workspace-upload-dropzone,
 .workspace-upload-page-dropzone-wrap .workspace-upload-filled-panel {
   width: 100%;
-  min-height: 21rem;
+  min-height: 17.5rem;
 }
 
 .workspace-upload-dropzone {
+  place-content: center;
+  gap: 0.7rem;
   border: 2px dashed #d8d3ff;
   border-radius: 1.6rem;
   background: linear-gradient(135deg, #faf9ff 0%, #ffffff 100%);
@@ -5441,6 +5447,10 @@ a {
 .workspace-upload-filled-panel-head span,
 .workspace-upload-filled-panel-foot small {
   color: #aaa6c0;
+}
+
+.workspace-upload-dropzone span {
+  margin: 0.1rem 0;
 }
 
 .workspace-upload-dropzone button,
@@ -5581,7 +5591,17 @@ a {
 .workspace-upload-page-secondary {
   width: min(100%, 72rem);
   justify-self: center;
+  align-self: start;
+  align-items: center;
   padding-bottom: 2.5rem;
+}
+
+.workspace-upload-page-secondary .workspace-upload-secondary-action button,
+.workspace-upload-secondary-action.workspace-upload-page-secondary button {
+  min-height: 2.25rem;
+  padding: 0 1rem;
+  font-size: 0.82rem;
+  box-shadow: 0 10px 22px rgba(129, 124, 242, 0.22);
 }
 
 .workspace-upload-secondary-action button:disabled,
@@ -7206,6 +7226,8 @@ a {
   }
 
   .workspace-upload-page-sidebar {
+    grid-column: 1;
+    grid-row: 1 / -1;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     overflow: visible;
@@ -7223,7 +7245,7 @@ a {
   .workspace-upload-page-dropzone-wrap .workspace-upload-dropzone,
   .workspace-upload-page-dropzone-wrap .workspace-upload-filled-panel {
     width: 100%;
-    min-height: 18rem;
+    min-height: 15.5rem;
   }
 
   .workspace-upload-page-pending {
