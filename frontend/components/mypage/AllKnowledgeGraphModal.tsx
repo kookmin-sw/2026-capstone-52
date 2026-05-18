@@ -60,7 +60,6 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
   const [filters, setFilters] = useState<GraphFilter[]>(fallbackFilters);
   const [activeFilter, setActiveFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
-  const [resetViewKey, setResetViewKey] = useState(0);
 
   useEffect(() => {
     if (!open) {
@@ -197,10 +196,7 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
               <button
                 key={filter.id}
                 type="button"
-                onClick={() => {
-                  setActiveFilter(filter.id);
-                  setResetViewKey((current) => current + 1);
-                }}
+                onClick={() => setActiveFilter(filter.id)}
                 className={`inline-flex h-11 min-w-[5.4rem] items-center justify-center rounded-full border px-5 text-[0.92rem] font-black shadow-[0_12px_26px_rgba(42,38,73,0.06)] transition ${
                   isActive
                     ? "border-[#817cf2] bg-[#817cf2] text-white"
@@ -228,7 +224,7 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
             labelVariant="light"
             nodeSizeScale={0.7}
             dimmedNodeIds={dimmedNodeIds}
-            resetViewKey={resetViewKey}
+            autoFitDuration={0}
           />
         ) : (
           <div className="grid h-full place-items-center text-[1rem] font-black text-[#aaa6c0]">

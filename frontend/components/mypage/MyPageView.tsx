@@ -30,7 +30,7 @@ export default function MyPageView() {
 
   const stats = useMemo(() => apiStats || getMyPageStats(), [apiStats]);
   const badges = useMemo(() => getProfileBadges(profile), [profile]);
-  const recentRecords = useMemo(() => apiRecentRecords || getRecentLearningRecordsLast30Days(6), [apiRecentRecords]);
+  const recentRecords = useMemo(() => apiRecentRecords || getRecentLearningRecordsLast30Days(5), [apiRecentRecords]);
 
   useEffect(() => {
     let cancelled = false;

@@ -7,6 +7,7 @@ import type { Chat } from "@/features/dashboard/types";
 const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
 const MY_PAGE_DETAIL_FETCH_LIMIT = 5;
+const RECENT_RECORD_LIMIT = 5;
 
 type ApiProject = {
   project_id: number | string;
@@ -68,7 +69,7 @@ function buildRecentRecordsFromChats(projects: ApiProject[], chatsByProject: Rec
 
   return chatRecords
     .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
-    .slice(0, 6);
+    .slice(0, RECENT_RECORD_LIMIT);
 }
 
 function buildRecentRecords(logs: ApiLearningLog[], graphNodes: ApiGraphNode[]): RecentLearningRecord[] {
@@ -91,7 +92,7 @@ function buildRecentRecords(logs: ApiLearningLog[], graphNodes: ApiGraphNode[]):
 
   return [...graphRecords, ...logRecords]
     .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
-    .slice(0, 6);
+    .slice(0, RECENT_RECORD_LIMIT);
 }
 
 export async function getApiMyPageViewData(): Promise<{

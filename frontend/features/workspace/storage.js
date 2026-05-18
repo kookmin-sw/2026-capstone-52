@@ -211,6 +211,28 @@ export function updateProjectMaterials(state, projectId, materials) {
   };
 }
 
+export function deleteProjectState(state, projectId) {
+  const omitProjectEntry = (entries = {}) => {
+    const { [projectId]: _removed, ...rest } = entries;
+    return rest;
+  };
+  const nextProjects = state.projects.filter((project) => project.id !== projectId);
+  const nextLastOpenedProjectId =
+    state.lastOpenedProjectId === projectId
+      ? nextProjects[0]?.id || null
+      : state.lastOpenedProjectId;
+
+  return {
+    ...state,
+    projects: nextProjects,
+    materialsByProject: omitProjectEntry(state.materialsByProject),
+    diagnosisByProject: omitProjectEntry(state.diagnosisByProject),
+    notesByProject: omitProjectEntry(state.notesByProject),
+    memosByProject: omitProjectEntry(state.memosByProject),
+    lastOpenedProjectId: nextLastOpenedProjectId
+  };
+}
+
 export function saveDiagnosisSummary(state, projectId, materialId, payload) {
   const nextMaterials = (state.materialsByProject[projectId] || []).map((material) =>
     material.id === materialId

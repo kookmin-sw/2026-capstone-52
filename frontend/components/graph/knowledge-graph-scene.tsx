@@ -37,6 +37,7 @@ type KnowledgeGraphSceneProps = {
   dimmedNodeIds?: string[];
   labelVariant?: "dark" | "light";
   nodeSizeScale?: number;
+  autoFitDuration?: number;
 };
 
 type ForceNode = KnowledgeGraphNode & {
@@ -97,6 +98,7 @@ export default function KnowledgeGraphScene({
   dimmedNodeIds = [],
   labelVariant = "dark",
   nodeSizeScale = 1,
+  autoFitDuration = 420,
 }: KnowledgeGraphSceneProps) {
   const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -206,7 +208,7 @@ export default function KnowledgeGraphScene({
     graph.d3ReheatSimulation();
   }, [compact, graphData]);
 
-  const fitGraphToView = useCallback((duration = 420) => {
+  const fitGraphToView = useCallback((duration = autoFitDuration) => {
     const graph = graphRef.current;
 
     if (!graph) {
@@ -219,10 +221,10 @@ export default function KnowledgeGraphScene({
       const currentZoom = graph.zoom();
 
       if (currentZoom > MAX_AUTO_ZOOM) {
-        graph.zoom(MAX_AUTO_ZOOM, 180);
+        graph.zoom(MAX_AUTO_ZOOM, duration === 0 ? 0 : 180);
       }
     }, duration + 30);
-  }, []);
+  }, [autoFitDuration]);
 
   useEffect(() => {
     if (!graphRef.current || !dimensions.width || !dimensions.height || !graphData.nodes.length) {

@@ -23,6 +23,12 @@ export type ProjectKnowledgeGraphNode = {
   relatedConceptIds: string[];
   relatedLearningEvents: ProjectKnowledgeGraphEvent[];
   keywords?: string[];
+  knowledgeStageIndex?: number;
+  knowledgeStageLabel?: string;
+  backendStatus?: string | null;
+  understandingScore?: number | null;
+  understandingLevel?: number | null;
+  diagnosisCount?: number | null;
 };
 
 export type ProjectKnowledgeGraphEdge = {
@@ -42,6 +48,10 @@ type BackendGraphNode = {
   description?: string | null;
   group?: string | null;
   status?: string | null;
+  understanding_score?: number | null;
+  understanding_level?: number | null;
+  diagnosis_count?: number | null;
+  is_core?: boolean | null;
   updated_at?: string | null;
 };
 
@@ -2282,13 +2292,17 @@ export function buildBackendKnowledgeGraph(
       y,
       size: (slot?.size || 1) + (index === 0 ? 0.55 : 0.18),
       color: slot?.color || "#8b5cf6",
-      isCore: index === 0,
+      isCore: node.is_core ?? (index === 0),
       kind: "concept" as const,
       subtitle: node.group || node.status || "개념 노드",
       description: node.description || "아직 개념 설명이 없습니다.",
       relatedConceptIds: uniqueStrings(relatedIdsByNode.get(node.node_id) || []),
       relatedLearningEvents: uniqueById(chatEvents),
       keywords: [node.name],
+      backendStatus: node.status || null,
+      understandingScore: node.understanding_score ?? null,
+      understandingLevel: node.understanding_level ?? null,
+      diagnosisCount: node.diagnosis_count ?? null,
     };
   });
 
