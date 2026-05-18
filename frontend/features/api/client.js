@@ -52,7 +52,7 @@ export function clearStoredAccessToken() {
 }
 
 export async function apiRequest(path, options = {}) {
-  const { body, headers, ...restOptions } = options;
+  const { body, headers, unwrap = true, ...restOptions } = options;
   const requestHeaders = new Headers(headers || {});
   let requestBody = body;
   const accessToken = getStoredAccessToken();
@@ -91,6 +91,10 @@ export async function apiRequest(path, options = {}) {
       status: response.status,
       payload,
     });
+  }
+
+  if (!unwrap) {
+    return payload;
   }
 
   return payload && typeof payload === "object" && "data" in payload ? payload.data : payload;

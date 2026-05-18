@@ -70,4 +70,6 @@ export interface MyPageStats {
   totalChats: number;
   diagnosisCount: number | string;
   conceptCount: number;
+  detailStatsLimit?: number;
+  detailStatsAreCapped?: boolean;
 }

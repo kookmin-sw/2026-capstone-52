@@ -16,11 +16,20 @@ export type ChatMessage = {
 };
 
 export type Chat = {
+  // Backend mode uses `${projectId}-session-${sessionId}` so URL chatId can stay string-safe.
   id: string;
   projectId: string;
   title: string;
   updatedAt: string;
   messages: ChatMessage[];
+};
+
+export type ChatSession = {
+  id: number;
+  project_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Project = {

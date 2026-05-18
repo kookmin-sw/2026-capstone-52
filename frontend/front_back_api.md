@@ -2,7 +2,23 @@
 
 이 문서는 Codex가 나중에 프론트엔드와 백엔드 연동 상태를 빠르게 판단하고 수정할 수 있도록, 현재 코드 기준의 API 연결 구조와 계약을 정리한 것이다.
 
-## 2026-05-16 프론트 연동 수정 완료 내역 (최신)
+## 2026-05-18 ChatSession 정책 및 문서 갱신
+
+이번 정리는 `frontend/` 안의 코드/문서만 변경했고, `app/` 백엔드 코드는 수정하지 않았다.
+
+- Chat Session API를 프론트에 연결했고, 현재 프론트 정책은 **프로젝트당 다중 thread**다.
+  - 프론트는 `GET/POST/DELETE /projects/{project_id}/chat-sessions`와 `GET /chat/{project_id}/sessions/{session_id}`를 사용한다.
+  - `POST /chat/{project_id}`에는 선택된 ChatSession의 `session_id` query를 붙인다.
+  - 대시보드는 ChatSession 1개를 Chat thread 1개로 렌더하고, thread title은 `ChatSession.title`을 그대로 사용한다.
+- Mini-Quiz 트리거 정책은 현재 구조 유지다.
+  - UI 트리거 기준은 계속 `concept_counting.quiz_ready_concepts`다.
+  - `mini_quiz_trigger`와 `grounding`은 응답에 존재하지만, 별도 UI 기획 전까지 표시/판단 기준으로 쓰지 않는다.
+- 문서의 stale 계약을 현재 백엔드/프론트 기준으로 갱신했다.
+  - `UserProfileUpdate`는 7개 필드를 받을 수 있고, 프론트는 프로필 저장 시 상세 필드를 함께 보낸다.
+  - `ProjectCreate` 요청 body에는 `user_id`가 없다. 백엔드는 인증된 `current_user`를 사용한다.
+  - Mini-Quiz generate/defer 응답은 단일 객체가 아니라 `data: DiagnosisQuestionResponse[]` 배열이며, `group`/`groups` sibling 필드를 보존한다.
+
+## 2026-05-16 프론트 연동 수정 완료 내역
 
 이번 수정은 `frontend/` 안의 코드만 변경했고, `app/` 백엔드 코드는 수정하지 않았다. dev 브랜치에 머지된 mini-quiz / multi-select / report 변경에 맞춰 프론트를 갱신한다.
 
@@ -12,7 +28,7 @@
 - 진단 완료 후 학습 플로우를 추가했다.
   - 12문제 답변 완료 시 결과 화면에서 `풀이보기` / `학습하기` 버튼을 노출한다.
   - `풀이보기`는 UI만 두고 동작은 추후 구현. (`GET /diagnosis/{project_id}/sessions/{session_id}/review`와 연결될 예정)
-  - `학습하기` 누르면 `POST /diagnosis/{project_id}/report`로 리포트 채팅 메시지 2개를 백엔드에 저장한 뒤, 해당 프로젝트의 채팅 화면으로 이동해 첫 메시지로 보여준다.
+  - `학습하기` 누르면 `POST /diagnosis/{project_id}/report`로 리포트 채팅 메시지 2개를 백엔드에 저장한 뒤, 해당 프로젝트의 채팅 화면으로 이동한다. 현재 백엔드 리포트 채팅은 `ChatSession`에 묶이지 않으므로 다중 thread UI에서 자동 노출하려면 별도 백엔드 정책이 필요하다.
 - Mini-Quiz 플로우를 신규 연동했다.
   - `POST /chat/{project_id}` 응답의 `concept_counting.quiz_ready_concepts`가 비어있지 않으면 채팅 말풍선에 "시험 준비됨" + `시험보기` / `나중에보기` 버튼을 그린다.
   - `시험보기` 클릭 시 대시보드 위에 팝업 형태로 미니 퀴즈를 띄우고, 백엔드는 `POST /mini-quiz/{project_id}/generate?node_id=...` → `POST /mini-quiz/{project_id}/submit` 순서로 호출한다.
@@ -22,7 +38,6 @@
 
 ## 2026-05-12 이전 변경 (요약)
 
-- 프로필 수정 요청에서 백엔드 `UserProfileUpdate`가 받지 않는 필드를 제거했다 — 프론트가 API로 보내는 필드는 `nickname`, `profile_image`, `preferred_explanation_style`만이다.
 - 백엔드 프로젝트 목록 정렬을 프론트에서 보완했다 — `/chat/project/{project_id}` 로그의 최신 시각도 함께 본다.
 
 ## 전체 연결 구조
@@ -33,10 +48,10 @@
 
 ```text
 Frontend service function
--> apiRequest("/projects/user/1")
--> browser fetch("/api/backend/projects/user/1")
+-> apiRequest("/projects/me")
+-> browser fetch("/api/backend/projects/me")
 -> Next.js rewrite
--> BACKEND_API_URL + "/api/projects/user/1"
+-> BACKEND_API_URL + "/api/projects/me"
 -> FastAPI route in app/api/routes/*.py
 ```
 
@@ -84,12 +99,14 @@ BACKEND_API_URL=http://localhost:8000
 }
 ```
 
-프론트 `apiRequest()`는 응답 JSON에 `data` 키가 있으면 `payload.data`만 반환한다. 따라서 프론트 서비스 함수들은 보통 백엔드 응답 전체가 아니라 `data`만 받는다고 보면 된다.
+프론트 `apiRequest()`는 기본적으로 응답 JSON에 `data` 키가 있으면 `payload.data`만 반환한다. 따라서 프론트 서비스 함수들은 보통 백엔드 응답 전체가 아니라 `data`만 받는다고 보면 된다.
+
+예외적으로 `data` 옆 sibling 필드가 필요한 API는 `apiRequest(path, { unwrap: false })`를 사용해 전체 payload를 받는다. 현재 대표 사례는 Mini-Quiz의 `group`/`groups` 보존이다.
 
 에러 처리:
 
 - HTTP status가 `2xx`가 아니면 `ApiError`를 throw한다.
-- HTTP status는 성공이지만 `{ success: false }`이면 `ApiError`를 throw한다.
+- HTTP status는 성공이지만 `{ success: false }`이면 `unwrap` 값과 무관하게 `ApiError`를 throw한다.
 
 ## 현재 인증/세션 구조
 
@@ -101,6 +118,7 @@ BACKEND_API_URL=http://localhost:8000
 
 localStorage 키:
 
+- `eeum-api-access-token`
 - `eeum-current-api-user-id`
 - `eeum-google-login-active`
 
@@ -110,8 +128,9 @@ localStorage 키:
 Google 로그인 성공
 -> Google userinfo API에서 email/name/profile_image 조회
 -> POST /api/backend/users/google
--> 백엔드가 user_id 반환해야 함
--> 프론트가 user_id를 localStorage에 저장
+-> 백엔드가 user_id와 access_token 반환
+-> 프론트가 access_token과 user_id를 localStorage에 저장
+-> apiRequest()가 Authorization 헤더 주입
 -> /dashboard 이동
 ```
 
@@ -274,15 +293,20 @@ PATCH /api/users/{user_id}
 {
   "nickname": "...",
   "profile_image": "...",
-  "preferred_explanation_style": "example"
+  "major": "...",
+  "learning_fields": "...",
+  "current_level": "...",
+  "preferred_explanation_style": "example",
+  "learning_goal": "..."
 }
 ```
 
 프론트 반영 상태:
 
 - `loginWithGoogleProfile()`은 `POST /users/google`을 호출하고, 현재 백엔드에 해당 라우트가 있다.
-- `mapProfileToApiUpdate()`는 백엔드 `UserProfileUpdate`가 받는 `nickname`, `profile_image`, `preferred_explanation_style`만 보낸다.
-- `major`, `learning_fields`, `learning_goal`, `interest_field`는 현재 백엔드 PATCH 스키마가 받지 않으므로 프론트 API 요청에서 제외한다.
+- `mapProfileToApiUpdate()`는 `nickname`, `preferred_explanation_style`, `major`, `learning_fields`, `learning_goal`을 보낸다.
+- `profile_image`는 사용자가 프로필 이미지를 실제로 변경한 경우에만 보낸다. 텍스트만 저장할 때 기존 서버 이미지를 `null`로 덮어쓰지 않기 위한 정책이다.
+- `current_level`은 백엔드 스키마가 받지만 현재 프론트 `ProfileInfo`에 독립 입력값이 없어 임의 생성하지 않는다.
 
 ### Projects
 
@@ -300,7 +324,7 @@ PATCH /api/users/{user_id}
 
 ```text
 getProjects()
--> GET /projects/user/{user_id}
+-> GET /projects/me
 
 selectProjectFromCatalog()
 -> POST /projects/
@@ -316,12 +340,16 @@ POST /api/projects/
 
 ```json
 {
-  "user_id": 1,
-  "project_domain": "operating_system"
+  "project_domain": "operating_system",
+  "project_description": "선택"
 }
 ```
 
-`project_domain`은 아래 값 중 하나만 사용할 수 있고, 백엔드는 해당 값에 맞는 교과목명을 `project_name`으로 저장합니다.
+`user_id`는 body에 넣지 않는다. 백엔드는 인증된 `current_user`를 사용한다.
+
+`project_description`은 백엔드가 optional로 받지만, 현재 프론트 카탈로그 생성 흐름은 `project_domain`만 보낸다.
+
+`project_domain`은 아래 값 중 하나만 사용할 수 있고, 백엔드는 해당 값에 맞는 교과목명을 `project_name`으로 저장한다.
 
 - `operating_system` -> `운영체제`
 - `data_structure` -> `자료구조`
@@ -342,7 +370,7 @@ POST /api/projects/
 ```
 
 ```http
-GET /api/projects/user/{user_id}
+GET /api/projects/me
 ```
 
 응답 data는 project 배열이다.
@@ -376,62 +404,134 @@ DELETE /api/projects/{project_id}/memos/{memo_id}
 
 ```text
 getProjectChats(projectId)
--> GET /chat/project/{project_id}
+-> GET /projects/{project_id}/chat-sessions
+-> GET /chat/{project_id}/sessions/{session_id} for each session
 
-sendChatMessage(projectId, message, responseType)
--> POST /chat/{project_id}
+createChat(projectId)
+-> POST /projects/{project_id}/chat-sessions
+
+removeChat(projectId, chatId)
+-> DELETE /projects/{project_id}/chat-sessions/{session_id}
+
+sendChatMessage(projectId, chatId, message, responseType)
+-> POST /chat/{project_id}?session_id=...
 ```
+
+현재 프론트 정책:
+
+- 프로젝트당 다중 thread를 사용한다.
+- thread id는 `${projectId}-session-${session.id}` 형식의 문자열이다. URL `chatId`도 이 값을 사용한다.
+- 새 채팅방 생성 시 title 입력 UI는 추가하지 않고, 백엔드 기본값 `"새 채팅방"`을 사용한다.
+- 사이드바 title은 백엔드 `ChatSession.title`을 그대로 표시한다. 첫 사용자 메시지 fallback은 사용하지 않는다.
+- 프로젝트 첫 진입 시 세션을 자동 생성하지 않는다. 사용자가 `새 채팅`을 누르거나 세션 0개 상태에서 메시지를 전송할 때 생성한다.
+- 삭제는 기존 채팅 메뉴의 삭제 버튼에 연결되어 있으며, 삭제 전 `confirm`을 띄운다. 마지막 세션도 삭제할 수 있다.
 
 백엔드 API:
 
 ```http
-POST /api/chat/{project_id}
+POST /api/chat/{project_id}?session_id={session_id}
 ```
 
 요청:
 
 ```json
 {
-  "user_id": 1,
   "message": "질문",
   "response_type": "default"
 }
 ```
+
+인증 토큰이 없는 fallback 상황에서는 백엔드 `ChatRequest.user_id`를 받을 수 있지만, 현재 프론트의 정상 백엔드 모드 요청은 access token 기반이라 body에 `user_id`를 넣지 않는다.
 
 응답 data:
 
 ```json
 {
   "chat_id": 1,
+  "session_id": 10,
   "user_id": 1,
   "project_id": 1,
   "user_message": "질문",
   "ai_response": "응답",
   "response_type": "default",
+  "mini_quiz_trigger": {
+    "needed": true,
+    "concepts": [
+      { "concept_id": 1, "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
+    ]
+  },
+  "grounding": {
+    "grounding_source": "uploaded",
+    "grounding_level": "project",
+    "confidence_note": "...",
+    "used_uploaded_context": true,
+    "used_backbone": false
+  },
   "concept_counting": {
     "turn_count": 6,
     "check_interval": 3,
+    "window_size": 3,
     "should_check_quiz": true,
     "counted_concepts": [
-      { "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
+      { "concept_id": 1, "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
     ],
     "quiz_ready_concepts": [
-      { "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
+      { "concept_id": 1, "node_id": "uuid", "name": "프로세스", "mention_count": 4 }
     ]
   },
   "created_at": "..."
 }
 ```
 
-`concept_counting.quiz_ready_concepts`가 비어있지 않을 때 프론트는 해당 채팅 말풍선에 미니퀴즈 트리거 UI를 렌더한다 (`시험보기` / `나중에보기`).
+Mini-Quiz 트리거 정책:
+
+- 현재 프론트는 `concept_counting.quiz_ready_concepts`가 비어있지 않을 때 해당 채팅 말풍선에 미니퀴즈 트리거 UI를 렌더한다 (`시험보기` / `나중에보기`).
+- `mini_quiz_trigger`는 같은 의미의 간결 응답이지만, 프론트의 판단 기준은 아직 바꾸지 않는다.
+- `grounding`은 응답에 포함되지만, 현재 표시 UI가 없어 사용하지 않는다.
 
 ```http
-GET /api/chat/project/{project_id}
+GET /api/projects/{project_id}/chat-sessions
 ```
 
-응답 data는 chat log 배열이다. (저장 시점 `concept_counting`은 응답에 포함되지 않으므로, 미니퀴즈 트리거 표시는 현재 세션의 마지막 응답에서만 사용한다.)
+응답 data:
 
-프론트는 chat log 배열을 하나의 thread로 합쳐서 화면에 보여준다.
+```json
+[
+  {
+    "id": 10,
+    "project_id": 1,
+    "title": "새 채팅방",
+    "created_at": "...",
+    "updated_at": "..."
+  }
+]
+```
+
+```http
+POST /api/projects/{project_id}/chat-sessions
+```
+
+요청 body는 비워둘 수 있다. 백엔드는 기본 title `"새 채팅방"`을 사용한다.
+
+```json
+{}
+```
+
+```http
+DELETE /api/projects/{project_id}/chat-sessions/{session_id}
+```
+
+```http
+GET /api/chat/{project_id}/sessions/{session_id}
+```
+
+응답 data는 해당 세션의 chat log 배열이다. 저장된 chat log에는 `concept_counting`, `mini_quiz_trigger`, `grounding`이 포함되지 않으므로, 미니퀴즈 트리거 표시는 현재 POST 응답에서 받은 값을 프론트 state에 보존해 사용한다.
+
+참고로 아래 프로젝트 전체 chat log API는 마이페이지 통계 등 전체 합산이 필요한 곳에서만 유지한다.
+
+```text
+GET /api/chat/project/{project_id}
+```
 
 ### Upload
 
@@ -714,7 +814,7 @@ POST /api/diagnosis/{project_id}/report
 { "session_id": "uuid" }
 ```
 
-응답 data: 채팅 메시지 2개. 프론트는 `학습하기` 버튼 클릭 시 이 API를 호출해 백엔드 채팅에 리포트를 저장하고, 채팅 페이지로 이동한 뒤 `GET /chat/project/{project_id}` 결과의 첫 메시지로 노출한다.
+응답 data: 채팅 메시지 2개. 현재 백엔드는 이 리포트 채팅을 특정 ChatSession에 연결하지 않고 저장한다. 다중 ChatSession UI에서 리포트를 특정 채팅방에 넣으려면 백엔드 report 생성 시 `session_id` 연결 정책을 별도로 정해야 한다.
 
 ```json
 {
@@ -754,8 +854,8 @@ GET /api/diagnosis/{project_id}/sessions/{session_id}/review
 프론트:
 
 - `frontend/features/mini-quiz/api-service.js`
-- `frontend/features/mini-quiz/MiniQuizPopup.jsx` (대시보드 위에 띄우는 팝업)
-- `frontend/features/dashboard/...` 채팅 메시지 안의 트리거 버튼
+- `frontend/components/mini-quiz/MiniQuizPopup.jsx` (대시보드 위에 띄우는 팝업)
+- `frontend/components/dashboard/dashboard-page-view.jsx` 채팅 메시지 안의 트리거 버튼
 
 백엔드:
 
@@ -770,7 +870,14 @@ generateApiMiniQuizQuestion(projectId, nodeId)
 -> POST /mini-quiz/{project_id}/generate?node_id=...
 
 submitApiMiniQuizAnswer(projectId, questionId, { selectedOptionIds, isSkipped })
+submitApiMiniQuizAnswers(projectId, answers[])
 -> POST /mini-quiz/{project_id}/submit
+
+deferApiMiniQuizQuestion(projectId, nodeId)
+-> POST /mini-quiz/{project_id}/defer?node_id=...
+
+getApiDeferredMiniQuizzes(projectId)
+-> GET /mini-quiz/{project_id}/deferred
 
 getApiMiniQuizReview(projectId, questionIds[])
 -> GET /mini-quiz/{project_id}/review?question_ids=q1,q2
@@ -782,7 +889,28 @@ getApiMiniQuizReview(projectId, questionIds[])
 POST /api/mini-quiz/{project_id}/generate?node_id=...
 ```
 
-응답 data는 `DiagnosisQuestionResponse`와 같은 형식이다 (Diagnosis Question 섹션 참조).
+응답 payload:
+
+```json
+{
+  "success": true,
+  "data": [
+    { "question_id": "...", "question": "...", "choices": [] }
+  ],
+  "group": {
+    "node_id": "...",
+    "node_name": "...",
+    "question_ids": ["..."]
+  },
+  "message": ""
+}
+```
+
+주의:
+
+- `data`는 단일 객체가 아니라 `DiagnosisQuestionResponse[]` 배열이다.
+- `group`은 `data`의 sibling 필드다. 프론트는 `apiRequest(..., { unwrap: false })`로 전체 payload를 받아 보존한다.
+- generate 응답의 `group`에는 `group_id`가 없다.
 
 ```http
 POST /api/mini-quiz/{project_id}/submit
@@ -795,6 +923,20 @@ POST /api/mini-quiz/{project_id}/submit
   "question_id": "...",
   "selected_option_ids": ["A"],
   "is_skipped": false
+}
+```
+
+여러 문항을 한 번에 제출할 때는 `answers` 배열을 사용한다.
+
+```json
+{
+  "answers": [
+    {
+      "question_id": "...",
+      "selected_option_ids": ["A"],
+      "is_skipped": false
+    }
+  ]
 }
 ```
 
@@ -816,6 +958,38 @@ POST /api/mini-quiz/{project_id}/submit
 ```
 
 ```http
+POST /api/mini-quiz/{project_id}/defer?node_id=...
+```
+
+응답 payload는 generate와 동일하게 `data: DiagnosisQuestionResponse[]` 배열과 sibling `group`을 포함한다.
+
+```http
+GET /api/mini-quiz/{project_id}/deferred
+```
+
+응답 payload:
+
+```json
+{
+  "success": true,
+  "data": [
+    { "question_id": "...", "node_id": "...", "question": "..." }
+  ],
+  "groups": [
+    {
+      "group_id": "...",
+      "node_id": "...",
+      "node_name": "...",
+      "questions": []
+    }
+  ],
+  "message": ""
+}
+```
+
+`groups` 역시 `data`의 sibling 필드라 `unwrap: false`로 보존한다.
+
+```http
 GET /api/mini-quiz/{project_id}/review?question_ids=q1,q2
 ```
 
@@ -824,7 +998,7 @@ GET /api/mini-quiz/{project_id}/review?question_ids=q1,q2
 트리거 조건:
 - `POST /chat/{project_id}` 응답의 `concept_counting.quiz_ready_concepts`가 비어있지 않은 경우.
 - 프론트는 채팅 말풍선 안에 "시험 준비됨" + `시험보기` / `나중에보기` 버튼을 그린다.
-- `시험보기` 클릭 → 첫 번째 `quiz_ready_concept.node_id`로 `generate` 호출 → 팝업 표시.
+- `시험보기` 클릭 → `quiz_ready_concept.node_id`로 `generate` 호출 → 응답 배열을 `conceptQueue`로 변환해 팝업 표시.
 
 ### Explanation
 
@@ -840,7 +1014,7 @@ GET /api/mini-quiz/{project_id}/review?question_ids=q1,q2
 프론트 호출:
 
 ```text
-createExplanation({ projectId, nodeId, question })
+createExplanation({ projectId, nodeId, question, explanationStyle })
 -> POST /explanation
 ```
 
@@ -854,12 +1028,14 @@ POST /api/explanation
 
 ```json
 {
-  "project_id": "1",
-  "user_id": "1",
+  "project_id": 1,
   "node_id": "optional-node-id",
-  "question": "질문"
+  "question": "질문",
+  "explanation_style": "example"
 }
 ```
+
+`explanation_style`은 백엔드가 허용하는 `"example" | "concise" | "step"`일 때만 보낸다. 프론트 프로필 값 `"deep"`은 백엔드 Literal에 없으므로 omit한다.
 
 응답 data:
 
@@ -887,7 +1063,7 @@ createLearningLog()
 -> POST /learning-logs/
 
 getApiMyPageViewData()
--> GET /learning-logs/user/{user_id}
+-> GET /learning-logs/me
 ```
 
 백엔드 API:
@@ -900,15 +1076,16 @@ POST /api/learning-logs/
 
 ```json
 {
-  "user_id": 1,
   "project_id": 1,
   "activity_type": "diagnosis_completed",
   "activity_summary": "..."
 }
 ```
 
+정상 백엔드 모드에서는 Authorization token의 `current_user`를 사용하므로 `user_id`를 body에 넣지 않는다.
+
 ```http
-GET /api/learning-logs/user/{user_id}
+GET /api/learning-logs/me
 ```
 
 응답 data는 learning log 배열이다.
@@ -927,17 +1104,17 @@ GET /api/learning-logs/user/{user_id}
 
 ```text
 getApiMyPageViewData()
--> GET /mypage/{user_id}
--> GET /projects/user/{user_id}
--> GET /learning-logs/user/{user_id}
--> GET /graph/{project_id} for each project
--> GET /chat/project/{project_id} for each project
+-> GET /mypage/me
+-> GET /projects/me
+-> GET /learning-logs/me
+-> GET /graph/{project_id} for recent projects only
+-> GET /chat/project/{project_id} for recent projects only
 ```
 
 백엔드 API:
 
 ```http
-GET /api/mypage/{user_id}
+GET /api/mypage/me
 ```
 
 응답 data:
@@ -964,7 +1141,7 @@ GET /api/mypage/{user_id}
 }
 ```
 
-프론트는 마이페이지 통계 계산을 위해 별도 API들을 추가로 호출한다.
+프론트는 마이페이지 통계 계산을 위해 별도 API들을 추가로 호출한다. 다만 백엔드에 전체 `concept_count`/`chat_count` 집계 필드가 없으므로, 현재는 최근 5개 프로젝트만 graph/chat detail API를 조회해 N+1 비용을 제한한다. 제한 계산일 때 UI 라벨은 `최근 학습 횟수`, `최근 이해 개념`으로 표시한다.
 
 ## Mock/API 전환 상태
 
@@ -981,26 +1158,29 @@ GET /api/mypage/{user_id}
 
 ## 현재 주요 TODO와 위험 지점
 
-1. JWT 인증 미적용
-   - 현재 프론트는 user_id를 localStorage에 저장하고 API body/path에 직접 사용한다.
-   - 사용자가 localStorage 값을 바꾸면 다른 user_id로 요청할 수 있다.
-   - EC2 배포 전에는 인증 방식 합의가 필요하다.
+1. 인증/세션 정리 필요
+   - Google 로그인 후 access token을 localStorage에 저장하고 `apiRequest()`가 Authorization 헤더를 중앙 주입한다.
+   - 동시에 user_id fallback/localStorage 경로도 일부 남아 있어, 배포 전에는 token 기반 경로와 로컬 fallback 경계를 명확히 정리해야 한다.
 
-2. 프로필 상세 필드 PATCH 미지원
-   - 현재 백엔드 `UserProfileUpdate`는 `nickname`, `profile_image`, `preferred_explanation_style`만 받는다.
-   - 프론트는 이에 맞춰 API 요청 필드를 제한했다.
-   - `major`, `learning_fields`, `learning_goal`까지 서버 저장이 필요하면 백엔드 스키마 확장이 필요하다.
+2. 채팅방 rename 미지원
+   - 백엔드 ChatSession API에는 rename용 PATCH 라우트가 없다.
+   - 프론트의 이름 수정 메뉴는 아직 기능 연결하지 않는다.
+   - rename UX가 필요하면 백엔드 PATCH 라우트 추가 후 별도 작업으로 연결한다.
 
 3. 백엔드 프로젝트 최신 접근 시간 미갱신
    - 채팅 저장 시 `projects.last_accessed_at`을 백엔드에서 갱신하지 않는다.
-   - 프론트는 임시로 각 프로젝트의 채팅 로그를 조회해 최신 채팅 기준으로 정렬하도록 보완했다.
+   - 프론트는 `last_accessed_at`이 없는 프로젝트에 한해 채팅 로그를 조회해 최신 채팅 기준으로 정렬하도록 보완했다.
    - 장기적으로는 백엔드 `save_chat()`에서 프로젝트 접근 시간을 갱신하는 편이 효율적이다.
 
-4. S3/AWS 설정
+4. Mini-Quiz trigger source
+   - 현재 UI 기준은 `concept_counting.quiz_ready_concepts`다.
+   - `mini_quiz_trigger`와 `grounding`은 백엔드 응답에 있으나, 별도 UI/정책이 생기기 전까지 사용하지 않는다.
+
+5. S3/AWS 설정
    - 업로드 API는 S3 업로드를 기본으로 한다.
    - 로컬 테스트에서 AWS credential, bucket, region 설정이 없으면 실패할 수 있다.
 
-5. CORS
+6. CORS
    - 현재 FastAPI는 `allow_origins=["*"]`이다.
    - Next rewrite를 통하면 브라우저 기준 same-origin이라 CORS 문제가 줄어든다.
    - 배포 시 직접 API 도메인을 호출하는 구조로 바꾸면 CORS origin 제한을 재검토해야 한다.
@@ -1009,9 +1189,9 @@ GET /api/mypage/{user_id}
 
 프론트-백 연동을 안정화하려면 다음 순서가 가장 작고 명확하다.
 
-1. 백엔드 프로필 PATCH 스키마 확장 여부 결정
-   - 마이페이지에서 전공/학습 분야/학습 목표를 서버에 저장하려면 `UserProfileUpdate`에 해당 필드가 필요하다.
-   - 지금 프론트는 백엔드가 받는 필드만 보내도록 정리되어 있다.
+1. 채팅방 rename API 협의
+   - 현재는 백엔드 `ChatSession.title`을 그대로 표시한다.
+   - 이름 수정 UX가 필요하면 PATCH 라우트와 프론트 메뉴 동작을 함께 설계한다.
 
 2. 로그인 성공 후 `/dashboard` 이동 확인
    - `frontend/app/login/page.tsx`는 이미 `router.push("/dashboard")`를 호출한다.

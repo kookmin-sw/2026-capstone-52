@@ -233,12 +233,7 @@ export default function DiagnosisPageView({ projectId }) {
             ],
           prompt: question.question,
           choices: choices.map(normalizeApiChoice),
-          difficulty:
-            question.difficulty ??
-            question.difficulty_level ??
-            question.difficultyValue ??
-            question.level ??
-            status?.estimated_level,
+          difficulty: question.difficulty,
           order: 1,
         });
 
@@ -507,12 +502,7 @@ export default function DiagnosisPageView({ projectId }) {
                 ],
               prompt: nextQuestion.question,
               choices: choices.map(normalizeApiChoice),
-              difficulty:
-                nextQuestion.difficulty ??
-                nextQuestion.difficulty_level ??
-                nextQuestion.difficultyValue ??
-                nextQuestion.level ??
-                status?.estimated_level,
+              difficulty: nextQuestion.difficulty,
               order: answeredCount + 1,
             });
 
@@ -545,12 +535,7 @@ export default function DiagnosisPageView({ projectId }) {
         const passedDiagnosis = correctAnswerCount > sessionAfterCheck.questions.length / 2;
         const nextAssessment = {
           levelTitle: passedDiagnosis ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
-          measuredLevel:
-            status?.measured_level ||
-            status?.result_level ||
-            status?.estimated_level ||
-            status?.level ||
-            (passedDiagnosis ? "상급" : "초급"),
+          measuredLevel: passedDiagnosis ? "상급" : "초급",
           summary: passedDiagnosis
             ? `${session.projectTitle} 기준 진단 질문에 정답 처리되었습니다.`
             : `${session.projectTitle} 기준 추가 학습이 필요한 개념이 확인되었습니다.`,
