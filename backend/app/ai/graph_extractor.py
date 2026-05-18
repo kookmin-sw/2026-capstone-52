@@ -26,7 +26,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 PDF_CHUNK_MAX_CHARS = 3500
-TARGET_CONCEPT_DESCRIPTION_CHARS = 60
+MAX_CONCEPT_DESCRIPTION_CHARS = 60
 MIN_RELATION_EXTRACTION_CONCEPTS = 2
 INITIAL_SCORE = 0.5
 INITIAL_UNDERSTANDING_LEVEL = 3
@@ -212,11 +212,8 @@ def _extract_raw_concepts(
         system_prompt = (
             "You extract learning concepts from uploaded CS study material. "
             "Extract only concepts explicitly discussed in the text. "
-            "Each concept description must be Korean by default, even when the uploaded text is English. "
-            "Each concept description must be a natural single Korean sentence suitable for frontend graph node preview. "
-            "Write each description around 40-60 Korean characters when possible. "
-            "Do not end descriptions with ellipsis or an unfinished phrase. "
-            "English CS terms may be included in parentheses when helpful, for example 큐(queue) or 스택(stack). "
+            "Each concept description must be a single concise sentence suitable for frontend graph node preview. "
+            "Keep each concept description very short. "
             "Do not write paragraphs. "
             "Do not invent concept_ids. Do not include variable names, one-off examples, or overly generic words. "
             "Return JSON only with a top-level 'concepts' array."
@@ -229,7 +226,7 @@ def _extract_raw_concepts(
             '  "concepts": [\n'
             "    {\n"
             '      "raw_name": "string",\n'
-            '      "description": "Natural Korean one-line sentence, around 40-60 Korean characters when possible, complete sentence, no ellipsis",\n'
+            '      "description": "one-line short description, ideally 10-15 words, no line breaks, max about 60 characters if possible",\n'
             '      "group": "string",\n'
             '      "role_hint": "core | prerequisite | related",\n'
             '      "page_refs": [1, 2],\n'
@@ -757,21 +754,26 @@ def _clean_text(value: Any) -> str:
     return value.strip()
 
 
-# concept description 정리 함수
+# concept description 축약 함수
 #
 # 역할:
-# - LLM이 만든 설명을 frontend node preview에 맞는 한 줄 문장으로 정리한다.
-# - 길이 제한은 prompt가 담당하고, 저장 전 임의 생략 부호를 붙이지 않는다.
+# - LLM이 긴 설명을 반환해도 frontend node preview에 맞는 한 줄 설명으로 정리한다.
+# - 줄바꿈을 제거하고 공백을 접은 뒤 최대 길이를 넘으면 안전하게 잘라낸다.
 def _shorten_description(
     value: Any,
     *,
-    max_chars: int = TARGET_CONCEPT_DESCRIPTION_CHARS,
+    max_chars: int = MAX_CONCEPT_DESCRIPTION_CHARS,
 ) -> str:
     if not isinstance(value, str):
         return ""
 
     cleaned = value.replace("\r", " ").replace("\n", " ").strip()
-    return " ".join(cleaned.split())
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    if max_chars <= 1:
+        return "…"
+    return f"{cleaned[: max_chars - 1].rstrip()}…"
 
 
 # 범위 제한 함수

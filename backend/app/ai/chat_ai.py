@@ -3,7 +3,6 @@ import logging
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
-from app.ai.language import detect_user_response_language, response_language_instruction
 
 
 # 채팅 AI / 헬퍼 모듈
@@ -55,10 +54,6 @@ def process_chat(
     if chat_mode not in SUPPORTED_CHAT_MODES:
         raise ChatValidationError(f"Unsupported chat_mode: {chat_mode}")
 
-    response_language = detect_user_response_language(
-        validated_message,
-        honor_explicit_request=False,
-    )
     compact_context = _compact_chat_context(
         message=validated_message,
         target_concept=target_concept,
@@ -71,12 +66,10 @@ def process_chat(
         backbone_context=backbone_context,
         grounding_metadata=grounding_metadata,
         chat_mode=chat_mode,
-        response_language=response_language,
     )
 
     system_prompt = (
         "You are a personalized CS learning assistant. "
-        f"{response_language_instruction(response_language)} "
         "Answer the learner's message using the provided context in this priority order: "
         "uploaded/project context, subject backbone context, then general CS knowledge only when context is insufficient. "
         "If context is insufficient, say what is missing. "
@@ -178,12 +171,10 @@ def _compact_chat_context(
     backbone_context: str | None,
     grounding_metadata: dict | None,
     chat_mode: str,
-    response_language: str,
 ) -> dict[str, Any]:
     return {
         "message": message,
         "chat_mode": chat_mode,
-        "response_language": response_language,
         "target_concept": _compact_target_concept(target_concept),
         "graph_context": _compact_graph_context(graph_context),
         "user_state": user_state if isinstance(user_state, dict) else {},
