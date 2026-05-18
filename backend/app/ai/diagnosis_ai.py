@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
+from app.ai.language import korean_default_instruction
 
 
 # 진단 AI / 헬퍼 모듈
@@ -81,6 +82,9 @@ def generate_question(
     system_prompt = (
         "You are an expert CS diagnosis question generator. "
         "Create exactly one teacher-side multi-select question. "
+        f"{korean_default_instruction()} "
+        "Even if the source material, concept name, or PDF context is English, generate Korean learner-facing text. "
+        "Apply Korean output to question_text, choice text, explanations, diagnostic_tags, tag_group, and llm_reason. "
         "Return JSON only. "
         "Create exactly 5 choices with option_id values A, B, C, D, E. "
         "At least 1 choice must be correct. Not all choices can be correct. "
@@ -100,6 +104,24 @@ def generate_question(
             "question_difficulty": question_difficulty,
             "preferred_correct_count": preferred_correct_count,
             "previous_reuse_keys": previous_reuse_keys or [],
+            "language_policy": {
+                "default_response_language": "Korean",
+                "apply_to": [
+                    "question_text",
+                    "choices[].text",
+                    "choices[].explanation",
+                    "diagnostic_tags",
+                    "tag_group",
+                    "llm_reason",
+                ],
+                "keep_identifiers_unchanged": [
+                    "concept_id",
+                    "target_concept_id",
+                    "option_id",
+                    "reuse_key",
+                    "JSON keys",
+                ],
+            },
             "required_output": {
                 "question_text": "string",
                 "choices": [

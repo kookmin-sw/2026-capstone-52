@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
+from app.ai.language import korean_default_instruction
 
 
 # 설명 AI / 헬퍼 모듈
@@ -66,6 +67,7 @@ def generate_explanation(
 
     system_prompt = (
         "You are a personalized CS tutor for a learning support system. "
+        f"{korean_default_instruction()} "
         "Generate an explanation for one target concept only. "
         "Adjust difficulty to the user's understanding level. "
         "Interpret explanation_style as follows: "
