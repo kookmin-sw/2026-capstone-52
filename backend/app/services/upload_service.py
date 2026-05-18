@@ -86,7 +86,9 @@ def _validate_material_relevance(ai_result: dict, subject_id: str) -> bool:
     통과 조건 (AND):
     - normalized_concept_count >= 3  : 정규화된 개념이 3개 이상
     - normalization_ratio >= 0.35    : 전체 개념 중 35% 이상이 정규화됨
-    - subject_specific_match_count >= 3 : 해당 과목 subject_id를 가진 개념이 3개 이상
+
+    참고: extract_graph는 해당 subject의 alias dictionary로만 정규화하므로
+    matched된 모든 concept은 이미 해당 subject 소속이다.
     """
     concepts = ai_result.get("concepts", [])
     if not concepts:
@@ -94,21 +96,16 @@ def _validate_material_relevance(ai_result: dict, subject_id: str) -> bool:
 
     total = len(concepts)
     normalized = [c for c in concepts if c.get("concept_id")]
-    subject_matched = [
-        c for c in normalized
-        if (c.get("subject_id") or "").strip() == subject_id
-    ]
 
     normalized_count = len(normalized)
     ratio = normalized_count / total if total > 0 else 0.0
-    subject_match_count = len(subject_matched)
 
-    logger.info(
-        "relevance_check subject=%s total=%d normalized=%d ratio=%.2f subject_match=%d",
-        subject_id, total, normalized_count, ratio, subject_match_count,
+    logger.warning(
+        "relevance_check subject=%s total=%d normalized=%d ratio=%.2f",
+        subject_id, total, normalized_count, ratio,
     )
 
-    return normalized_count >= 3 and ratio >= 0.35 and subject_match_count >= 3
+    return normalized_count >= 3 and ratio >= 0.35
 
 
 def _update_relevance_status(file_id: str, status: str, db: Session) -> None:
