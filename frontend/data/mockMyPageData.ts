@@ -65,7 +65,7 @@ export const defaultProfile: ProfileInfo = {
   major: "소프트웨어전공",
   explanationStyle: "example",
   learningType: "project",
-  learningGoal: "컴퓨터공학",
+  learningGoal: "Computer Science",
 };
 
 export const mockProjects: MyPageProject[] = [
@@ -123,14 +123,56 @@ export const mockGraphNodes: GraphNodeRecord[] = [
   { id: "node-12", projectId: "ds", name: "그래프 순회", category: "자료구조", updatedAt: toIsoDate("2025-10-30"), color: "#60a5fa", x: 77, y: 74, size: 0.82 },
 ];
 
-export const mockRecentLearningRecords: RecentLearningRecord[] = mockGraphNodes.map((node) => ({
-  id: node.id,
-  projectId: node.projectId,
-  subject: node.category,
-  nodeName: node.name,
-  updatedAt: node.updatedAt,
-  accentColor: node.color,
-}));
+export const mockRecentLearningRecords: RecentLearningRecord[] = [
+  {
+    id: "mock-chat-os-1",
+    projectId: "os",
+    subject: "운영체제",
+    nodeName: "비례 배분 스케줄링 진단",
+    updatedAt: toIsoDate("2025-11-27"),
+    accentColor: "#4ade80",
+  },
+  {
+    id: "mock-chat-ds-1",
+    projectId: "data-structures",
+    subject: "자료구조",
+    nodeName: "이진 탐색 트리 개념 질문",
+    updatedAt: toIsoDate("2025-11-25"),
+    accentColor: "#60a5fa",
+  },
+  {
+    id: "mock-chat-algorithm-1",
+    projectId: "algorithm",
+    subject: "알고리즘",
+    nodeName: "다이나믹 프로그래밍 복습",
+    updatedAt: toIsoDate("2025-11-22"),
+    accentColor: "#fb923c",
+  },
+  {
+    id: "mock-chat-network-1",
+    projectId: "network",
+    subject: "컴퓨터 네트워크",
+    nodeName: "TCP 흐름 제어 정리",
+    updatedAt: toIsoDate("2025-11-20"),
+    accentColor: "#8b5cf6",
+  },
+  {
+    id: "mock-chat-os-2",
+    projectId: "os",
+    subject: "운영체제",
+    nodeName: "Round Robin 스케줄링",
+    updatedAt: toIsoDate("2025-11-18"),
+    accentColor: "#f472b6",
+  },
+  {
+    id: "mock-chat-network-2",
+    projectId: "network",
+    subject: "컴퓨터 네트워크",
+    nodeName: "라우팅 테이블 질문",
+    updatedAt: toIsoDate("2025-11-13"),
+    accentColor: "#fb7185",
+  },
+];
 
 export function getMyPageStats(): MyPageStats {
   return {

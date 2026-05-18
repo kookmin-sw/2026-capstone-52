@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type { RecentLearningRecord } from "@/types/profile";
 
 function formatDate(dateString: string) {
@@ -16,7 +17,20 @@ interface RecentLearningPanelProps {
 }
 
 export default function RecentLearningPanel({ records }: RecentLearningPanelProps) {
+  const router = useRouter();
   const visibleRecords = records.slice(0, 7);
+
+  function handleRecordClick(record: RecentLearningRecord) {
+    const params = new URLSearchParams({
+      projectId: record.projectId,
+    });
+
+    if (record.chatId) {
+      params.set("chatId", record.chatId);
+    }
+
+    router.push(`/dashboard?${params.toString()}`);
+  }
 
   return (
     <section className="flex h-[clamp(780px,87vh,960px)] min-h-0 flex-col rounded-[1.45rem] border border-[#ebe9f5] bg-white px-[clamp(32px,3vw,48px)] py-[clamp(28px,3vh,40px)] shadow-[0_24px_70px_rgba(42,38,73,0.06)]">
@@ -27,9 +41,12 @@ export default function RecentLearningPanel({ records }: RecentLearningPanelProp
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-0">
         {visibleRecords.map((record) => (
-          <article
+          <button
             key={record.id}
-            className="group rounded-[0.95rem] bg-[#f0eefb] px-6 py-5 transition hover:bg-[#e9e5fb]"
+            type="button"
+            className="group block w-full rounded-[0.95rem] bg-[#f0eefb] px-6 py-5 text-left transition hover:bg-[#e9e5fb] focus:outline-none focus:ring-2 focus:ring-[#817cf2]/40"
+            onClick={() => handleRecordClick(record)}
+            aria-label={`${record.nodeName} ${record.chatId ? "채팅방" : "프로젝트"}으로 이동`}
           >
             <div className="flex items-center gap-4">
               <span
@@ -50,7 +67,7 @@ export default function RecentLearningPanel({ records }: RecentLearningPanelProp
                 →
               </span>
             </div>
-          </article>
+          </button>
         ))}
       </div>
     </section>

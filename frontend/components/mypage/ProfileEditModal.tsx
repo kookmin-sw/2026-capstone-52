@@ -27,6 +27,9 @@ const modalExplanationOptions: Array<{ value: ExplanationStyleId; label: string 
   { value: "step", label: "단계별 중심" },
 ];
 
+const textInputClassName =
+  "h-[52px] w-[95%] rounded-[0.85rem] border-0 bg-[#f3f1ff] px-5 text-[1rem] font-black text-[#24213d] outline-none focus:ring-2 focus:ring-[#817cf2]/35 max-sm:w-full";
+
 function OptionButtonGroup<Value extends string>({
   value,
   options,
@@ -151,7 +154,7 @@ export default function ProfileEditModal({
                     type="text"
                     value={draft.name}
                     onChange={(event) => updateField("name", event.target.value)}
-                    className="h-[52px] rounded-[0.85rem] border-0 bg-[#f3f1ff] px-5 text-[1rem] font-black text-[#24213d] outline-none focus:ring-2 focus:ring-[#817cf2]/35"
+                    className={textInputClassName}
                   />
                 </label>
 
@@ -161,7 +164,7 @@ export default function ProfileEditModal({
                     type="text"
                     value={draft.job}
                     onChange={(event) => updateField("job", event.target.value)}
-                    className="h-[52px] rounded-[0.85rem] border-0 bg-[#f3f1ff] px-5 text-[1rem] font-black text-[#24213d] outline-none focus:ring-2 focus:ring-[#817cf2]/35"
+                    className={textInputClassName}
                   />
                 </label>
 
@@ -171,7 +174,7 @@ export default function ProfileEditModal({
                     type="text"
                     value={draft.major}
                     onChange={(event) => updateField("major", event.target.value)}
-                    className="h-[52px] rounded-[0.85rem] border-0 bg-[#f3f1ff] px-5 text-[1rem] font-black text-[#24213d] outline-none focus:ring-2 focus:ring-[#817cf2]/35"
+                    className={textInputClassName}
                   />
                 </label>
 
@@ -181,8 +184,8 @@ export default function ProfileEditModal({
                     type="text"
                     value={draft.learningGoal}
                     onChange={(event) => updateField("learningGoal", event.target.value)}
-                    placeholder="예: 컴퓨터공학"
-                    className="h-[52px] rounded-[0.85rem] border-0 bg-[#f3f1ff] px-5 text-[1rem] font-black text-[#24213d] outline-none placeholder:text-[#aaa6c0] focus:ring-2 focus:ring-[#817cf2]/35"
+                    placeholder="예: Computer Science"
+                    className={`${textInputClassName} placeholder:text-[#aaa6c0]`}
                   />
                 </label>
               </div>
