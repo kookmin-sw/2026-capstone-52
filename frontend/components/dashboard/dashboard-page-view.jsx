@@ -1254,20 +1254,24 @@ function ProjectSelector({
   return (
     <>
     <section className="workspace-sidebar-group workspace-project-selector">
-      <div className="workspace-sidebar-heading">
+      <button
+        type="button"
+        className="workspace-sidebar-heading workspace-project-heading-toggle"
+        onClick={onToggle}
+        disabled={!projects.length}
+        aria-expanded={isExpanded}
+        aria-label={isExpanded ? "프로젝트 목록 접기" : "프로젝트 목록 펼치기"}
+      >
         <span>프로젝트</span>
-        <button
-          type="button"
+        <span
           className={`workspace-sidebar-heading-button workspace-sidebar-heading-chevron ${
             isExpanded ? "workspace-sidebar-heading-chevron-open" : ""
           }`}
-          onClick={onToggle}
-          disabled={!projects.length}
-          aria-label={isExpanded ? "프로젝트 목록 접기" : "프로젝트 목록 펼치기"}
+          aria-hidden="true"
         >
           ⌄
-        </button>
-      </div>
+        </span>
+      </button>
 
       {isLoading ? <div className="workspace-empty-copy">프로젝트를 불러오는 중입니다.</div> : null}
       {error ? <div className="workspace-empty-copy">{error}</div> : null}

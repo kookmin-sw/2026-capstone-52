@@ -2384,6 +2384,30 @@ a {
   cursor: default;
 }
 
+.workspace-project-heading-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workspace-project-heading-toggle:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.workspace-project-heading-toggle:not(:disabled):hover,
+.workspace-project-heading-toggle:not(:disabled):focus-visible {
+  color: #817cf2;
+  outline: none;
+}
+
+.workspace-project-heading-toggle:not(:disabled):hover .workspace-sidebar-heading-chevron,
+.workspace-project-heading-toggle:not(:disabled):focus-visible .workspace-sidebar-heading-chevron {
+  color: #817cf2;
+}
+
 .workspace-project-list,
 .workspace-chat-shortcuts {
   display: grid;
@@ -8149,6 +8173,107 @@ a {
   color: #fff;
 }
 
+.diagnosis-flow-review-panels {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(87vw, 1120px);
+}
+
+.diagnosis-flow-review-card {
+  min-height: 0;
+}
+
+.diagnosis-flow-choice-review {
+  cursor: default;
+}
+
+.diagnosis-flow-choice-review:hover {
+  border-color: #e3e4f2;
+  background: #fff;
+}
+
+.diagnosis-flow-choice-correct {
+  border-color: #51b989;
+  background: #f0fbf6;
+  box-shadow: inset 0 0 0 1px rgba(81, 185, 137, 0.34);
+}
+
+.diagnosis-flow-choice-correct .diagnosis-flow-choice-index {
+  background: #51b989;
+  color: #fff;
+}
+
+.diagnosis-flow-choice-selected {
+  border-color: #8286f0;
+}
+
+.diagnosis-flow-choice-wrong {
+  border-color: #f06f6f;
+  background: #fff5f5;
+  box-shadow: inset 0 0 0 1px rgba(240, 111, 111, 0.28);
+}
+
+.diagnosis-flow-choice-wrong .diagnosis-flow-choice-index {
+  background: #f06f6f;
+  color: #fff;
+}
+
+.diagnosis-flow-review-badges {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  min-width: 5.3rem;
+}
+
+.diagnosis-flow-review-badges b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  border-radius: 999px;
+  padding: 0 0.72rem;
+  background: #f0effb;
+  color: #686d8d;
+  font-size: 0.75rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.diagnosis-flow-choice-correct .diagnosis-flow-review-badges b:last-child {
+  background: #dff6ec;
+  color: #25835b;
+}
+
+.diagnosis-flow-choice-wrong .diagnosis-flow-review-badges b:first-child {
+  background: #ffe1e1;
+  color: #bf3d3d;
+}
+
+.diagnosis-flow-review-explanation {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid #e6e7f4;
+  border-radius: 1.15rem;
+  padding: 1.25rem 1.4rem;
+  background: #fbfbff;
+  color: #202039;
+}
+
+.diagnosis-flow-review-explanation span {
+  color: #7b7eea;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-explanation p {
+  margin: 0;
+  color: #3e415d;
+  font-size: 0.96rem;
+  font-weight: 520;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
 .diagnosis-flow-choice-check {
   color: #8286f0;
   font-size: 1.16rem;
@@ -8208,6 +8333,11 @@ a {
   background: #d9d9f4;
   box-shadow: none;
   color: rgba(255, 255, 255, 0.72);
+  cursor: not-allowed;
+}
+
+.diagnosis-flow-action-secondary:disabled {
+  color: #a7abc2;
   cursor: not-allowed;
 }
 
