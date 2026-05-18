@@ -54,7 +54,7 @@ def run_analysis(file_id: str, project_id: int, s3_key: str):
             file_bytes,
             subject_id,
             use_llm_normalization=True,
-            max_core_concepts=10,
+            max_core_concepts=12,
         )
 
         if not _validate_material_relevance(ai_result, subject_id):
