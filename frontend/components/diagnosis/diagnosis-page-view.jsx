@@ -165,6 +165,9 @@ export default function DiagnosisPageView({ projectId }) {
   const [apiSession, setApiSession] = useState(null);
   const [isInitialQuestionLoading, setIsInitialQuestionLoading] = useState(false);
   const [diagnosisError, setDiagnosisError] = useState(null);
+  const [diagnosisReport, setDiagnosisReport] = useState(null);
+  const [diagnosisReportError, setDiagnosisReportError] = useState(null);
+  const [diagnosisUpdatedNodes, setDiagnosisUpdatedNodes] = useState([]);
   const initializedDiagnosisSessionRef = useRef(null);
   const initialQuestionRequestRef = useRef(null);
 
@@ -489,6 +492,10 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       if (isDiagnosisBackendApiEnabled && session?.id) {
+        if (diagnosisReport) {
+          router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
+          return;
+        }
         await createApiDiagnosisReport(targetProjectId, session.id);
         router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
         return;
@@ -557,6 +564,17 @@ export default function DiagnosisPageView({ projectId }) {
             isSkipped,
           }
         );
+        if (Array.isArray(result?.updated_nodes) && result.updated_nodes.length) {
+          setDiagnosisUpdatedNodes((current) => {
+            const nextByNodeId = new Map(current.map((node) => [node.node_id, node]));
+            result.updated_nodes.forEach((node) => {
+              if (node?.node_id) {
+                nextByNodeId.set(node.node_id, node);
+              }
+            });
+            return Array.from(nextByNodeId.values());
+          });
+        }
         const status = await getApiDiagnosisStatus(projectId, session.id).catch(() => null);
         const correctOptionIds = Array.isArray(result.correct_option_ids) ? result.correct_option_ids : [];
         const correctChoiceIdsFromOptions = correctOptionIds.length
@@ -695,6 +713,18 @@ export default function DiagnosisPageView({ projectId }) {
 
         saveWorkspaceState(nextWorkspaceState);
         setApiSession(sessionAfterCheck);
+        if (isDiagnosisBackendApiEnabled && session.id) {
+          try {
+            const reportResponse = await createApiDiagnosisReport(projectId, session.id);
+            setDiagnosisReport(reportResponse);
+            setDiagnosisReportError(null);
+          } catch (reportError) {
+            setDiagnosisReport(null);
+            setDiagnosisReportError(
+              reportError instanceof Error ? reportError.message : "수준진단 리포트를 생성하지 못했습니다."
+            );
+          }
+        }
         setStep("ready");
         createLearningLog({
           projectId,
@@ -720,6 +750,13 @@ export default function DiagnosisPageView({ projectId }) {
     setDraftAnswer(createEmptyDraftAnswer(session.questions[questionIndex + 1]));
     setQuestionIndex((current) => current + 1);
   }
+
+  const reportData = diagnosisReport?.report || null;
+  const reportMessages = Array.isArray(diagnosisReport?.messages) ? diagnosisReport.messages : [];
+  const weakConcepts = Array.isArray(reportData?.weak_concepts) ? reportData.weak_concepts : [];
+  const learningPath = Array.isArray(reportData?.recommended_learning_path)
+    ? reportData.recommended_learning_path
+    : [];
 
   return (
     <main className={`diagnosis-flow-shell diagnosis-flow-shell-${step}`}>
@@ -879,6 +916,35 @@ export default function DiagnosisPageView({ projectId }) {
             <CelebrationMark />
             <h1>준비됐어요!</h1>
             <p>이제 대화할 때마다 딱 맞는 설명을 드릴게요</p>
+            {diagnosisUpdatedNodes.length ? (
+              <div className="diagnosis-flow-result-pill">
+                <span>그래프 업데이트</span>
+                <b>{diagnosisUpdatedNodes.length}개 노드 반영</b>
+              </div>
+            ) : null}
+            {reportData ? (
+              <div className="diagnosis-flow-result-pill">
+                <span>진단 리포트</span>
+                <b>{reportData.document_summary || "수준진단 리포트가 생성되었습니다."}</b>
+              </div>
+            ) : reportMessages.length ? (
+              <div className="diagnosis-flow-result-pill">
+                <span>진단 리포트</span>
+                <b>{reportMessages[0]?.ai_response || "수준진단 리포트가 생성되었습니다."}</b>
+              </div>
+            ) : diagnosisReportError ? (
+              <small className="diagnosis-flow-error">{diagnosisReportError}</small>
+            ) : null}
+            {weakConcepts.length || learningPath.length ? (
+              <div className="diagnosis-flow-meta">
+                {weakConcepts.length ? (
+                  <span>보완 개념 {weakConcepts.slice(0, 3).map((item) => item.name).join(", ")}</span>
+                ) : null}
+                {learningPath.length ? (
+                  <span>추천 경로 {learningPath.slice(0, 3).map((item) => item.name).join(" → ")}</span>
+                ) : null}
+              </div>
+            ) : null}
             <div className="diagnosis-flow-ready-actions">
               <button
                 type="button"
