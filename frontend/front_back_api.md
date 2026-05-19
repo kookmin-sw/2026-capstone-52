@@ -877,9 +877,9 @@ GET /api/diagnosis/{project_id}/sessions/{session_id}/review
 generateApiMiniQuizQuestion(projectId, nodeId)
 -> POST /mini-quiz/{project_id}/generate?node_id=...
 
-submitApiMiniQuizAnswer(projectId, questionId, { selectedOptionIds, isSkipped })
-submitApiMiniQuizAnswers(projectId, answers[])
--> POST /mini-quiz/{project_id}/submit
+submitApiMiniQuizAnswer(projectId, questionId, { selectedOptionIds, isSkipped, sessionId })
+submitApiMiniQuizAnswers(projectId, answers[], { sessionId })
+-> POST /mini-quiz/{project_id}/submit?session_id=...
 
 deferApiMiniQuizQuestion(projectId, nodeId)
 -> POST /mini-quiz/{project_id}/defer?node_id=...

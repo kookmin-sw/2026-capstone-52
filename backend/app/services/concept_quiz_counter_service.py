@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.ai.concept_normalizer import ConceptNormalizerError, load_alias_dictionary
@@ -14,6 +15,7 @@ from app.models.graph import ConceptNode
 TURN_CHECK_INTERVAL = 5
 QUIZ_READY_MENTION_THRESHOLD = 5
 SLIDING_WINDOW_ASSISTANT_MESSAGES = 5
+EXCLUDED_RESPONSE_TYPE_PREFIXES = ("diagnosis_report",)
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,13 @@ def _get_or_create_counter(db: Session, project_id: int, node_id: str) -> Concep
     return counter
 
 
+def _countable_ai_response_filters() -> list:
+    filters = [Chat.ai_response.isnot(None)]
+    for prefix in EXCLUDED_RESPONSE_TYPE_PREFIXES:
+        filters.append(or_(Chat.response_type.is_(None), ~Chat.response_type.startswith(prefix)))
+    return filters
+
+
 def get_project_turn_count(db: Session, project_id: int) -> int:
     return db.query(Chat).filter(Chat.project_id == project_id).count()
 
@@ -173,7 +182,7 @@ def get_recent_assistant_messages(
 ) -> list[Chat]:
     filters = [
         Chat.project_id == project_id,
-        Chat.ai_response.isnot(None),
+        *_countable_ai_response_filters(),
     ]
     if session_id is not None:
         filters.append(Chat.session_id == session_id)
@@ -265,7 +274,7 @@ def reset_concept_quiz_counter(db: Session, project_id: int, node_id: str) -> No
         db.query(Chat.chat_id)
         .filter(
             Chat.project_id == project_id,
-            Chat.ai_response.isnot(None),
+            *_countable_ai_response_filters(),
         )
         .order_by(Chat.created_at.desc(), Chat.chat_id.desc())
         .limit(1)

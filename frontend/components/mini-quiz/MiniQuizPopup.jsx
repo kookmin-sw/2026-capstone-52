@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
+import MarkdownContent from "@/components/common/MarkdownContent";
 import {
   generateApiMiniQuizQuestion,
   isMiniQuizBackendApiEnabled,
@@ -110,6 +111,7 @@ function getTargetGroupKey(target) {
 
 export default function MiniQuizPopup({
   projectId,
+  chatSessionId = null,
   conceptNodeId,
   conceptName,
   conceptQueue,
@@ -176,6 +178,11 @@ export default function MiniQuizPopup({
   }
 
   function completeQuiz(nextSubmittedResults) {
+    const completePayload = {
+      completedNodeIds: Array.from(completedNodeIdsRef.current),
+      results: nextSubmittedResults,
+    };
+
     if (typeof onResult === "function") {
       nextSubmittedResults.forEach((entry) => {
         onResult({
@@ -191,11 +198,9 @@ export default function MiniQuizPopup({
         completedNodeIdsRef.current.add(entry.currentTarget.nodeId);
       }
     });
-    onComplete?.({
-      completedNodeIds: Array.from(completedNodeIdsRef.current),
-      results: nextSubmittedResults,
-    });
-    setStep("complete");
+    completePayload.completedNodeIds = Array.from(completedNodeIdsRef.current);
+    onComplete?.(completePayload);
+    onClose?.(completePayload);
   }
 
   async function submitBackendAnswerGroups(answerEntries) {
@@ -227,7 +232,8 @@ export default function MiniQuizPopup({
             questionId: getQuestionId(entry.question),
             selectedOptionIds: entry.selectedOptionIds,
             isSkipped: entry.isSkipped,
-          }))
+          })),
+          { sessionId: chatSessionId }
         );
         const questionResultById = new Map(
           (Array.isArray(result?.question_results) ? result.question_results : []).map((questionResult) => [
@@ -261,6 +267,7 @@ export default function MiniQuizPopup({
       const result = await submitApiMiniQuizAnswer(projectId, getQuestionId(entry.question), {
         selectedOptionIds: entry.isSkipped ? null : entry.selectedOptionIds.length ? entry.selectedOptionIds : null,
         isSkipped: entry.isSkipped,
+        sessionId: chatSessionId,
       });
       const reviewEntry = buildReviewEntry({
         question: entry.question,
@@ -624,7 +631,10 @@ export default function MiniQuizPopup({
                 })}
               </div>
               {currentAnswer.reviewEntry?.explanation ? (
-                <p className="mini-quiz-popup-summary-copy">{currentAnswer.reviewEntry.explanation}</p>
+                <MarkdownContent
+                  content={currentAnswer.reviewEntry.explanation}
+                  className="mini-quiz-popup-summary-markdown"
+                />
               ) : null}
             </section>
             <div className="mini-quiz-popup-actions">

@@ -44,6 +44,18 @@ def create_project(db: Session, project_data: ProjectCreate, user_id: int):
     db.commit()
     db.refresh(new_project)
 
+    root_node = ConceptNode(
+        project_id=new_project.project_id,
+        concept_id=f"{project_data.project_domain}_root",
+        subject_id=project_data.project_domain,
+        name=project_name,
+        description=f"{project_name} 과목의 전체 개념을 담는 루트 노드입니다.",
+        node_source="root",
+        is_core=True,
+    )
+    db.add(root_node)
+    db.commit()
+
     log = LearningLog(
         user_id=user_id,
         project_id=new_project.project_id,

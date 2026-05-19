@@ -248,7 +248,7 @@ def _extract_raw_concepts(
                 user_prompt=user_prompt,
                 task_name="graph_extractor_concepts",
                 temperature=0.1,
-                max_tokens=2500,
+                max_tokens=4096,
             )
         except LLMClientError as error:
             raise LLMExtractionError(f"Concept extraction failed: {error}") from error

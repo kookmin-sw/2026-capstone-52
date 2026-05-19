@@ -8,24 +8,43 @@ const STATUS_LABELS = {
   REJECTED: { status: "분석 제외", statusTone: "rejected" },
 };
 
+function parseUploadedAt(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const rawValue = String(value);
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(rawValue);
+  return new Date(hasTimezone ? rawValue : `${rawValue}Z`);
+}
+
 function formatUploadedAt(value) {
   if (!value) {
     return "";
   }
 
-  const date = new Date(value);
+  const date = parseUploadedAt(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date || Number.isNaN(date.getTime())) {
     return String(value);
   }
 
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const valueByType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
-  return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
+  return `${valueByType.year}.${valueByType.month}.${valueByType.day} ${valueByType.hour}:${valueByType.minute}`;
 }
 
 function normalizeApiFile(file, projectTitle = "") {
@@ -43,8 +62,8 @@ function normalizeApiFile(file, projectTitle = "") {
 }
 
 function getUploadedAtTime(file) {
-  const time = new Date(file?.uploaded_at || 0).getTime();
-  return Number.isNaN(time) ? 0 : time;
+  const time = parseUploadedAt(file?.uploaded_at || 0)?.getTime();
+  return typeof time === "number" && !Number.isNaN(time) ? time : 0;
 }
 
 function sortApiFilesByRecentUpload(files) {

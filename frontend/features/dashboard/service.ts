@@ -191,6 +191,27 @@ function getLatestApiChatUpdatedAt(logs: ApiChatLog[]) {
   }, 0);
 }
 
+function buildCombinedMiniQuizResultMessage(logs: ApiChatLog[]): Chat["messages"][number] | null {
+  const resultLogs = logs.filter((log) => typeof log.ai_response === "string" && log.ai_response.trim());
+
+  if (!resultLogs.length) {
+    return null;
+  }
+
+  const firstLog = resultLogs[0];
+  const lastLog = resultLogs[resultLogs.length - 1];
+
+  return {
+    id:
+      resultLogs.length === 1
+        ? `api-chat-${firstLog.chat_id}-assistant`
+        : `api-chat-mini-quiz-result-${firstLog.chat_id}-${lastLog.chat_id}`,
+    role: "assistant",
+    text: resultLogs.map((log) => String(log.ai_response).trim()).join("\n\n---\n\n"),
+    variant: "mini-quiz-result",
+  };
+}
+
 function buildChatSessionThreadId(projectId: string, sessionId: number | string) {
   return `${projectId}-session-${sessionId}`;
 }
@@ -239,12 +260,31 @@ function buildApiThread(projectId: string, session: ChatSession, logs: ApiChatLo
     .sort((left, right) => Date.parse(normalizeApiDate(left.created_at)) - Date.parse(normalizeApiDate(right.created_at)));
   const threadId = buildChatSessionThreadId(projectId, session.id);
   const threadTitle = session.title?.trim() || "새 채팅방";
-  const messages = sortedLogs.flatMap((log) => {
+  const messages: Chat["messages"] = [];
+  let pendingMiniQuizResultLogs: ApiChatLog[] = [];
+
+  function flushMiniQuizResultLogs() {
+    const combinedMessage = buildCombinedMiniQuizResultMessage(pendingMiniQuizResultLogs);
+    if (combinedMessage) {
+      messages.push(combinedMessage);
+    }
+    pendingMiniQuizResultLogs = [];
+  }
+
+  sortedLogs.forEach((log) => {
     const isDiagnosisReport = typeof log.response_type === "string" && log.response_type.startsWith("diagnosis_report");
     const isDiagnosisReportSummary = log.response_type === "diagnosis_report_summary";
     const isMiniQuizResult = log.response_type === "mini_quiz_result";
+
+    if (isMiniQuizResult) {
+      pendingMiniQuizResultLogs.push(log);
+      return;
+    }
+
+    flushMiniQuizResultLogs();
+
     // 백엔드는 미니퀴즈 결과 채팅을 "미니퀴즈 결과"라는 user_message 마커와 함께 저장 — 실제 사용자 발화가 아니므로 숨긴다.
-    const userMessage = !isDiagnosisReport && !isMiniQuizResult
+    const userMessage = !isDiagnosisReport
       ? {
           id: `api-chat-${log.chat_id}-user`,
           role: "user" as const,
@@ -274,8 +314,9 @@ function buildApiThread(projectId: string, session: ChatSession, logs: ApiChatLo
     const parts: Array<NonNullable<typeof userMessage> | NonNullable<typeof assistantMessage>> = [];
     if (userMessage) parts.push(userMessage);
     if (assistantMessage) parts.push(assistantMessage);
-    return parts;
+    messages.push(...parts);
   });
+  flushMiniQuizResultLogs();
   const latest = sortedLogs[sortedLogs.length - 1];
   const sessionUpdatedTime = Date.parse(normalizeApiDate(session.updated_at || session.created_at));
   const latestLogTime = latest ? Date.parse(normalizeApiDate(latest.created_at)) : 0;

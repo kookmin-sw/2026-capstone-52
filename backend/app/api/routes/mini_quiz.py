@@ -17,6 +17,7 @@ from app.schemas.mini_quiz import (
 from app.schemas.diagnosis import DiagnosisQuestionResponse
 from app.schemas.quiz_review import QuizQuestionReview
 from app.services import mini_quiz_service
+from app.services.chat_service import get_chat_session
 from app.services.diagnosis_service import get_questions_review
 from app.ai.diagnosis_ai import DiagnosisAIError, QuestionValidationError
 
@@ -63,17 +64,21 @@ def generate_mini_quiz(
 def submit_mini_quiz(
     project_id: int,
     body: MiniQuizAnswerRequest,
+    session_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """미니 퀴즈 답변 제출 — 노드 score 갱신 및 개념 카운트 초기화"""
     _get_project_or_403(project_id, current_user, db)
+    if session_id is not None and not get_chat_session(db, project_id, session_id):
+        raise HTTPException(status_code=404, detail="채팅방을 찾을 수 없습니다.")
 
     try:
         if body.groups:
             result = mini_quiz_service.submit_mini_quiz_groups(
                 project_id=project_id,
                 user_id=current_user.user_id,
+                session_id=session_id,
                 groups=[
                     {
                         "question_ids": group.question_ids,
@@ -89,6 +94,7 @@ def submit_mini_quiz(
             result = mini_quiz_service.submit_mini_quiz_group(
                 project_id=project_id,
                 user_id=current_user.user_id,
+                session_id=session_id,
                 answers=[answer.model_dump() for answer in body.answers],
                 db=db,
             )
@@ -100,6 +106,7 @@ def submit_mini_quiz(
         result = mini_quiz_service.submit_mini_quiz_answer(
             project_id=project_id,
             user_id=current_user.user_id,
+            session_id=session_id,
             question_id=body.question_id,
             selected_option_ids=body.selected_option_ids,
             is_skipped=body.is_skipped,
