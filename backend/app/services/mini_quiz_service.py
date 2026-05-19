@@ -124,6 +124,14 @@ def _serialize_question(q: DiagnosisQuestion, node: ConceptNode, choices: list[d
     }
 
 
+def _normalize_explanation(explanation: str | None) -> str | None:
+    """구형 저장 포맷 'A. text: ### 헤딩' → '### 헤딩' 으로 정규화 (읽기 시점 보정)"""
+    if not explanation:
+        return explanation
+    import re
+    return re.sub(r'^[A-Za-z]\..+?:\s*(?=###)', '', explanation, flags=re.MULTILINE)
+
+
 def _build_question_explanation(teacher_question: dict) -> str:
     blocks = []
     for choice in teacher_question.get("choices", []):
@@ -520,7 +528,7 @@ def _build_question_result(question: DiagnosisQuestion, evaluation: dict) -> dic
         "is_fully_correct": evaluation["is_fully_correct"],
         "partial_score": evaluation["partial_score"],
         "answer_score": evaluation["answer_score"],
-        "explanation": question.explanation,
+        "explanation": _normalize_explanation(question.explanation),
     }
 
 

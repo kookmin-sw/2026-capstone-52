@@ -8074,6 +8074,19 @@ a {
   grid-column: 1 / -1;
 }
 
+.diagnosis-flow-progress-note {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.32rem;
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+  background: #f1efff;
+  color: #5a55c9;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
 .diagnosis-flow-summary-progress strong {
   margin-top: 0;
   color: #777b9a;

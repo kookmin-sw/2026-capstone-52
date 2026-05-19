@@ -1098,6 +1098,21 @@ function getMiniQuizResultNodeName(entry) {
   );
 }
 
+function getRecentGraphNodeDisplayLabel(node) {
+  return (
+    node?.display_name ||
+    node?.displayName ||
+    node?.korean_name ||
+    node?.koreanName ||
+    node?.name ||
+    node?.concept_id ||
+    node?.conceptId ||
+    node?.node_id ||
+    node?.nodeId ||
+    ""
+  );
+}
+
 function getMiniQuizResultStageLabel(entry) {
   const backendResult = entry?.backendResult || entry?.result || {};
   const updatedNode = backendResult.updated_node || backendResult.group_result?.updated_node || null;
@@ -2386,7 +2401,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const updatedConcepts = useMemo(
     () =>
       recentGraphNodes.length
-        ? recentGraphNodes.map((node) => node.name).filter(Boolean).slice(0, 3)
+        ? recentGraphNodes.map((node) => getRecentGraphNodeDisplayLabel(node)).filter(Boolean).slice(0, 3)
         : activeProjectData
           ? buildUpdatedConcepts(activeProjectData, workspaceState, projectGraph.nodes)
           : [],
@@ -2405,7 +2420,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   }, [projectGraph.nodes, selectedUpdatedConceptLabel]);
   const selectedUpdatedConceptDescription = useMemo(() => {
     const selectedRecentNode = recentGraphNodes.find(
-      (node) => node.name?.toLowerCase() === selectedUpdatedConceptLabel?.toLowerCase()
+      (node) => getRecentGraphNodeDisplayLabel(node).toLowerCase() === selectedUpdatedConceptLabel?.toLowerCase()
     );
 
     if (selectedRecentNode?.description) {

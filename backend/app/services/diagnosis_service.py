@@ -454,6 +454,14 @@ def get_diagnosis_status(session_id: str, db: Session) -> dict:
     }
 
 
+def _normalize_explanation(explanation: str | None) -> str | None:
+    """구형 저장 포맷 'A. text: ### 헤딩' → '### 헤딩' 으로 정규화 (읽기 시점 보정)"""
+    if not explanation:
+        return explanation
+    import re
+    return re.sub(r'^[A-Za-z]\..+?:\s*(?=###)', '', explanation, flags=re.MULTILINE)
+
+
 def _json_loads_list(value: str | None) -> list:
     if not value:
         return []
@@ -1039,7 +1047,7 @@ def get_node_quiz_history(node_id: str, db: Session) -> list[dict]:
             "is_fully_correct": answer.is_fully_correct if answer else None,
             "partial_score": answer.partial_score if answer else None,
             "answer_score": answer.answer_score if answer else None,
-            "explanation": q.explanation,
+            "explanation": _normalize_explanation(q.explanation),
         })
     return result
 
@@ -1080,7 +1088,7 @@ def get_session_review(session_id: str, db: Session) -> list[dict]:
             "is_fully_correct": answer.is_fully_correct,
             "partial_score": answer.partial_score,
             "answer_score": answer.answer_score,
-            "explanation": q.explanation,
+            "explanation": _normalize_explanation(q.explanation),
         })
     return result
 
@@ -1122,6 +1130,6 @@ def get_questions_review(question_ids: list[str], db: Session) -> list[dict]:
             "is_fully_correct": answer.is_fully_correct if answer else None,
             "partial_score": answer.partial_score if answer else None,
             "answer_score": answer.answer_score if answer else None,
-            "explanation": q.explanation,
+            "explanation": _normalize_explanation(q.explanation),
         })
     return result

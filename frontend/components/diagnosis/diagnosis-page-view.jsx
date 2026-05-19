@@ -282,6 +282,27 @@ function getDiagnosisReviewExplanation(item) {
   return explanation || "";
 }
 
+function getDiagnosisBaseConceptCount(diagnosisNodes, concepts, fallbackCount = 0) {
+  const nodeIds = new Set();
+
+  (diagnosisNodes || []).forEach((node) => {
+    const nodeId = node?.node_id || node?.concept_id || node?.id;
+    if (nodeId) {
+      nodeIds.add(String(nodeId));
+    }
+  });
+
+  if (nodeIds.size > 0) {
+    return nodeIds.size;
+  }
+
+  if (Array.isArray(concepts) && concepts.length > 0) {
+    return concepts.length;
+  }
+
+  return Math.max(fallbackCount, 1);
+}
+
 export default function DiagnosisPageView({ projectId }) {
   const router = useRouter();
   const [projectData, setProjectData] = useState(() => {
@@ -298,6 +319,8 @@ export default function DiagnosisPageView({ projectId }) {
   const [isInitialQuestionLoading, setIsInitialQuestionLoading] = useState(false);
   const [isQuestionTransitionLoading, setIsQuestionTransitionLoading] = useState(false);
   const [isFollowUpQuestion, setIsFollowUpQuestion] = useState(false);
+  const [baseDiagnosisConceptCount, setBaseDiagnosisConceptCount] = useState(0);
+  const [completedBaseConceptCount, setCompletedBaseConceptCount] = useState(0);
   const [diagnosisError, setDiagnosisError] = useState(null);
   const [diagnosisReviewItems, setDiagnosisReviewItems] = useState([]);
   const [diagnosisReviewIndex, setDiagnosisReviewIndex] = useState(0);
@@ -405,6 +428,8 @@ export default function DiagnosisPageView({ projectId }) {
       setIsInitialQuestionLoading(false);
       setIsQuestionTransitionLoading(false);
       setIsFollowUpQuestion(false);
+      setBaseDiagnosisConceptCount(0);
+      setCompletedBaseConceptCount(0);
       setDiagnosisReviewItems([]);
       setDiagnosisReviewIndex(0);
       setDiagnosisReviewError(null);
@@ -420,6 +445,8 @@ export default function DiagnosisPageView({ projectId }) {
     setQuestionIndex(0);
     setStep("intro");
     setDiagnosisError(null);
+    setBaseDiagnosisConceptCount(0);
+    setCompletedBaseConceptCount(0);
     setDiagnosisReviewItems([]);
     setDiagnosisReviewIndex(0);
     setDiagnosisReviewError(null);
@@ -475,6 +502,7 @@ export default function DiagnosisPageView({ projectId }) {
           diagnosisId: question.question_id,
           type: "multiple-choice",
           questionType: question.question_type || null,
+          diagnosisPurpose: question.diagnosis_purpose || "concept_check",
           isMultiSelect: question.question_type === "multi_select",
           node_id: question.concept_id || question.node_id,
           display_name: question.display_name,
@@ -507,6 +535,7 @@ export default function DiagnosisPageView({ projectId }) {
             ? status.total_questions
             : DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
         const answeredFromStatus = typeof status?.answered === "number" ? status.answered : 0;
+        const nextBaseConceptCount = getDiagnosisBaseConceptCount(diagnosisNodes, concepts);
 
         const nextSession = {
           id: sessionId,
@@ -527,6 +556,8 @@ export default function DiagnosisPageView({ projectId }) {
         };
 
         initializedDiagnosisSessionRef.current = `${projectId || nextSession.projectId || "project"}:${nextSession.id}`;
+        setBaseDiagnosisConceptCount(nextBaseConceptCount);
+        setCompletedBaseConceptCount(0);
         setAnswers(createEmptyAnswers(nextSession));
         setDraftAnswer(createEmptyDraftAnswer(normalizedQuestion));
         setQuestionIndex(0);
@@ -554,6 +585,8 @@ export default function DiagnosisPageView({ projectId }) {
     setDiagnosisReviewError(null);
 
     if (!isDiagnosisBackendApiEnabled) {
+      setBaseDiagnosisConceptCount(session.concepts?.length || session.totalQuestions || 1);
+      setCompletedBaseConceptCount(0);
       setStep("quiz");
       return;
     }
@@ -627,17 +660,19 @@ export default function DiagnosisPageView({ projectId }) {
   const unknownChoiceId = currentQuestion?.choices?.find((choice) => choice.id === "unknown")?.id || "unknown";
   const selectedChoiceIds = getSelectedChoiceIds(draftAnswer);
   const isCurrentAnswerReady = currentQuestion ? isAnswerReady(currentQuestion, draftAnswer) : false;
+  const isAdditionalDiagnosisQuestion = currentQuestion?.diagnosisPurpose === "prerequisite_check";
   const conceptStatuses = useMemo(
     () => buildConceptStatuses(session, answers, questionIndex, step === "ready" || step === "review"),
     [answers, questionIndex, session, step]
   );
-  const totalQuestionCount = session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
-  const completedQuestionCount =
-    typeof session.completedQuestionCount === "number"
+  const totalQuestionCount = isDiagnosisBackendApiEnabled
+    ? baseDiagnosisConceptCount || session.concepts?.length || 1
+    : session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
+  const completedQuestionCount = isDiagnosisBackendApiEnabled
+    ? completedBaseConceptCount
+    : typeof session.completedQuestionCount === "number"
       ? session.completedQuestionCount
-      : isDiagnosisBackendApiEnabled
-        ? 0
-        : questionIndex;
+      : questionIndex;
   const boundedCompletedQuestionCount = Math.min(Math.max(completedQuestionCount, 0), totalQuestionCount);
   const progressPercent = totalQuestionCount
     ? Math.min(Math.max(Math.round((boundedCompletedQuestionCount / totalQuestionCount) * 100), 0), 100)
@@ -891,18 +926,18 @@ export default function DiagnosisPageView({ projectId }) {
           typeof status?.answered === "number" ? status.answered : Object.keys(nextAnswers).length;
         const answerScore = typeof result.answer_score === "number" ? result.answer_score : null;
         const shouldPauseForFollowUp = answerScore !== null && answerScore < FOLLOW_UP_SCORE_THRESHOLD;
-        const currentCompletedQuestionCount =
-          typeof session.completedQuestionCount === "number"
-            ? session.completedQuestionCount
-            : Math.max(answeredCount - 1, 0);
-        const nextCompletedQuestionCount = shouldPauseForFollowUp
-          ? currentCompletedQuestionCount
-          : Math.min(currentCompletedQuestionCount + 1, totalFromStatus);
+        const currentBaseTotal = baseDiagnosisConceptCount || session.concepts?.length || totalFromStatus || 1;
+        const isCurrentAdditionalQuestion = currentQuestion.diagnosisPurpose === "prerequisite_check";
+        const nextCompletedQuestionCount = isCurrentAdditionalQuestion
+          ? completedBaseConceptCount
+          : Math.min(completedBaseConceptCount + 1, currentBaseTotal);
         const isCompleted = answeredCount >= totalFromStatus;
+
+        setCompletedBaseConceptCount(nextCompletedQuestionCount);
 
         const sessionAfterCheck = {
           ...session,
-          totalQuestions: totalFromStatus,
+          totalQuestions: currentBaseTotal,
           completedQuestionCount: nextCompletedQuestionCount,
           questions: session.questions.map((question) =>
             question.id === currentQuestion.id ? checkedQuestion : question
@@ -951,6 +986,7 @@ export default function DiagnosisPageView({ projectId }) {
               diagnosisId: nextQuestion.question_id,
               type: "multiple-choice",
               questionType: nextQuestion.question_type || null,
+              diagnosisPurpose: nextQuestion.diagnosis_purpose || "concept_check",
               isMultiSelect: nextQuestion.question_type === "multi_select",
               node_id: nextQuestion.concept_id || nextQuestion.node_id,
               display_name: nextQuestion.display_name,
@@ -1084,6 +1120,9 @@ export default function DiagnosisPageView({ projectId }) {
 
           <section className="diagnosis-flow-summary-card">
             <div className="diagnosis-flow-summary-progress">
+              {isAdditionalDiagnosisQuestion ? (
+                <small className="diagnosis-flow-progress-note">추가 진단 중입니다</small>
+              ) : null}
               <span>진행률</span>
               <div className="diagnosis-flow-progress-bar">
                 <div style={{ width: `${progressPercent}%` }} />
