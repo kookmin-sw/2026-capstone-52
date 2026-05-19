@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>시스템 구조 | 이음</title>
+    <meta name="description" content="이음 서비스 아키텍처, Frontend, Backend, AI 기술 스택과 로컬 실행 안내를 소개합니다." />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+        overflow-x: hidden;
+      }
+
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        background: #fbfbff;
+        color: #24213d;
+        font-family:
+          "Pretendard Variable",
+          "Pretendard",
+          "Apple SD Gothic Neo",
+          "Malgun Gothic",
+          "Noto Sans KR",
+          system-ui,
+          sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      .site-bg {
+        background: linear-gradient(180deg, #fbfbff 0%, #ffffff 34%, #fbfbff 70%, #f8f7ff 100%);
+      }
+
+      .gradient-text {
+        background: linear-gradient(90deg, #817cf2 0%, #b989c8 52%, #ef8f79 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <div class="site-bg fixed inset-0 z-0" aria-hidden="true"></div>
+
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-[#eceaf5] bg-white/84 backdrop-blur-xl">
+      <div class="mx-auto flex h-[84px] w-full max-w-[1800px] items-center gap-5 px-6 md:px-12 xl:px-[4.7rem]">
+        <a href="../" class="flex items-center gap-2.5" aria-label="이음 홈으로 이동">
+          <svg aria-hidden="true" viewBox="0 0 200 200" class="h-8 w-8 shrink-0" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logo-bg-architecture" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8B7FC7" />
+                <stop offset="55%" stop-color="#E57FA3" />
+                <stop offset="100%" stop-color="#F4A97A" />
+              </linearGradient>
+            </defs>
+            <rect width="200" height="200" rx="45" fill="url(#logo-bg-architecture)" />
+            <line x1="60" y1="55" x2="140" y2="55" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <line x1="60" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <line x1="140" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <circle cx="60" cy="55" r="21" fill="white" />
+            <circle cx="140" cy="55" r="21" fill="white" />
+            <circle cx="100" cy="145" r="21" fill="white" />
+          </svg>
+          <span class="text-[1.3rem] font-black tracking-normal text-[#24213d]">이음</span>
+        </a>
+
+        <div class="ml-auto flex shrink-0 items-center gap-4 md:gap-10">
+          <nav aria-label="주요 메뉴" class="hidden items-center gap-8 md:flex xl:gap-12">
+            <a href="../about/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">프로젝트 소개</a>
+            <a href="../features/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">주요 기능</a>
+            <a href="../architecture/" class="text-[0.98rem] font-extrabold text-[#817cf2]">시스템 구조</a>
+          </nav>
+          <a
+            href="https://eeum-study.kr/"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#817cf2] px-0 text-[0.92rem] font-bold text-white shadow-[0_12px_24px_rgba(129,124,242,0.24)] transition hover:bg-[#716be8] sm:w-auto sm:px-5 md:px-6"
+          >
+            <span class="hidden sm:inline">서비스 바로가기</span><span class="sm:ml-2">→</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="relative z-10 px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
+      <section class="mx-auto max-w-[980px] text-center">
+        <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">시스템 구조</span>
+        <h1 class="mt-7 text-[2rem] font-black leading-tight sm:text-[2.55rem] md:text-[3.75rem]">
+          이음 서비스 <span class="gradient-text">아키텍처</span>
+        </h1>
+        <p class="mt-6 text-[1.04rem] font-medium leading-8 text-[#74708b]">
+          Next.js, FastAPI, Amazon Bedrock Claude 기반 AI 모듈이 PDF 분석부터 개인화 학습까지 연결됩니다.
+        </p>
+      </section>
+
+      <section class="mx-auto mt-14 max-w-[1500px]">
+        <div class="rounded-[1.75rem] border border-[#e8e5f2] bg-white/92 p-4 shadow-[0_24px_64px_rgba(42,38,73,0.06)] md:p-6">
+          <img src="../assets/images/eeum_service_architecture.png" alt="이음 서비스 시스템 아키텍처" class="w-full rounded-[1.25rem]" />
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1500px]">
+        <div class="mx-auto max-w-[820px] text-center">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">기술 스택</span>
+          <h2 class="mt-7 text-[2.2rem] font-black leading-tight md:text-[3rem]">서비스를 구성하는 주요 기술</h2>
+        </div>
+        <div class="mt-12 grid gap-6 xl:grid-cols-3">
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.4rem] font-black">Frontend</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">학습 워크스페이스, 대시보드, 그래프, 진단 흐름을 제공하는 Next.js 애플리케이션입니다.</p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Next.js 15.2.4</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">React 19</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">TypeScript</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Tailwind CSS</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Zustand</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Framer Motion</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">react-force-graph-2d</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Playwright</span>
+            </div>
+          </article>
+
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.4rem] font-black">Backend</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">사용자, 프로젝트, 업로드, 그래프, 채팅, 진단 데이터를 관리하는 FastAPI 서버입니다.</p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">FastAPI</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Python</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Uvicorn</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">SQLAlchemy</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Pydantic</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">PostgreSQL / RDS</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">SQLite</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Amazon S3</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">REST API</span>
+            </div>
+          </article>
+
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.4rem] font-black">AI</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">PDF 텍스트에서 개념 그래프를 만들고 진단, 답변, 설명 생성을 담당하는 AI 계층입니다.</p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Amazon Bedrock</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Claude 3.5 Sonnet</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">boto3</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">pdfplumber</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Concept Graph</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Alias JSON</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Fuzzy Matching</span>
+              <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Keyword Retrieval</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1100px]">
+        <div class="rounded-[1.75rem] border border-[#e8e5f2] bg-white/94 p-8 shadow-[0_24px_64px_rgba(42,38,73,0.06)] md:p-10">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">로컬 실행 방법</span>
+          <h2 class="mt-7 text-[2rem] font-black md:text-[2.55rem]">개발 환경 설정은 README에서 확인하세요</h2>
+          <p class="mt-5 text-[1rem] font-medium leading-8 text-[#74708b]">
+            이음 로컬 개발 환경 설정 가이드는 GitHub README에 자세히 정리되어 있습니다. FastAPI 백엔드, Next.js 프론트엔드, Amazon Bedrock 기반 AI 기능 설정을 순서대로 확인할 수 있습니다.
+          </p>
+          <a
+            href="https://github.com/kookmin-sw/2026-capstone-52#실행-방법"
+            class="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-[#817cf2] px-8 text-[0.95rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8]"
+          >
+            GitHub README의 실행 방법 보기 <span class="ml-3">→</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="relative z-10 border-t border-[#eceaf5] bg-white px-6 py-10 md:px-12 xl:px-[4.7rem]">
+      <div class="mx-auto flex max-w-[1800px] flex-col gap-4 text-[0.92rem] font-semibold text-[#74708b] md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[#24213d]">국민대학교 캡스톤디자인 2026 · 52조 · 이음</p>
+          <p class="mt-1 text-[0.82rem]">© 2026 Capstone Team 52</p>
+        </div>
+        <div class="flex gap-5">
+          <a href="https://github.com/kookmin-sw/2026-capstone-52" class="transition hover:text-[#817cf2]">GitHub</a>
+          <a href="https://eeum-study.kr/" class="transition hover:text-[#817cf2]">eeum-study.kr</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

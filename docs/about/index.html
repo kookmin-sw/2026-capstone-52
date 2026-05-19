@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>프로젝트 소개 | 이음</title>
+    <meta name="description" content="이음 프로젝트 배경, 핵심 차별점, 참고 자료, 캡스톤디자인 2026 52조 팀원을 소개합니다." />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+        overflow-x: hidden;
+      }
+
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        background: #fbfbff;
+        color: #24213d;
+        font-family:
+          "Pretendard Variable",
+          "Pretendard",
+          "Apple SD Gothic Neo",
+          "Malgun Gothic",
+          "Noto Sans KR",
+          system-ui,
+          sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      .site-bg {
+        background: linear-gradient(180deg, #fbfbff 0%, #ffffff 34%, #fbfbff 70%, #f8f7ff 100%);
+      }
+
+      .gradient-text {
+        background: linear-gradient(90deg, #817cf2 0%, #b989c8 52%, #ef8f79 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <div class="site-bg fixed inset-0 z-0" aria-hidden="true"></div>
+
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-[#eceaf5] bg-white/84 backdrop-blur-xl">
+      <div class="mx-auto flex h-[84px] w-full max-w-[1800px] items-center gap-5 px-6 md:px-12 xl:px-[4.7rem]">
+        <a href="../" class="flex items-center gap-2.5" aria-label="이음 홈으로 이동">
+          <svg aria-hidden="true" viewBox="0 0 200 200" class="h-8 w-8 shrink-0" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logo-bg-about" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8B7FC7" />
+                <stop offset="55%" stop-color="#E57FA3" />
+                <stop offset="100%" stop-color="#F4A97A" />
+              </linearGradient>
+            </defs>
+            <rect width="200" height="200" rx="45" fill="url(#logo-bg-about)" />
+            <line x1="60" y1="55" x2="140" y2="55" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <line x1="60" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <line x1="140" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
+            <circle cx="60" cy="55" r="21" fill="white" />
+            <circle cx="140" cy="55" r="21" fill="white" />
+            <circle cx="100" cy="145" r="21" fill="white" />
+          </svg>
+          <span class="text-[1.3rem] font-black tracking-normal text-[#24213d]">이음</span>
+        </a>
+
+        <div class="ml-auto flex shrink-0 items-center gap-4 md:gap-10">
+          <nav aria-label="주요 메뉴" class="hidden items-center gap-8 md:flex xl:gap-12">
+            <a href="../about/" class="text-[0.98rem] font-extrabold text-[#817cf2]">프로젝트 소개</a>
+            <a href="../features/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">주요 기능</a>
+            <a href="../architecture/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">시스템 구조</a>
+          </nav>
+          <a
+            href="https://eeum-study.kr/"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#817cf2] px-0 text-[0.92rem] font-bold text-white shadow-[0_12px_24px_rgba(129,124,242,0.24)] transition hover:bg-[#716be8] sm:w-auto sm:px-5 md:px-6"
+          >
+            <span class="hidden sm:inline">서비스 바로가기</span><span class="sm:ml-2">→</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="relative z-10 px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
+      <section class="mx-auto max-w-[1500px]">
+        <div class="mx-auto max-w-[920px] text-center">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">프로젝트 소개</span>
+          <h1 class="mt-7 text-[2rem] font-black leading-tight text-[#24213d] sm:text-[2.5rem] md:text-[3.75rem]">
+            기존 LLM 학습 서비스의 <span class="gradient-text">한계를 넘어</span>
+          </h1>
+          <p class="mt-6 text-[1.02rem] font-medium leading-8 text-[#74708b]">
+            이음은 학습자료와 수준 진단 결과를 기반으로 개인의 이해 상태를 분석하고, 개념별 다음 학습 방향을 이어주는 AI 학습 튜터입니다.
+          </p>
+        </div>
+        <div class="mx-auto mt-12 max-w-[980px] rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-4 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+          <img src="../assets/images/capstone_52_poster.png" alt="이음 캡스톤 포스터" class="w-full rounded-[1.25rem]" />
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1200px]">
+        <h2 class="text-[2rem] font-black text-[#24213d] md:text-[2.55rem]">프로젝트 배경</h2>
+        <div class="mt-7 grid gap-6 text-[1rem] font-medium leading-8 text-[#74708b] md:grid-cols-2">
+          <p class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            기존 LLM 기반 학습 서비스는 사용자의 현재 이해 수준을 충분히 반영하지 못하고, 단순 질의응답 중심으로 동작하는 경우가 많습니다.
+          </p>
+          <p class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로 개인의 이해 상태를 분석하고 맞춤형 학습 경험을 제공하는 것을 목표로 합니다.
+          </p>
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1500px]">
+        <div class="mx-auto max-w-[760px] text-center">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">핵심 차별점</span>
+          <h2 class="mt-7 text-[2.2rem] font-black leading-tight md:text-[3rem]">학습 상태를 추적하는 구조</h2>
+        </div>
+        <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">수준 진단 기반 개인화 학습</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">단순 챗봇 응답이 아니라 먼저 이해도를 측정하고 설명 난이도를 조정합니다.</p>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">선수 개념 기반 진단 흐름</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">핵심 개념과 선수 관계를 기준으로 현재 학습 출발점을 찾습니다.</p>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">PDF + Knowledge Graph + RAG</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">업로드한 자료에서 개념을 뽑고, 그래프와 검색 기반 답변을 결합합니다.</p>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">프로젝트 단위 학습 상태 추적</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">운영체제, 자료구조처럼 프로젝트별 개념 상태를 분리해 관리합니다.</p>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">학습 로그 및 메모 관리</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">채팅 기록, 진단 결과, 메모를 함께 남겨 다시 이어 공부할 수 있습니다.</p>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <h3 class="text-[1.18rem] font-black">N-term 집중 개념 미니퀴즈</h3>
+            <p class="mt-3 text-[0.94rem] font-medium leading-7 text-[#74708b]">최근 대화에서 반복된 개념을 회상 연습으로 점검합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1100px]">
+        <div class="rounded-[1.75rem] border border-dashed border-[#cac5ef] bg-white/78 p-10 text-center shadow-[0_24px_64px_rgba(42,38,73,0.04)]">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">Demo</span>
+          <h2 class="mt-6 text-[2rem] font-black">소개 영상</h2>
+          <p class="mt-4 text-[0.98rem] font-medium text-[#74708b]">시연 영상 추가 예정</p>
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1300px]">
+        <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">참고 자료</span>
+        <h2 class="mt-7 text-[2.1rem] font-black">학습 효과와 AI 튜터 설계 근거</h2>
+        <div class="mt-8 overflow-hidden rounded-[1.4rem] border border-[#e8e5f2] bg-white shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+          <div class="grid grid-cols-[72px_minmax(0,1.4fr)_minmax(0,1fr)_110px] bg-[#f4f2fb] px-5 py-4 text-[0.82rem] font-black text-[#24213d] max-lg:hidden">
+            <span>번호</span><span>제목</span><span>출처</span><span>연도</span>
+          </div>
+          <div class="divide-y divide-[#eceaf5] text-[0.92rem] font-medium text-[#74708b]">
+            <div class="grid gap-3 px-5 py-5 lg:grid-cols-[72px_minmax(0,1.4fr)_minmax(0,1fr)_110px]"><span>1</span><span>Generative AI without guardrails can harm learning: Evidence from high school mathematics</span><span>Proceedings of the National Academy of Sciences</span><span>2025</span></div>
+            <div class="grid gap-3 px-5 py-5 lg:grid-cols-[72px_minmax(0,1.4fr)_minmax(0,1fr)_110px]"><span>2</span><span>The science of effective learning with spacing and retrieval practice</span><span>Nature Reviews Psychology</span><span>2022</span></div>
+            <div class="grid gap-3 px-5 py-5 lg:grid-cols-[72px_minmax(0,1.4fr)_minmax(0,1fr)_110px]"><span>3</span><span>AI meets the classroom: When do large language models harm learning?</span><span>arXiv preprint</span><span>2024</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto mt-24 max-w-[1500px]">
+        <div class="mx-auto max-w-[760px] text-center">
+          <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">Team</span>
+          <h2 class="mt-7 text-[2.2rem] font-black leading-tight md:text-[3rem]">캡스톤디자인 2026 52조</h2>
+        </div>
+        <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 text-center shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <img src="../assets/people/songha.png" alt="이송하" class="mx-auto h-32 w-32 rounded-full object-cover" />
+            <h3 class="mt-5 text-[1.22rem] font-black">이송하</h3>
+            <p class="mt-2 text-[0.9rem] font-bold text-[#817cf2]">Frontend</p>
+            <p class="mt-3 text-[0.84rem] font-medium leading-6 text-[#74708b]">20215210<br />songha327@kookmin.ac.kr</p>
+            <a href="https://github.com/hassong327" class="mt-4 inline-flex font-bold text-[#817cf2]">@hassong327</a>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 text-center shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <img src="../assets/people/hyemin.png" alt="박혜민" class="mx-auto h-32 w-32 rounded-full object-cover" />
+            <h3 class="mt-5 text-[1.22rem] font-black">박혜민</h3>
+            <p class="mt-2 text-[0.9rem] font-bold text-[#817cf2]">Backend</p>
+            <p class="mt-3 text-[0.84rem] font-medium leading-6 text-[#74708b]">20222971<br />hyeals22@gmail.com</p>
+            <a href="https://github.com/hyeals2" class="mt-4 inline-flex font-bold text-[#817cf2]">@hyeals2</a>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 text-center shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <img src="../assets/people/minjeong.png" alt="조민정" class="mx-auto h-32 w-32 rounded-full object-cover" />
+            <h3 class="mt-5 text-[1.22rem] font-black">조민정</h3>
+            <p class="mt-2 text-[0.9rem] font-bold text-[#817cf2]">Backend</p>
+            <p class="mt-3 text-[0.84rem] font-medium leading-6 text-[#74708b]">20231895<br />chominjung821@kookmin.ac.kr</p>
+            <a href="https://github.com/itsminjeong" class="mt-4 inline-flex font-bold text-[#817cf2]">@itsminjeong</a>
+          </article>
+          <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-7 text-center shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+            <img src="../assets/people/taeyoon.png" alt="민태윤" class="mx-auto h-32 w-32 rounded-full object-cover" />
+            <h3 class="mt-5 text-[1.22rem] font-black">민태윤</h3>
+            <p class="mt-2 text-[0.9rem] font-bold text-[#817cf2]">AI</p>
+            <p class="mt-3 text-[0.84rem] font-medium leading-6 text-[#74708b]">20233138<br />mintaeyoon@kookmin.ac.kr</p>
+            <a href="https://github.com/Min-Taeyoon" class="mt-4 inline-flex font-bold text-[#817cf2]">@Min-Taeyoon</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="relative z-10 border-t border-[#eceaf5] bg-white px-6 py-10 md:px-12 xl:px-[4.7rem]">
+      <div class="mx-auto flex max-w-[1800px] flex-col gap-4 text-[0.92rem] font-semibold text-[#74708b] md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[#24213d]">국민대학교 캡스톤디자인 2026 · 52조 · 이음</p>
+          <p class="mt-1 text-[0.82rem]">© 2026 Capstone Team 52</p>
+        </div>
+        <div class="flex gap-5">
+          <a href="https://github.com/kookmin-sw/2026-capstone-52" class="transition hover:text-[#817cf2]">GitHub</a>
+          <a href="https://eeum-study.kr/" class="transition hover:text-[#817cf2]">eeum-study.kr</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

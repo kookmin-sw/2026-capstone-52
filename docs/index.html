@@ -3,16 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>이음 | AI 튜터 워크스페이스</title>
+    <title>이음 | 개념 이해를 추적하는 AI 학습 튜터</title>
     <meta
       name="description"
-      content="AI가 내 이해도를 파악하고 프로젝트별 지식 그래프를 쌓아가는 AI 튜터 서비스 이음입니다."
+      content="이음은 학습자료를 개념 그래프로 구조화하고 수준진단, 채팅 학습, 미니퀴즈, 리포트를 통해 다음 학습 방향을 이어주는 AI 학습 튜터입니다."
     />
-    <meta property="og:title" content="이음 | AI 튜터 워크스페이스" />
-    <meta
-      property="og:description"
-      content="자료와 대화를 연결해 나만의 학습 지도를 만들어가는 AI 튜터 서비스입니다."
-    />
+    <meta property="og:title" content="이음 | 개념 이해를 추적하는 AI 학습 튜터" />
+    <meta property="og:description" content="나의 이해를 읽고, 배움의 흐름을 잇다." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://kookmin-sw.github.io/2026-capstone-52/" />
     <meta property="og:image" content="https://kookmin-sw.github.io/2026-capstone-52/assets/images/eeum_banner.png" />
@@ -29,9 +26,9 @@
 
       body {
         margin: 0;
+        overflow-x: hidden;
         background: #fbfbff;
         color: #24213d;
-        overflow-x: hidden;
         font-family:
           "Pretendard Variable",
           "Pretendard",
@@ -49,18 +46,18 @@
         box-sizing: border-box;
       }
 
-      .landing-gradient-text {
+      .site-bg {
+        background: linear-gradient(180deg, #fbfbff 0%, #ffffff 34%, #fbfbff 70%, #f8f7ff 100%);
+      }
+
+      .gradient-text {
         background: linear-gradient(90deg, #817cf2 0%, #b989c8 52%, #ef8f79 100%);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
       }
 
-      .landing-background {
-        background: linear-gradient(180deg, #fbfbff 0%, #ffffff 32%, #fbfbff 68%, #f8f7ff 100%);
-      }
-
-      .landing-orb {
+      .orb {
         position: fixed;
         z-index: 0;
         pointer-events: none;
@@ -69,7 +66,7 @@
         transform: translate(-50%, -50%);
       }
 
-      .landing-orb-1 {
+      .orb-1 {
         left: 76%;
         top: 12%;
         width: 560px;
@@ -78,7 +75,7 @@
         background: radial-gradient(circle, rgba(255, 187, 152, 0.62) 0%, rgba(255, 187, 152, 0.62) 34%, transparent 70%);
       }
 
-      .landing-orb-2 {
+      .orb-2 {
         left: 90%;
         top: 31%;
         width: 600px;
@@ -87,7 +84,7 @@
         background: radial-gradient(circle, rgba(183, 244, 226, 0.66) 0%, rgba(183, 244, 226, 0.66) 34%, transparent 70%);
       }
 
-      .landing-orb-3 {
+      .orb-3 {
         left: 14%;
         top: 10%;
         width: 520px;
@@ -96,7 +93,7 @@
         background: radial-gradient(circle, rgba(137, 126, 242, 0.42) 0%, rgba(137, 126, 242, 0.42) 34%, transparent 70%);
       }
 
-      .landing-orb-4 {
+      .orb-4 {
         left: 88%;
         top: 88%;
         width: 500px;
@@ -105,18 +102,13 @@
         background: radial-gradient(circle, rgba(255, 187, 152, 0.42) 0%, rgba(255, 187, 152, 0.42) 34%, transparent 70%);
       }
 
-      .landing-orb-5 {
+      .orb-5 {
         left: 10%;
         top: 62%;
         width: 520px;
         height: 520px;
         opacity: 0.32;
         background: radial-gradient(circle, rgba(129, 124, 242, 0.22) 0%, rgba(129, 124, 242, 0.22) 34%, transparent 70%);
-      }
-
-      .mockup-viewport {
-        transform: perspective(1100px) rotateX(0deg) rotateY(-4deg);
-        transform-origin: center;
       }
 
       .graph-label {
@@ -127,42 +119,33 @@
       }
 
       @media (max-width: 767px) {
-        .landing-orb {
-          width: min(var(--mobile-orb-size, 420px), 86vw);
-          height: min(var(--mobile-orb-size, 420px), 86vw);
-        }
-
-        .mockup-viewport {
-          transform: none;
+        .orb {
+          width: min(440px, 88vw);
+          height: min(440px, 88vw);
         }
       }
     </style>
   </head>
-  <body class="overflow-x-hidden antialiased">
-    <div class="landing-background fixed inset-0 z-0" aria-hidden="true"></div>
-    <span class="landing-orb landing-orb-1" style="--mobile-orb-size: 460px" aria-hidden="true"></span>
-    <span class="landing-orb landing-orb-2" style="--mobile-orb-size: 480px" aria-hidden="true"></span>
-    <span class="landing-orb landing-orb-3" style="--mobile-orb-size: 440px" aria-hidden="true"></span>
-    <span class="landing-orb landing-orb-4" style="--mobile-orb-size: 420px" aria-hidden="true"></span>
-    <span class="landing-orb landing-orb-5" style="--mobile-orb-size: 420px" aria-hidden="true"></span>
+  <body class="antialiased">
+    <div class="site-bg fixed inset-0 z-0" aria-hidden="true"></div>
+    <span class="orb orb-1" aria-hidden="true"></span>
+    <span class="orb orb-2" aria-hidden="true"></span>
+    <span class="orb orb-3" aria-hidden="true"></span>
+    <span class="orb orb-4" aria-hidden="true"></span>
+    <span class="orb orb-5" aria-hidden="true"></span>
 
-    <header class="fixed inset-x-0 top-0 z-50 border-b border-[#eceaf5] bg-white/80 backdrop-blur-xl">
-      <div class="mx-auto flex h-[84px] w-full max-w-[1800px] items-center gap-6 px-6 md:px-12 xl:px-[4.7rem]">
-        <a href="#hero" class="flex items-center gap-2.5" aria-label="이음 홈으로 이동">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 200 200"
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-8 w-8 shrink-0"
-          >
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-[#eceaf5] bg-white/84 backdrop-blur-xl">
+      <div class="mx-auto flex h-[84px] w-full max-w-[1800px] items-center gap-5 px-6 md:px-12 xl:px-[4.7rem]">
+        <a href="./" class="flex items-center gap-2.5" aria-label="이음 홈으로 이동">
+          <svg aria-hidden="true" viewBox="0 0 200 200" class="h-8 w-8 shrink-0" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="eeum-logo-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="logo-bg-home" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#8B7FC7" />
                 <stop offset="55%" stop-color="#E57FA3" />
                 <stop offset="100%" stop-color="#F4A97A" />
               </linearGradient>
             </defs>
-            <rect width="200" height="200" rx="45" fill="url(#eeum-logo-bg)" />
+            <rect width="200" height="200" rx="45" fill="url(#logo-bg-home)" />
             <line x1="60" y1="55" x2="140" y2="55" stroke="white" stroke-width="6" stroke-opacity="0.6" />
             <line x1="60" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
             <line x1="140" y1="55" x2="100" y2="145" stroke="white" stroke-width="6" stroke-opacity="0.6" />
@@ -174,130 +157,103 @@
         </a>
 
         <div class="ml-auto flex shrink-0 items-center gap-4 md:gap-10">
-          <nav aria-label="주요 메뉴" class="hidden items-center gap-14 md:flex">
-            <a
-              href="#intro"
-              class="text-[1rem] font-extrabold tracking-normal text-[#24213d] transition hover:text-[#817cf2]"
-            >
-              서비스 소개
-            </a>
-            <a
-              href="#how-it-works"
-              class="text-[1rem] font-extrabold tracking-normal text-[#24213d] transition hover:text-[#817cf2]"
-            >
-              이용 방법
-            </a>
+          <nav aria-label="주요 메뉴" class="hidden items-center gap-8 md:flex xl:gap-12">
+            <a href="./about/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">프로젝트 소개</a>
+            <a href="./features/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">주요 기능</a>
+            <a href="./architecture/" class="text-[0.98rem] font-extrabold text-[#24213d] transition hover:text-[#817cf2]">시스템 구조</a>
           </nav>
-
           <a
             href="https://eeum-study.kr/"
-            class="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-[#817cf2] px-5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(129,124,242,0.24)] transition hover:bg-[#716be8] md:px-6"
+            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#817cf2] px-0 text-[0.92rem] font-bold text-white shadow-[0_12px_24px_rgba(129,124,242,0.24)] transition hover:bg-[#716be8] sm:w-auto sm:px-5 md:px-6"
           >
-            로그인
+            <span class="hidden sm:inline">서비스 바로가기</span><span class="sm:ml-2">→</span>
           </a>
         </div>
       </div>
     </header>
 
     <main class="relative z-10">
-      <section id="hero" class="relative z-20 min-h-screen scroll-mt-24 overflow-hidden text-[#24213d]">
-        <div class="relative mx-auto flex min-h-screen max-w-[1800px] flex-col justify-center px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
-          <div class="grid items-center gap-14 xl:grid-cols-[0.94fr_1.06fr] 2xl:gap-[4.5rem]">
-            <div class="max-w-[774px]">
-              <span class="inline-flex items-center rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.92rem] font-bold text-[#817cf2]">
-                ✦ AI 맞춤 학습 튜터
-              </span>
-
-              <h1 class="mt-7 text-[2.34rem] font-black leading-[1.08] tracking-normal text-[#24213d] sm:text-[3.05rem] md:text-[3.95rem] 2xl:text-[4.85rem]">
-                <span class="whitespace-nowrap">나의 이해를 읽고,</span>
-                <br />
-                <span class="landing-gradient-text">배움의 흐름을 잇다</span>
-              </h1>
-
-              <p class="mt-7 max-w-full text-[1.1rem] font-medium leading-9 text-[#74708b] md:max-w-[700px]">
-                AI가 내 이해도를 파악하고, 프로젝트별 지식 그래프를 쌓아가며 지금 나에게
-                <br class="hidden md:block" />
-                필요한 설명을 이어주는 AI 튜터 서비스입니다.
-              </p>
-
-              <div class="mt-10 flex flex-wrap items-center gap-3">
-                <a
-                  href="https://eeum-study.kr/"
-                  class="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[#817cf2] px-8 text-[1.06rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8] sm:w-auto sm:px-10"
-                >
-                  서비스 시작하기 <span class="ml-3 text-[1.3rem] leading-none">→</span>
-                </a>
-                <a
-                  href="#intro"
-                  class="inline-flex min-h-14 w-full items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-8 text-[1.06rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:border-[#cac5ef] hover:text-[#817cf2] sm:w-auto sm:px-10"
-                >
-                  <span class="translate-y-[1px]">이음 더 알아보기</span>
-                </a>
-              </div>
-
-              <div class="mt-12 grid max-w-[684px] gap-4 sm:grid-cols-3">
-                <article class="rounded-xl border border-[#e6e4f0] bg-white/82 px-5 py-4 shadow-[0_14px_30px_rgba(42,38,73,0.06)] backdrop-blur">
-                  <p class="text-[1.06rem] font-black text-[#817cf2]">간단한 질문</p>
-                  <p class="mt-1.5 text-[0.8rem] font-semibold text-[#77728d]">현재 수준 진단</p>
-                </article>
-                <article class="rounded-xl border border-[#e6e4f0] bg-white/82 px-5 py-4 shadow-[0_14px_30px_rgba(42,38,73,0.06)] backdrop-blur">
-                  <p class="text-[1.06rem] font-black text-[#817cf2]">맞춤 설명</p>
-                  <p class="mt-1.5 text-[0.8rem] font-semibold text-[#77728d]">개념별 난이도 조절</p>
-                </article>
-                <article class="rounded-xl border border-[#e6e4f0] bg-white/82 px-5 py-4 shadow-[0_14px_30px_rgba(42,38,73,0.06)] backdrop-blur">
-                  <p class="text-[1.06rem] font-black text-[#817cf2]">지식 그래프</p>
-                  <p class="mt-1.5 text-[0.8rem] font-semibold text-[#77728d]">학습 흐름 시각화</p>
-                </article>
-              </div>
+      <section class="relative flex min-h-screen items-center overflow-hidden px-6 pb-20 pt-32 md:px-12 xl:px-[4.7rem]">
+        <div class="mx-auto grid w-full max-w-[1800px] items-center gap-14 xl:grid-cols-[0.96fr_1.04fr] 2xl:gap-[4.5rem]">
+          <div class="max-w-[790px]">
+            <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.92rem] font-bold text-[#817cf2]">
+              ✦ AI 학습 튜터
+            </span>
+            <h1 class="mt-7 text-[2rem] font-black leading-[1.12] tracking-normal text-[#24213d] sm:text-[2.75rem] md:text-[3.8rem] 2xl:text-[4.65rem]">
+              <span class="block lg:inline">이음 : </span><span class="gradient-text block lg:inline">개념 이해를 추적하는 AI 학습 튜터</span>
+            </h1>
+            <p class="mt-6 text-[1.45rem] font-black text-[#24213d] md:text-[1.85rem]">
+              나의 이해를 읽고, 배움의 흐름을 잇다
+            </p>
+            <p class="mt-6 max-w-[720px] text-[1.05rem] font-medium leading-9 text-[#74708b]">
+              이음은 학습자료를 개념 그래프로 구조화하고, 수준진단 · 채팅 학습 · 미니퀴즈 · 리포트를 통해 개념별 이해 상태와 다음 학습 방향을 이어주는 AI 학습 튜터입니다.
+            </p>
+            <div class="mt-10 flex flex-wrap items-center gap-3">
+              <a
+                href="https://eeum-study.kr/"
+                class="inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[#817cf2] px-8 text-[1.04rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8] sm:w-auto sm:px-10"
+              >
+                서비스 사용해보기 <span class="ml-3 text-[1.25rem] leading-none">→</span>
+              </a>
+              <a
+                href="https://github.com/kookmin-sw/2026-capstone-52"
+                class="inline-flex min-h-14 w-full items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-8 text-[1.04rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:border-[#cac5ef] hover:text-[#817cf2] sm:w-auto sm:px-10"
+              >
+                GitHub 보기
+              </a>
             </div>
+          </div>
 
-            <div class="relative mx-auto w-full max-w-[830px] lg:mx-0 lg:justify-self-end">
-              <div class="mockup-viewport">
-                <div class="overflow-hidden rounded-[1.85rem] border border-[#e4e2f0] bg-white shadow-[0_34px_90px_rgba(71,76,129,0.14)]">
-                  <div class="flex h-16 items-center justify-between border-b border-[#eceaf5] px-6">
-                    <div class="flex items-center gap-2">
-                      <span class="h-3 w-3 rounded-full bg-[#ff855f]"></span>
-                      <span class="h-3 w-3 rounded-full bg-[#60cfa2]"></span>
-                      <span class="h-3 w-3 rounded-full bg-[#7f82f0]"></span>
-                    </div>
-                    <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.74rem] font-bold text-[#817cf2]">
-                      운영체제 - 프로세스 스케줄링
-                    </span>
+          <div class="relative mx-auto w-full max-w-[760px] lg:mx-0 lg:justify-self-end">
+            <div class="overflow-hidden rounded-[1.85rem] border border-[#e4e2f0] bg-white shadow-[0_34px_90px_rgba(71,76,129,0.14)]">
+              <div class="border-b border-[#eceaf5] bg-white px-6 py-5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full bg-[#ff855f]"></span>
+                    <span class="h-3 w-3 rounded-full bg-[#60cfa2]"></span>
+                    <span class="h-3 w-3 rounded-full bg-[#7f82f0]"></span>
                   </div>
-
-                  <div class="grid min-h-[398px] grid-cols-[220px_minmax(0,1fr)_190px] bg-white max-md:grid-cols-1">
-                    <aside class="bg-[#f4f2fb] px-6 py-6 max-md:hidden">
-                      <div class="mb-4 rounded-xl bg-white px-5 py-4 text-[0.92rem] font-bold text-[#7c75ed]">운영체제</div>
-                      <div class="mb-4 rounded-xl px-5 py-4 text-[0.92rem] font-bold text-[#6c6688]">자료구조</div>
-                      <div class="mb-4 rounded-xl px-5 py-4 text-[0.92rem] font-bold text-[#6c6688]">알고리즘</div>
-                      <div class="mb-4 rounded-xl px-5 py-4 text-[0.92rem] font-bold text-[#6c6688]">컴퓨터 네트워크</div>
-                    </aside>
-
-                    <div class="space-y-5 border-x border-[#eceaf5] bg-white px-7 py-7 max-md:border-x-0">
-                      <div class="rounded-[1.1rem] bg-[#f0eefb] px-6 py-5 text-[1.04rem] leading-7 text-[#26233f]">
-                        <p>
-                          FCFS와 Round Robin은 이해하고 계시지만,
-                          <strong class="font-bold text-[#e46c3f]">기아 현상</strong>
-                          개념이 부족해요.
-                        </p>
-                      </div>
-                      <div class="flex justify-end">
-                        <div class="max-w-[78%] rounded-[1rem] bg-[#817cf2] px-7 py-4 text-right text-[0.96rem] font-bold leading-6 text-white">
-                          그러면 해결 방법은 뭔가요?
-                        </div>
-                      </div>
-                      <div class="rounded-[1rem] bg-[#f0eefb] px-6 py-5 text-[0.96rem] font-semibold leading-7 text-[#565177]">
-                        오래 기다린 프로세스의 우선순위를 높이는
-                        <strong class="text-[#26233f]">에이징</strong>부터 이해하면 좋아요.
-                      </div>
-                    </div>
-
-                    <aside class="bg-white px-4 py-6 max-md:hidden">
-                      <p class="mb-4 text-[0.78rem] font-extrabold text-[#28243f]">최근 업데이트</p>
-                      <div class="mb-3 rounded-lg bg-[#f1effb] px-4 py-3 text-[0.78rem] font-bold text-[#28243f]">프로세스 스케줄링</div>
-                      <div class="mb-3 rounded-lg bg-[#ffddcc] px-4 py-3 text-[0.78rem] font-bold text-[#d86a3f]">기아 현상</div>
-                      <div class="mb-3 rounded-lg bg-[#f1effb] px-4 py-3 text-[0.78rem] font-bold text-[#28243f]">에이징</div>
-                    </aside>
+                  <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.74rem] font-bold text-[#817cf2]">
+                    운영체제 · 프로세스 스케줄링
+                  </span>
+                </div>
+              </div>
+              <div class="grid gap-0 md:grid-cols-[0.95fr_1.05fr]">
+                <div class="bg-[#f4f2fb] px-7 py-8">
+                  <p class="text-[0.82rem] font-extrabold text-[#817cf2]">진단 결과</p>
+                  <h2 class="mt-4 text-[1.55rem] font-black leading-snug text-[#24213d]">기아 현상 개념 보강이 필요해요</h2>
+                  <p class="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b]">
+                    FCFS와 Round Robin은 이해했지만, 우선순위 역전과 에이징 흐름을 연결하면 더 좋아요.
+                  </p>
+                  <div class="mt-6 grid gap-3">
+                    <div class="rounded-xl bg-white px-5 py-4 text-[0.88rem] font-bold text-[#24213d]">이해 완료 · FCFS</div>
+                    <div class="rounded-xl bg-white px-5 py-4 text-[0.88rem] font-bold text-[#24213d]">학습 중 · Round Robin</div>
+                    <div class="rounded-xl bg-[#ffddcc] px-5 py-4 text-[0.88rem] font-bold text-[#d86a3f]">보강 필요 · 기아 현상</div>
+                  </div>
+                </div>
+                <div class="bg-white px-7 py-8">
+                  <p class="text-[0.82rem] font-extrabold text-[#24213d]">Knowledge Graph</p>
+                  <div class="mt-5 rounded-[1.25rem] bg-[#f0eefb] p-4">
+                    <svg viewBox="0 0 500 260" class="h-[240px] w-full" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="운영체제 개념 지식 그래프">
+                      <line x1="160" y1="130" x2="275" y2="88" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <line x1="160" y1="130" x2="275" y2="172" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <line x1="275" y1="88" x2="370" y2="130" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <line x1="275" y1="172" x2="370" y2="130" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <line x1="370" y1="130" x2="360" y2="73" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <line x1="160" y1="130" x2="190" y2="70" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
+                      <circle cx="160" cy="130" r="31" fill="#817cf2" />
+                      <circle cx="275" cy="88" r="24" fill="#62ceb0" />
+                      <circle cx="275" cy="172" r="24" fill="#ff9a72" />
+                      <circle cx="370" cy="130" r="24" fill="#f36f7b" />
+                      <circle cx="360" cy="73" r="21" fill="#7dd3fc" />
+                      <circle cx="190" cy="70" r="21" fill="#c4b5fd" />
+                      <text x="160" y="135" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="16" font-weight="500">스케줄링</text>
+                      <text x="275" y="93" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="15" font-weight="500">FCFS</text>
+                      <text x="275" y="177" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="15" font-weight="500">RR</text>
+                      <text x="370" y="135" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">기아 현상</text>
+                      <text x="360" y="78" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">에이징</text>
+                      <text x="190" y="75" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">선점형</text>
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -306,209 +262,122 @@
         </div>
       </section>
 
-      <section id="intro" class="relative z-20 min-h-screen scroll-mt-24 overflow-hidden text-[#24213d]">
-        <div class="relative mx-auto flex min-h-screen max-w-[1800px] flex-col justify-center px-6 py-24 md:px-12 xl:px-[4.7rem]">
-          <div class="mx-auto max-w-[880px] text-center">
-            <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">
-              서비스 소개
-            </span>
-            <h2 class="mt-7 text-[2.55rem] font-black leading-[1.22] tracking-normal text-[#24213d] md:text-[3.15rem] 2xl:text-[3.75rem]">
-              이음은 자료와 대화를 연결해
-              <br />
-              나만의 학습 지도를 만들어갑니다
+      <section class="relative z-10 px-6 py-24 md:px-12 xl:px-[4.7rem]">
+        <div class="mx-auto max-w-[1500px]">
+          <div class="mx-auto max-w-[860px] text-center">
+            <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">프로젝트 소개</span>
+            <h2 class="mt-7 text-[2.4rem] font-black leading-tight text-[#24213d] md:text-[3.1rem]">
+              기존 LLM 학습 서비스의 한계를 넘어
             </h2>
-            <p class="mt-6 text-[0.98rem] font-medium leading-8 text-[#74708b] 2xl:text-[1.06rem] 2xl:leading-9">
-              단순히 답을 알려주는 것이 아니라, 업로드한 자료에서 개념을 추출하고 질문을 통해 현재 이해도를 확인한 뒤
-              <br class="hidden md:block" />
-              부족한 개념부터 자연스럽게 이어 설명합니다.
+            <p class="mt-5 text-[1rem] font-medium leading-8 text-[#74708b]">
+              기존 LLM 기반 학습 서비스는 사용자의 현재 이해 수준을 충분히 반영하지 못합니다. 이음은 학습 자료와 수준 진단 결과를 함께 분석해 개인의 이해 상태에 맞춘 학습 경험을 제공합니다.
             </p>
           </div>
-
-          <div class="mx-auto mt-20 grid w-full max-w-[1400px] gap-6 md:grid-cols-2 2xl:gap-7">
-            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 px-7 py-7 shadow-[0_26px_70px_rgba(42,38,73,0.06)] backdrop-blur md:px-9 md:py-9 2xl:px-11 2xl:py-11">
-              <img src="./assets/icons/landing/landing_target.svg" alt="" aria-hidden="true" class="h-14 w-14 2xl:h-[4.25rem] 2xl:w-[4.25rem]" />
-              <h3 class="mt-6 text-[1.35rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.55rem]">학습 출발점 체크</h3>
-              <p class="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                최소 질문으로 현재 학습 상태를 확인하고, 이해·추가 학습·미진단 개념을 구분합니다.
-              </p>
-              <div class="mt-7">
-                <div class="rounded-[1rem] bg-[#f0eefb] px-5 py-4 text-[0.86rem] leading-6">
-                  <p class="font-black text-[#24213d]">스택(Stack)의 동작 방식으로 올바른 것은?</p>
-                  <p class="font-bold text-[#817cf2]">C. 마지막에 들어온 데이터가 먼저 나옵니다.</p>
-                </div>
-              </div>
-            </article>
-
-            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 px-7 py-7 shadow-[0_26px_70px_rgba(42,38,73,0.06)] backdrop-blur md:px-9 md:py-9 2xl:px-11 2xl:py-11">
-              <img src="./assets/icons/landing/landing_explain.svg" alt="" aria-hidden="true" class="h-14 w-14 2xl:h-[4.25rem] 2xl:w-[4.25rem]" />
-              <h3 class="mt-6 text-[1.35rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.55rem]">내 수준에 맞는 설명</h3>
-              <p class="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                진단 결과와 대화 맥락을 반영해 너무 쉽지도 어렵지도 않은 설명을 제공합니다.
-              </p>
-              <div class="mt-7">
-                <div class="rounded-[1rem] bg-[#f0eefb] px-5 py-4 text-[0.86rem] font-medium leading-6 text-[#24213d]">
-                  스택은 접시를 쌓는 것처럼
-                  <strong class="font-black">마지막에 올린 것부터</strong>
-                  꺼내는 구조예요.
-                </div>
-              </div>
-            </article>
-
-            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 px-7 py-7 shadow-[0_26px_70px_rgba(42,38,73,0.06)] backdrop-blur md:px-9 md:py-9 2xl:px-11 2xl:py-11">
-              <img src="./assets/icons/landing/landing_graph.svg" alt="" aria-hidden="true" class="h-14 w-14 2xl:h-[4.25rem] 2xl:w-[4.25rem]" />
-              <h3 class="mt-6 text-[1.35rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.55rem]">프로젝트별 지식 그래프</h3>
-              <p class="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                운영체제, 자료구조처럼 프로젝트별로 학습한 개념과 관계를 그래프로 볼 수 있습니다.
-              </p>
-              <div class="mt-7">
-                <div class="relative h-[220px] overflow-hidden rounded-[1rem] bg-[#f0eefb]" role="img" aria-label="스케줄링, FCFS, RR, 기아 현상이 연결된 지식 그래프">
-                  <svg viewBox="0 0 500 260" class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <filter id="node-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#2a2649" flood-opacity="0.12" />
-                      </filter>
-                    </defs>
-                    <line x1="160" y1="130" x2="275" y2="88" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <line x1="160" y1="130" x2="275" y2="172" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <line x1="275" y1="88" x2="370" y2="130" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <line x1="275" y1="172" x2="370" y2="130" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <line x1="370" y1="130" x2="360" y2="73" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <line x1="160" y1="130" x2="190" y2="70" stroke="#d7d2ee" stroke-width="3" stroke-linecap="round" />
-                    <circle cx="160" cy="130" r="31" fill="#817cf2" filter="url(#node-shadow)" />
-                    <circle cx="275" cy="88" r="24" fill="#62ceb0" filter="url(#node-shadow)" />
-                    <circle cx="275" cy="172" r="24" fill="#ff9a72" filter="url(#node-shadow)" />
-                    <circle cx="370" cy="130" r="24" fill="#f36f7b" filter="url(#node-shadow)" />
-                    <circle cx="360" cy="73" r="21" fill="#7dd3fc" filter="url(#node-shadow)" />
-                    <circle cx="190" cy="70" r="21" fill="#c4b5fd" filter="url(#node-shadow)" />
-                    <text x="160" y="135" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="16" font-weight="500">스케줄링</text>
-                    <text x="275" y="93" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="15" font-weight="500">FCFS</text>
-                    <text x="275" y="177" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="15" font-weight="500">RR</text>
-                    <text x="370" y="135" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">기아 현상</text>
-                    <text x="360" y="78" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">에이징</text>
-                    <text x="190" y="75" text-anchor="middle" class="graph-label" fill="#ffffff" font-size="14" font-weight="500">선점형</text>
-                  </svg>
-                </div>
-              </div>
-            </article>
-
-            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 px-7 py-7 shadow-[0_26px_70px_rgba(42,38,73,0.06)] backdrop-blur md:px-9 md:py-9 2xl:px-11 2xl:py-11">
-              <img src="./assets/icons/landing/quiz.svg" alt="" aria-hidden="true" class="h-14 w-14 2xl:h-[4.25rem] 2xl:w-[4.25rem]" />
-              <h3 class="mt-6 text-[1.35rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.55rem]">개념 확인 미니퀴즈</h3>
-              <p class="mt-4 text-[0.92rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                대화에서 충분히 다룬 개념을 짧은 퀴즈로 점검하고, 헷갈린 선택지는 바로 피드백합니다.
-              </p>
-              <div class="mt-7">
-                <div class="rounded-[1rem]" aria-label="스택 개념 미니퀴즈 미리보기">
-                  <div class="rounded-[1rem] border border-[#ece9f7] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(42,38,73,0.08)]">
-                    <p class="text-[0.86rem] font-black leading-6 text-[#24213d]">
-                      스택(Stack)에 대한 설명으로 옳은 것을 모두 고르세요
-                    </p>
-
-                    <div class="mt-3 grid grid-cols-2 gap-2">
-                      <div class="rounded-[0.7rem] bg-[#d4f5e6] px-3 py-2.5 text-left text-[0.78rem] font-bold leading-5 text-[#10b981]">
-                        A. 마지막 데이터가 먼저 나온다
-                      </div>
-                      <div class="rounded-[0.7rem] bg-[#fde2e4] px-3 py-2.5 text-left text-[0.78rem] font-bold leading-5 text-[#ef4444]">
-                        B. 먼저 데이터가 먼저 나온다
-                      </div>
-                      <div class="rounded-[0.7rem] bg-[#d4f5e6] px-3 py-2.5 text-left text-[0.78rem] font-bold leading-5 text-[#10b981]">
-                        C. push / pop 연산을 사용한다
-                      </div>
-                      <div class="rounded-[0.7rem] bg-[#f0eefb] px-3 py-2.5 text-left text-[0.78rem] font-bold leading-5 text-[#24213d]">
-                        D. 트리 형태의 자료구조이다
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </article>
+          <div class="mt-14 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">수준 진단 기반 개인화 학습</div>
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">선수 개념 기반 진단 흐름</div>
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">PDF + Knowledge Graph + RAG 결합</div>
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">프로젝트 단위 학습 상태 추적</div>
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">학습 로그 및 메모 관리</div>
+            <div class="rounded-[1.4rem] border border-[#e8e5f2] bg-white/92 px-6 py-5 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">N-term 집중 개념 미니퀴즈</div>
+          </div>
+          <div class="mt-10 text-center">
+            <a href="./about/" class="inline-flex min-h-12 items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-8 text-[0.95rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:text-[#817cf2]">프로젝트 자세히 보기 →</a>
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" class="relative z-20 scroll-mt-24 overflow-hidden text-[#24213d]">
-        <div class="absolute inset-0 bg-white" aria-hidden="true"></div>
-        <div class="relative mx-auto flex max-w-[1800px] flex-col px-6 py-10 md:px-12 md:py-11 xl:px-[4.7rem]">
-          <div class="mx-auto text-center">
-            <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">
-              이용 방법
-            </span>
-            <h2 class="mt-7 text-[2.55rem] font-black leading-[1.18] tracking-normal md:text-[3.15rem] 2xl:text-[3.75rem]">
-              이음, 이렇게 사용해요
-            </h2>
-            <p class="mt-5 text-[1rem] font-medium text-[#74708b] 2xl:text-[1.1rem]">
-              자료 업로드부터 맞춤 설명까지 4단계로 완성됩니다.
-            </p>
+      <section class="relative z-10 bg-white px-6 py-24 md:px-12 xl:px-[4.7rem]">
+        <div class="mx-auto max-w-[1500px]">
+          <div class="mx-auto max-w-[820px] text-center">
+            <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">주요 기능</span>
+            <h2 class="mt-7 text-[2.4rem] font-black leading-tight text-[#24213d] md:text-[3.1rem]">이음의 6가지 핵심 기능</h2>
+            <p class="mt-5 text-[1rem] font-medium leading-8 text-[#74708b]">PDF 자료부터 학습 기록까지, 학습 흐름 전체를 연결합니다.</p>
           </div>
-
-          <div class="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-4 2xl:gap-7">
-            <article class="relative min-h-[234px] rounded-[1.5rem] border border-[#e8e5f2] bg-white px-7 py-8 text-left shadow-[0_24px_64px_rgba(42,38,73,0.06)] 2xl:min-h-[270px] 2xl:px-9 2xl:py-10">
-              <span class="absolute right-6 top-6 text-[2.7rem] font-black leading-none text-[#e8e5ff] 2xl:text-[3.25rem]">01</span>
-              <div class="flex h-14 w-14 items-center justify-center rounded-[1.05rem] bg-[#f0edff] text-[#817cf2] 2xl:h-[4.25rem] 2xl:w-[4.25rem]">
-                <img src="./assets/icons/landing/upload.svg" alt="" aria-hidden="true" class="h-6 w-6 2xl:h-7 2xl:w-7" />
-              </div>
-              <h3 class="mt-7 text-[1.2rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.4rem]">자료 업로드</h3>
-              <p class="mt-4 max-w-[17rem] text-[0.9rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                PDF 강의자료나 정리본을 업로드하면<br />
-                AI가 학습 주제를 파악합니다.
-              </p>
+          <div class="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/upload.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">PDF 업로드 및 분석</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">CS 학습 자료 PDF에서 핵심 개념과 관계를 추출합니다.</p>
             </article>
-
-            <article class="relative min-h-[234px] rounded-[1.5rem] border border-[#e8e5f2] bg-white px-7 py-8 text-left shadow-[0_24px_64px_rgba(42,38,73,0.06)] 2xl:min-h-[270px] 2xl:px-9 2xl:py-10">
-              <span class="absolute right-6 top-6 text-[2.7rem] font-black leading-none text-[#e8e5ff] 2xl:text-[3.25rem]">02</span>
-              <div class="flex h-14 w-14 items-center justify-center rounded-[1.05rem] bg-[#f0edff] text-[#817cf2] 2xl:h-[4.25rem] 2xl:w-[4.25rem]">
-                <img src="./assets/icons/landing/target.svg" alt="" aria-hidden="true" class="h-6 w-6 2xl:h-7 2xl:w-7" />
-              </div>
-              <h3 class="mt-7 text-[1.2rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.4rem]">학습 수준 진단</h3>
-              <p class="mt-4 max-w-[17rem] text-[0.9rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                몇 가지 질문으로 현재 이해도와<br />
-                부족한 개념을 확인합니다.
-              </p>
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/landing_target.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">수준진단</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">핵심 개념 기반 문항으로 초기 이해도를 측정합니다.</p>
             </article>
-
-            <article class="relative min-h-[234px] rounded-[1.5rem] border border-[#e8e5f2] bg-white px-7 py-8 text-left shadow-[0_24px_64px_rgba(42,38,73,0.06)] 2xl:min-h-[270px] 2xl:px-9 2xl:py-10">
-              <span class="absolute right-6 top-6 text-[2.7rem] font-black leading-none text-[#e8e5ff] 2xl:text-[3.25rem]">03</span>
-              <div class="flex h-14 w-14 items-center justify-center rounded-[1.05rem] bg-[#f0edff] text-[#817cf2] 2xl:h-[4.25rem] 2xl:w-[4.25rem]">
-                <img src="./assets/icons/landing/talk.svg" alt="" aria-hidden="true" class="h-6 w-6 2xl:h-7 2xl:w-7" />
-              </div>
-              <h3 class="mt-7 text-[1.2rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.4rem]">맞춤 설명</h3>
-              <p class="mt-4 max-w-[17rem] text-[0.9rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                진단 결과를 바탕으로 내 수준에 맞춘<br />
-                답변을 제공합니다.
-              </p>
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/talk.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">AI 질의응답</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">PDF와 진단 결과를 반영해 수준에 맞는 설명을 제공합니다.</p>
             </article>
-
-            <article class="relative min-h-[234px] rounded-[1.5rem] border border-[#e8e5f2] bg-white px-7 py-8 text-left shadow-[0_24px_64px_rgba(42,38,73,0.06)] 2xl:min-h-[270px] 2xl:px-9 2xl:py-10">
-              <span class="absolute right-6 top-6 text-[2.7rem] font-black leading-none text-[#e8e5ff] 2xl:text-[3.25rem]">04</span>
-              <div class="flex h-14 w-14 items-center justify-center rounded-[1.05rem] bg-[#f0edff] text-[#817cf2] 2xl:h-[4.25rem] 2xl:w-[4.25rem]">
-                <img src="./assets/icons/landing/triangle.svg" alt="" aria-hidden="true" class="h-6 w-6 2xl:h-7 2xl:w-7" />
-              </div>
-              <h3 class="mt-7 text-[1.2rem] font-black tracking-normal text-[#24213d] 2xl:text-[1.4rem]">지식 그래프</h3>
-              <p class="mt-4 max-w-[17rem] text-[0.9rem] font-medium leading-7 text-[#74708b] 2xl:text-[1rem] 2xl:leading-8">
-                학습한 개념과 관계를 그래프로 확인하고<br />
-                다음 흐름을 잡습니다.
-              </p>
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/landing_graph.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">Knowledge Graph</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">개념별 학습 상태와 관계를 프로젝트별 그래프로 관리합니다.</p>
             </article>
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/quiz.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">미니퀴즈</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">최근 대화에서 반복된 개념을 짧은 퀴즈로 회상합니다.</p>
+            </article>
+            <article class="rounded-[1.65rem] border border-[#e8e5f2] bg-white px-7 py-7 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/icons/landing/landing_report.svg" alt="" class="h-12 w-12" />
+              <h3 class="mt-5 text-[1.25rem] font-black">학습 기록 관리</h3>
+              <p class="mt-3 text-[0.92rem] font-medium leading-7 text-[#74708b]">채팅, 진단, 퀴즈, 메모를 프로젝트 단위로 저장합니다.</p>
+            </article>
+          </div>
+          <div class="mt-10 text-center">
+            <a href="./features/" class="inline-flex min-h-12 items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-8 text-[0.95rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:text-[#817cf2]">기능 자세히 보기 →</a>
           </div>
         </div>
       </section>
 
-      <section class="relative z-20 flex min-h-[420px] items-center justify-center overflow-hidden px-6 py-12 text-[#24213d]">
-        <div class="relative mx-auto flex max-w-[760px] flex-col items-center rounded-[1.75rem] bg-white/94 px-8 py-12 text-center shadow-[0_30px_90px_rgba(42,38,73,0.08)] backdrop-blur md:px-12">
-          <h2 class="text-[1.85rem] font-black leading-[1.3] tracking-normal text-[#24213d] md:text-[2.2rem]">
-            지금 공부하는 자료로 바로 시작해보세요
-          </h2>
-          <p class="mt-5 text-[0.95rem] font-medium leading-7 text-[#74708b]">
-            이음이 자료를 읽고, 나의 이해도를 확인하고, 필요한 설명을 이어드립니다.
-          </p>
-          <a
-            href="https://eeum-study.kr/"
-            class="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-[#817cf2] px-8 text-[0.95rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8] active:translate-y-[1px]"
-          >
-            맞춤 학습 시작하기 <span class="ml-3 text-[1.1rem] leading-none">→</span>
+      <section class="relative z-10 px-6 py-24 md:px-12 xl:px-[4.7rem]">
+        <div class="mx-auto max-w-[1500px]">
+          <div class="grid items-center gap-10 xl:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <span class="inline-flex rounded-full bg-[#f0edff] px-[1.125rem] py-2 text-[0.84rem] font-bold text-[#817cf2]">시스템 구조</span>
+              <h2 class="mt-7 text-[2.4rem] font-black leading-tight text-[#24213d] md:text-[3.1rem]">학습 흐름을 연결하는 서비스 아키텍처</h2>
+              <p class="mt-5 text-[1rem] font-medium leading-8 text-[#74708b]">
+                Next.js 프론트엔드, FastAPI 백엔드, Amazon Bedrock 기반 AI 모듈이 PDF 분석부터 맞춤 답변까지 이어집니다.
+              </p>
+              <div class="mt-7 flex flex-wrap gap-2">
+                <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Next.js</span>
+                <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">FastAPI</span>
+                <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Amazon Bedrock</span>
+                <span class="rounded-full bg-[#f0edff] px-4 py-2 text-[0.85rem] font-bold text-[#817cf2]">Claude 3.5</span>
+              </div>
+              <a href="./architecture/" class="mt-9 inline-flex min-h-12 items-center justify-center rounded-full border border-[#e5e3ef] bg-white px-8 text-[0.95rem] font-bold text-[#24213d] shadow-[0_10px_28px_rgba(42,38,73,0.06)] transition hover:text-[#817cf2]">구조 자세히 보기 →</a>
+            </div>
+            <div class="rounded-[1.65rem] border border-[#e8e5f2] bg-white/92 p-4 shadow-[0_24px_64px_rgba(42,38,73,0.06)]">
+              <img src="./assets/images/eeum_service_architecture.png" alt="이음 서비스 아키텍처 다이어그램" class="w-full rounded-[1.25rem]" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="relative z-10 px-6 py-20 md:px-12 xl:px-[4.7rem]">
+        <div class="mx-auto flex max-w-[820px] flex-col items-center rounded-[1.75rem] bg-white/94 px-8 py-12 text-center shadow-[0_30px_90px_rgba(42,38,73,0.08)] backdrop-blur md:px-12">
+          <h2 class="text-[1.9rem] font-black leading-tight text-[#24213d] md:text-[2.35rem]">지금 이음을 사용해보세요</h2>
+          <p class="mt-5 text-[0.98rem] font-medium leading-7 text-[#74708b]">자료를 업로드하고, 이해도를 진단하고, 나에게 필요한 설명을 이어가세요.</p>
+          <a href="https://eeum-study.kr/" class="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-[#817cf2] px-8 text-[0.95rem] font-bold text-white shadow-[0_14px_30px_rgba(129,124,242,0.32)] transition hover:bg-[#716be8]">
+            서비스 시작하기 <span class="ml-3">→</span>
           </a>
         </div>
       </section>
     </main>
+
+    <footer class="relative z-10 border-t border-[#eceaf5] bg-white px-6 py-10 md:px-12 xl:px-[4.7rem]">
+      <div class="mx-auto flex max-w-[1800px] flex-col gap-4 text-[0.92rem] font-semibold text-[#74708b] md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[#24213d]">국민대학교 캡스톤디자인 2026 · 52조 · 이음</p>
+          <p class="mt-1 text-[0.82rem]">© 2026 Capstone Team 52</p>
+        </div>
+        <div class="flex gap-5">
+          <a href="https://github.com/kookmin-sw/2026-capstone-52" class="transition hover:text-[#817cf2]">GitHub</a>
+          <a href="https://eeum-study.kr/" class="transition hover:text-[#817cf2]">eeum-study.kr</a>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
