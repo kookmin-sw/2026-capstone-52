@@ -426,18 +426,31 @@ def mark_file_diagnosed(session_id: str, db: Session) -> None:
 
 
 def get_diagnosis_status(session_id: str, db: Session) -> dict:
-    """session_id 기준 진단 진행률 반환 — 문제 12개 고정"""
+    """session_id 기준 진단 진행률 반환 — 실제 생성/답변/대기 question 수 기반"""
     answered = (
         db.query(DiagnosisAnswer)
         .filter(DiagnosisAnswer.session_id == session_id)
         .count()
     )
+
+    session = db.query(DiagnosisSession).filter(DiagnosisSession.session_id == session_id).first()
+    if session:
+        total_generated = _get_total_session_question_count(session.project_id, session_id, db)
+    else:
+        total_generated = answered
+
+    remaining = max(total_generated - answered, 0)
+    is_complete = answered > 0 and remaining == 0
     progress = round(answered / TOTAL_QUESTIONS * 100, 1)
+
     return {
         "session_id": session_id,
         "answered": answered,
         "total_questions": TOTAL_QUESTIONS,
         "progress_percent": progress,
+        "remaining_questions": remaining,
+        "is_complete": is_complete,
+        "has_next_question": remaining > 0,
     }
 
 

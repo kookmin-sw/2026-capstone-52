@@ -77,6 +77,16 @@ def generate_diagnosis_question(
         raise HTTPException(status_code=500, detail=str(error)) from error
 
     if result is None:
+        # 진단 후보 자체가 0개인 경우와 모든 질문을 소진한 경우 구분
+        if session_id:
+            status = diagnosis_service.get_diagnosis_status(session_id, db)
+            if status.get("answered", 0) > 0:
+                return {
+                    "success": True,
+                    "data": None,
+                    "is_complete": True,
+                    "message": "진단이 완료되었습니다.",
+                }
         raise HTTPException(status_code=404, detail="진단 가능한 개념이 없습니다.")
 
     return {
