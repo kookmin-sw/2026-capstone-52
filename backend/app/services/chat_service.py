@@ -107,6 +107,13 @@ def get_chat_session(db: Session, project_id: int, session_id: int) -> ChatSessi
     )
 
 
+def update_chat_session_title(db: Session, session: ChatSession, title: str) -> ChatSession:
+    session.title = title
+    db.commit()
+    db.refresh(session)
+    return session
+
+
 def delete_chat_session(db: Session, session: ChatSession) -> None:
     db.query(Chat).filter(Chat.session_id == session.id).delete(synchronize_session=False)
     db.query(File).filter(File.chat_session_id == session.id).update(
