@@ -465,7 +465,7 @@ def _json_loads_list(value: str | None) -> list:
 
 
 def _build_question_explanation(teacher_question: dict) -> str:
-    explanations = []
+    blocks = []
     for choice in teacher_question.get("choices", []):
         if not isinstance(choice, dict):
             continue
@@ -473,11 +473,18 @@ def _build_question_explanation(teacher_question: dict) -> str:
         option_id = choice.get("option_id")
         text = choice.get("text")
         explanation = choice.get("explanation")
-        if option_id and explanation:
-            explanations.append(f"{option_id}. {text}: {explanation}" if text else f"{option_id}. {explanation}")
+        if not (option_id and explanation):
+            continue
 
-    if explanations:
-        return "\n".join(explanations)
+        stripped = explanation.strip()
+        if stripped.startswith("#"):
+            blocks.append(stripped)
+        else:
+            prefix = f"{option_id}. {text}" if text else option_id
+            blocks.append(f"### {prefix}\n\n{stripped}")
+
+    if blocks:
+        return "\n\n---\n\n".join(blocks)
     return str(teacher_question.get("llm_reason") or "").strip()
 
 
