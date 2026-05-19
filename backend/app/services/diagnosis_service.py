@@ -313,6 +313,44 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
     return result
 
 
+def pregenerate_core_questions(project_id: int, file_id: str, db: Session) -> None:
+    """PDF 분석 완료 시점에 핵심 개념 문제 미리 생성 — 진단 시작 시 즉시 제공하기 위함"""
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
+    nodes = [
+        n for n in db.query(ConceptNode).filter(
+            ConceptNode.project_id == project_id,
+            ConceptNode.file_id == file_id,
+        ).all()
+        if n.node_source != "root" and n.file_id not in diagnosed_file_ids
+    ]
+    if not nodes:
+        return
+
+    core_nodes = _get_core_candidate_nodes(nodes)
+    if not core_nodes:
+        return
+
+    all_nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+    graph_context = _build_graph_context(project_id, all_nodes)
+
+    try:
+        _ensure_core_questions_generated(
+            project_id=project_id,
+            core_nodes=core_nodes,
+            graph_context=graph_context,
+            session_id=None,
+            db=db,
+        )
+    except Exception:
+        pass
+
+
 def generate_followup_question_background(
     project_id: int,
     node_id: str,
