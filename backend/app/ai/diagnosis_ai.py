@@ -90,6 +90,9 @@ def generate_question(
         "At least 1 choice must be correct. Not all choices can be correct. "
         "Prefer 2 or 3 correct choices unless pedagogically inappropriate. "
         "Include explanation for every choice. "
+        "Each choice explanation must be a concise Korean Markdown string with real newline characters. "
+        "Do not write explanations as one long paragraph. "
+        "Use this Markdown shape for each explanation: **해설:** followed by bullet lines such as '- **정답 판단:** ...' and '- **핵심 이유:** ...'. "
         "Include diagnostic_tag for every choice. "
         "Include target_concept_id and misconception_type for every choice. "
         "Include diagnostic_tags, tag_group, and llm_reason. "
@@ -141,6 +144,14 @@ def generate_question(
                     "JSON keys",
                 ],
             },
+            "explanation_format_policy": {
+                "format": "Markdown",
+                "language": "Korean",
+                "must_include_real_newline_characters": True,
+                "avoid": "single long paragraph",
+                "max_bullets_per_choice": 3,
+                "recommended_shape": "**해설:**\n\n- **정답 판단:** ...\n- **핵심 이유:** ...\n- **복습 포인트:** ...",
+            },
             "required_output": {
                 "question_text": "string",
                 "choices": [
@@ -151,7 +162,7 @@ def generate_question(
                         "diagnostic_tag": "string",
                         "target_concept_id": concept_id,
                         "misconception_type": None,
-                        "explanation": "string",
+                        "explanation": "**해설:**\n\n- **정답 판단:** ...\n- **핵심 이유:** ...",
                     }
                 ],
                 "diagnostic_tags": ["string"],
@@ -410,6 +421,7 @@ def validate_question_payload(
         is_correct = choice.get("is_correct")
         if not isinstance(is_correct, bool):
             raise QuestionValidationError("choice.is_correct must be a boolean.")
+        explanation = _ensure_markdown_explanation(explanation, is_correct=is_correct)
 
         target_concept_id = choice.get("target_concept_id") or concept_id
         misconception_type = choice.get("misconception_type")
@@ -508,6 +520,26 @@ def sanitize_selected_option_ids(
             invalid_selected_option_ids.append(option_id)
 
     return valid_selected_option_ids, invalid_selected_option_ids
+
+
+def _ensure_markdown_explanation(explanation: str, *, is_correct: bool) -> str:
+    cleaned = str(explanation or "").strip()
+    if not cleaned:
+        return ""
+
+    if _looks_like_markdown_explanation(cleaned):
+        return cleaned
+
+    verdict = "정답 선택지입니다." if is_correct else "오답 선택지입니다."
+    return (
+        "**해설:**\n\n"
+        f"- **정답 판단:** {verdict}\n"
+        f"- **핵심 이유:** {cleaned}"
+    )
+
+
+def _looks_like_markdown_explanation(value: str) -> bool:
+    return "\n" in value and any(marker in value for marker in ("- ", "* ", "**", "###"))
 
 
 # 정답 option_id 추출 함수
