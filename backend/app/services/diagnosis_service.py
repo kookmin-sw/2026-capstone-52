@@ -120,6 +120,18 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
     if next_followup_question:
         return _question_to_response(next_followup_question[0], next_followup_question[1])
 
+    # 백그라운드 followup 생성이 아직 완료되지 않았거나 전혀 생성되지 않은 경우 동기 fallback
+    if session_id:
+        _ensure_followup_questions_for_session(project_id, session_id, nodes, db)
+        next_followup_question = _get_next_unanswered_question_for_nodes(
+            nodes=_dedupe_nodes(nodes),
+            session_id=session_id,
+            db=db,
+            diagnosis_purpose="prerequisite_check",
+        )
+        if next_followup_question:
+            return _question_to_response(next_followup_question[0], next_followup_question[1])
+
     return None
 
 
@@ -542,6 +554,54 @@ def _ensure_core_questions_generated(
 
     if last_error is not None and not _has_any_unanswered_question(core_nodes, session_id, db, "concept_check"):
         raise ValueError(f"질문 중복으로 핵심 개념 진단 문항을 생성할 수 없습니다: {last_error}")
+
+
+def _ensure_followup_questions_for_session(
+    project_id: int,
+    session_id: str,
+    nodes: list[ConceptNode],
+    db: Session,
+) -> None:
+    """세션 내 오답 노드에 대해 followup 질문이 없으면 동기적으로 생성 — 백그라운드 미완료 대비 fallback"""
+    if _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
+        return
+
+    answered_question_ids = {
+        answer.question_id
+        for answer in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .all()
+    }
+    if not answered_question_ids:
+        return
+
+    weak_answers = (
+        db.query(DiagnosisAnswer)
+        .filter(
+            DiagnosisAnswer.session_id == session_id,
+            DiagnosisAnswer.answer_score < LOW_SCORE_THRESHOLD,
+            DiagnosisAnswer.is_skipped.is_(False),
+        )
+        .all()
+    )
+
+    node_map = {node.node_id: node for node in nodes}
+
+    for answer in weak_answers:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == answer.question_id).first()
+        if not q:
+            continue
+        weak_node = node_map.get(q.concept_id)
+        if not weak_node:
+            continue
+        _ensure_prerequisite_followup_question_generated(
+            project_id=project_id,
+            weak_node=weak_node,
+            session_id=session_id,
+            db=db,
+        )
+        if _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
+            return
 
 
 def _ensure_prerequisite_followup_question_generated(
