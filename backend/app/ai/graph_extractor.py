@@ -742,7 +742,8 @@ def _determine_core_limit(total_concepts: int, max_core_concepts: int) -> int:
         return 0
     if max_core_concepts <= 0:
         return 0
-    return min(total_concepts, max_core_concepts)
+    effective_limit = min(max_core_concepts, 6)
+    return min(total_concepts, effective_limit)
 
 
 # 문자열 정리 함수
