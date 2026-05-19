@@ -4296,6 +4296,20 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
               return [...dedup, { nodeId, conceptName, review: reviewEntry, completedAt: Date.now() }];
             });
           }}
+          onComplete={(completeInfo = {}) => {
+            const completedNodeIds = Array.isArray(completeInfo.completedNodeIds) ? completeInfo.completedNodeIds : [];
+            if (selectedProjectId && completedNodeIds.length) {
+              getProjectGraphData(selectedProjectId)
+                .then((nextGraph) => setBackendGraph(nextGraph))
+                .catch(() => null);
+              getRecentGraphNodes(selectedProjectId)
+                .then((nextNodes) => setRecentGraphNodes(nextNodes))
+                .catch(() => null);
+              getProjectChats(selectedProjectId)
+                .then((nextChats) => setRecentChats(nextChats))
+                .catch(() => null);
+            }
+          }}
           onClose={(closeInfo = {}) => {
             const sourceId = activeMiniQuiz.sourceMessageId;
             const deferredId = activeMiniQuiz.deferredId;
