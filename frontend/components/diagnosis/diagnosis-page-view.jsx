@@ -647,7 +647,7 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       if (isDiagnosisBackendApiEnabled && session?.id) {
-        const reportResponse = await createApiDiagnosisReport(targetProjectId, session.id);
+        const reportResponse = diagnosisReport || await createApiDiagnosisReport(targetProjectId, session.id);
         const chatId = buildDashboardChatId(targetProjectId, reportResponse?.chat_session?.id);
         const params = new URLSearchParams({ projectId: String(targetProjectId) });
 
