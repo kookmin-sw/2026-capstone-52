@@ -308,10 +308,20 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
         if q:
             current_concept_id = q.concept_id
 
-    nodes = db.query(ConceptNode).filter(
-        ConceptNode.project_id == project_id,
-        ConceptNode.node_source != "root",
-    ).all()
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
+    nodes = [
+        n for n in db.query(ConceptNode).filter(
+            ConceptNode.project_id == project_id,
+            ConceptNode.node_source != "root",
+        ).all()
+        if n.file_id not in diagnosed_file_ids
+    ]
     result = []
     for node in nodes:
         if node.node_id == current_concept_id:
@@ -415,14 +425,41 @@ def generate_followup_question_background(
 
 
 def mark_file_diagnosed(session_id: str, db: Session) -> None:
-    """진단 완료 시 세션에 연결된 파일을 DIAGNOSED로 마킹"""
-    session = db.query(DiagnosisSession).filter(DiagnosisSession.session_id == session_id).first()
-    if not session or not session.file_id:
+    """진단 완료 시 세션에서 답변된 문제의 노드가 속한 파일을 모두 DIAGNOSED로 마킹
+
+    세션에 file_id가 없어도 실제 답변 노드 기반으로 파일을 추적함
+    """
+    answered_question_ids = [
+        row.question_id
+        for row in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .all()
+    ]
+    if not answered_question_ids:
         return
-    file = db.query(File).filter(File.file_id == session.file_id).first()
-    if file:
-        file.diagnosis_status = "DIAGNOSED"
-        db.commit()
+
+    node_ids = [
+        row.concept_id
+        for row in db.query(DiagnosisQuestion.concept_id)
+        .filter(DiagnosisQuestion.question_id.in_(answered_question_ids))
+        .all()
+    ]
+    if not node_ids:
+        return
+
+    file_ids = {
+        row.file_id
+        for row in db.query(ConceptNode.file_id)
+        .filter(ConceptNode.node_id.in_(node_ids), ConceptNode.file_id.isnot(None))
+        .all()
+    }
+    if not file_ids:
+        return
+
+    db.query(File).filter(File.file_id.in_(file_ids)).update(
+        {"diagnosis_status": "DIAGNOSED"}, synchronize_session=False
+    )
+    db.commit()
 
 
 def get_diagnosis_status(session_id: str, db: Session) -> dict:
@@ -566,7 +603,7 @@ def _ensure_core_questions_generated(
     for target_node in core_nodes:
         if session_id and _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
             break
-        if _has_question_for_node(target_node.node_id, db, diagnosis_purpose="concept_check"):
+        if _has_unanswered_question_for_node(target_node.node_id, db, diagnosis_purpose="concept_check"):
             continue
 
         try:
@@ -787,8 +824,15 @@ def _get_next_unanswered_question_for_nodes(
         ),
     )
 
+    # 어떤 세션에서도 이미 답변된 문제는 재사용하지 않음
+    answered_anywhere = {
+        row.question_id
+        for row in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.question_id.in_([q.question_id for q in questions]))
+        .all()
+    }
     for question in questions:
-        if not session_id or not _is_question_answered_in_session(question.question_id, session_id, db):
+        if question.question_id not in answered_anywhere:
             return question, node_by_id[question.concept_id]
     return None
 
@@ -805,6 +849,28 @@ def _has_any_unanswered_question(
         db=db,
         diagnosis_purpose=diagnosis_purpose,
     ) is not None
+
+
+def _has_unanswered_question_for_node(node_id: str, db: Session, *, diagnosis_purpose: str) -> bool:
+    """해당 노드에 아직 아무 세션에서도 답변되지 않은 문제가 있는지 확인"""
+    questions = (
+        db.query(DiagnosisQuestion.question_id)
+        .filter(
+            DiagnosisQuestion.concept_id == node_id,
+            DiagnosisQuestion.diagnosis_purpose == diagnosis_purpose,
+        )
+        .all()
+    )
+    if not questions:
+        return False
+    question_ids = [q.question_id for q in questions]
+    answered_ids = {
+        row.question_id
+        for row in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.question_id.in_(question_ids))
+        .all()
+    }
+    return any(qid not in answered_ids for qid in question_ids)
 
 
 def _has_question_for_node(node_id: str, db: Session, *, diagnosis_purpose: str) -> bool:
