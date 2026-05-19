@@ -45,10 +45,18 @@ KOREAN_TITLE_STOPWORDS = {
     "해주세요",
     "해줘",
     "뭐야",
-    "무엇인가요",
     "설명",
     "정리",
 }
+
+KOREAN_TITLE_MAX_CHARS = 32
+
+INCOMPLETE_KOREAN_ENDING_REPAIRS = (
+    ("차이점은무", "차이점은 무엇인가"),
+    ("무엇인", "무엇인가"),
+    ("무엇이", "무엇인가"),
+    ("어떻게하", "어떻게 하나"),
+)
 
 
 def generate_chat_title(first_user_message: str, *, use_llm: bool = True) -> str:
@@ -150,7 +158,7 @@ def _sanitize_title(
     words = cleaned.split()
     if len(words) > 5:
         return " ".join(words[:5]).strip()
-    return cleaned[:30].strip()
+    return _safe_truncate_by_words(cleaned, max_chars=30)
 
 
 def _basic_clean(text: str | None) -> str:
@@ -180,27 +188,65 @@ def _build_korean_title(cleaned: str) -> str:
             break
 
     if tokens:
-        title = " ".join(tokens)
-        if len(title) <= 24:
-            return title
+        title = _repair_incomplete_korean_ending(" ".join(tokens))
+        if _is_valid_korean_title(title):
+            return _safe_truncate_by_words(title, max_chars=KOREAN_TITLE_MAX_CHARS)
 
-        shortened = []
-        current_length = 0
-        for token in tokens:
-            next_length = current_length + len(token) + (1 if shortened else 0)
-            if next_length > 24:
-                break
-            shortened.append(token)
-            current_length = next_length
-        if shortened:
-            return " ".join(shortened)
+    repaired = _repair_incomplete_korean_ending(cleaned)
+    if _is_valid_korean_title(repaired):
+        return _safe_truncate_by_words(repaired, max_chars=KOREAN_TITLE_MAX_CHARS)
 
-    compact = cleaned.replace(" ", "")
-    return compact[:15].rstrip()
+    return DEFAULT_CHAT_TITLE
 
 
 def _normalize_korean_title_token(token: str) -> str:
     token = token.strip()
     token = re.sub(r"(은|는|이|가|을|를|에|에서|으로|로|와|과|의)$", "", token)
-    token = re.sub(r"(인가요|인가|일까요|나요|어요|아요|해요|합니다|해줘|해주세요)$", "", token)
+    token = re.sub(r"(해줘|해주세요|알려줘|알려주세요|설명해줘|설명해주세요|정리해줘|정리해주세요)$", "", token)
     return token.strip()
+
+
+def _repair_incomplete_korean_ending(title: str) -> str:
+    repaired = re.sub(r"\s+", " ", title or "").strip()
+    compact = _compact_title(repaired)
+    if compact in REPORT_LIKE_COMPACT_TITLES:
+        return DEFAULT_CHAT_TITLE
+
+    for broken, fixed in INCOMPLETE_KOREAN_ENDING_REPAIRS:
+        if repaired.endswith(broken):
+            return f"{repaired[:-len(broken)].rstrip()} {fixed}".strip()
+
+    if repaired.endswith("은무"):
+        return f"{repaired[:-2].rstrip()}은 무엇인가".strip()
+    if repaired.endswith("는무"):
+        return f"{repaired[:-2].rstrip()}는 무엇인가".strip()
+    return repaired
+
+
+def _is_valid_korean_title(title: str) -> bool:
+    if not title or title == DEFAULT_CHAT_TITLE:
+        return False
+    if is_report_like_title_source(title):
+        return False
+    return not any(title.endswith(broken) for broken, _ in INCOMPLETE_KOREAN_ENDING_REPAIRS)
+
+
+def _safe_truncate_by_words(title: str, *, max_chars: int) -> str:
+    cleaned = re.sub(r"\s+", " ", title or "").strip()
+    if len(cleaned) <= max_chars:
+        return cleaned
+
+    words = cleaned.split()
+    if len(words) <= 1:
+        return cleaned
+
+    shortened = []
+    current_length = 0
+    for word in words:
+        next_length = current_length + len(word) + (1 if shortened else 0)
+        if next_length > max_chars:
+            break
+        shortened.append(word)
+        current_length = next_length
+
+    return " ".join(shortened).strip() or cleaned
