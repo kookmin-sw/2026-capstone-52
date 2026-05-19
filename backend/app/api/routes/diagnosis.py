@@ -1,6 +1,6 @@
 # 수준 진단 라우터 — 세션 생성, 질문 생성, 답변 처리, 진행 상태 조회
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -12,6 +12,7 @@ from app.services.quiz_report_service import build_quiz_report
 from app.schemas.quiz_review import QuizQuestionReview
 from app.schemas.chat import ChatSessionResponse
 from app.schemas.diagnosis import (
+    DiagnosisSessionCreateRequest,
     DiagnosisSessionCreateResponse,
     DiagnosisQuestionResponse,
     DiagnosisAnswerRequest,
@@ -39,19 +40,21 @@ def _get_project_or_403(project_id: int, current_user: User, db: Session) -> Pro
 @router.post("/{project_id}/sessions", response_model=None)
 def create_diagnosis_session(
     project_id: int,
+    body: DiagnosisSessionCreateRequest = DiagnosisSessionCreateRequest(),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """새 진단 세션 ID 발급 — PDF 업로드 후 수준 진단 시작 시 호출
 
+    body.file_id: 진단할 파일 ID (선택) — 전달 시 해당 파일과 세션 연결
     반환된 session_id를 이후 질문/답변 요청에 모두 첨부해야 함
     """
     _get_project_or_403(project_id, current_user, db)
 
-    session_id = diagnosis_service.create_session_id()
+    session_id = diagnosis_service.create_diagnosis_session(project_id, body.file_id, db)
     return {
         "success": True,
-        "data": DiagnosisSessionCreateResponse(session_id=session_id),
+        "data": DiagnosisSessionCreateResponse(session_id=session_id, file_id=body.file_id),
         "message": "",
     }
 
@@ -87,6 +90,7 @@ def generate_diagnosis_question(
 def submit_answer(
     project_id: int,
     body: DiagnosisAnswerRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -106,6 +110,14 @@ def submit_answer(
         raise HTTPException(status_code=400, detail=str(error)) from error
     if not result:
         raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
+
+    if result.get("needs_followup"):
+        background_tasks.add_task(
+            diagnosis_service.generate_followup_question_background,
+            result["project_id"],
+            result["weak_node_id"],
+            body.session_id,
+        )
 
     return {
         "success": True,
@@ -160,6 +172,8 @@ def create_diagnosis_report(
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+
+    diagnosis_service.mark_file_diagnosed(body.session_id, db)
 
     return {
         "success": True,

@@ -6,8 +6,9 @@
 import json
 import uuid
 from sqlalchemy.orm import Session
+from app.models.file import File
 from app.models.graph import ConceptNode, ConceptEdge
-from app.models.diagnosis import DiagnosisQuestion, DiagnosisAnswer
+from app.models.diagnosis import DiagnosisQuestion, DiagnosisAnswer, DiagnosisSession
 from app.ai.diagnosis_ai import (
     DiagnosisAIError,
     QuestionValidationError,
@@ -19,9 +20,12 @@ from app.ai.diagnosis_ai import (
 
 # ── 세션 ──────────────────────────────────────────────────────────────────────
 
-def create_session_id() -> str:
-    """새 진단 세션 ID 발급 — PDF 업로드 시마다 호출해서 1차/2차 진단을 구분"""
-    return str(uuid.uuid4())
+def create_diagnosis_session(project_id: int, file_id: str | None, db: Session) -> str:
+    """새 진단 세션 생성 — file_id와 연결해서 파일 단위 진단 관리"""
+    session_id = str(uuid.uuid4())
+    db.add(DiagnosisSession(session_id=session_id, project_id=project_id, file_id=file_id))
+    db.commit()
+    return session_id
 
 
 # ── 질문 ──────────────────────────────────────────────────────────────────────
@@ -70,7 +74,17 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
         if answered_count >= TOTAL_QUESTIONS:
             return None
 
-    nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
+    nodes = [
+        n for n in db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+        if n.node_source != "root" and n.file_id not in diagnosed_file_ids
+    ]
     if not nodes:
         return None
 
@@ -203,14 +217,6 @@ def submit_answer(
             db=db,
         )
 
-        if evaluation["answer_score"] < LOW_SCORE_THRESHOLD:
-            _ensure_prerequisite_followup_question_generated(
-                project_id=primary_node.project_id,
-                weak_node=primary_node,
-                session_id=session_id,
-                db=db,
-            )
-
         db.commit()
         return {
             "is_correct": evaluation["is_fully_correct"],
@@ -225,6 +231,9 @@ def submit_answer(
             "wrong_selected_option_ids": evaluation["wrong_selected_option_ids"],
             "invalid_selected_option_ids": evaluation["invalid_selected_option_ids"],
             "updated_nodes": updated_nodes,
+            "needs_followup": evaluation["answer_score"] < LOW_SCORE_THRESHOLD,
+            "weak_node_id": q.concept_id,
+            "project_id": primary_node.project_id,
         }
 
     raise ValueError("구형 단일 선택 문제 포맷은 지원하지 않습니다.")
@@ -286,7 +295,10 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
         if q:
             current_concept_id = q.concept_id
 
-    nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+    nodes = db.query(ConceptNode).filter(
+        ConceptNode.project_id == project_id,
+        ConceptNode.node_source != "root",
+    ).all()
     result = []
     for node in nodes:
         if node.node_id == current_concept_id:
@@ -299,6 +311,38 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
             label = "추가 학습"
         result.append({"node_id": node.node_id, "name": node.name, "diagnosis_label": label})
     return result
+
+
+def generate_followup_question_background(
+    project_id: int,
+    node_id: str,
+    session_id: str,
+) -> None:
+    """백그라운드 태스크용 — 오답 시 선수 개념 followup 질문을 응답 반환 후 생성"""
+    from app.db.session import SessionLocal
+    db = SessionLocal()
+    try:
+        weak_node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
+        if weak_node:
+            _ensure_prerequisite_followup_question_generated(
+                project_id=project_id,
+                weak_node=weak_node,
+                session_id=session_id,
+                db=db,
+            )
+    finally:
+        db.close()
+
+
+def mark_file_diagnosed(session_id: str, db: Session) -> None:
+    """진단 완료 시 세션에 연결된 파일을 DIAGNOSED로 마킹"""
+    session = db.query(DiagnosisSession).filter(DiagnosisSession.session_id == session_id).first()
+    if not session or not session.file_id:
+        return
+    file = db.query(File).filter(File.file_id == session.file_id).first()
+    if file:
+        file.diagnosis_status = "DIAGNOSED"
+        db.commit()
 
 
 def get_diagnosis_status(session_id: str, db: Session) -> dict:
@@ -664,11 +708,19 @@ def _is_question_answered_in_session(question_id: str, session_id: str, db: Sess
 
 
 def _get_total_session_question_count(project_id: int, session_id: str, db: Session) -> int:
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
     node_ids = [
         node.node_id
-        for node in db.query(ConceptNode.node_id)
+        for node in db.query(ConceptNode)
         .filter(ConceptNode.project_id == project_id)
         .all()
+        if node.node_source != "root" and node.file_id not in diagnosed_file_ids
     ]
     if not node_ids:
         return _get_answered_count(session_id, db)
