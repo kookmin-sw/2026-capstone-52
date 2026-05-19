@@ -821,6 +821,18 @@ export default function DiagnosisPageView({ projectId }) {
 
         saveWorkspaceState(nextWorkspaceState);
         setApiSession(sessionAfterCheck);
+        if (isDiagnosisBackendApiEnabled && session.id) {
+          try {
+            const reportResponse = await createApiDiagnosisReport(projectId, session.id);
+            setDiagnosisReport(reportResponse);
+            setDiagnosisReportError(null);
+          } catch (reportError) {
+            setDiagnosisReport(null);
+            setDiagnosisReportError(
+              reportError instanceof Error ? reportError.message : "수준진단 리포트를 생성하지 못했습니다."
+            );
+          }
+        }
         setStep("ready");
         setIsFollowUpQuestion(false);
         setIsQuestionTransitionLoading(false);
