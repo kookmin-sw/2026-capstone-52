@@ -1,6 +1,7 @@
 # 그래프 서비스 — 개념 노드/엣지 조회 및 저장
 
 from sqlalchemy.orm import Session
+from app.ai.concept_normalizer import ConceptNormalizerError, load_alias_dictionary
 from app.models.graph import ConceptNode, ConceptEdge, NODE_STATUS_UNSEEN
 from app.models.chat import Chat
 
@@ -21,6 +22,49 @@ def get_recent_nodes(project_id: int, db: Session, limit: int = 10):
         .limit(limit)
         .all()
     )
+
+
+def build_alias_cache(nodes: list[ConceptNode]) -> dict[str, dict]:
+    """subject_id별 alias dictionary를 한 번만 읽어 concept_id lookup cache를 만든다."""
+    cache: dict[str, dict] = {}
+    subject_ids = sorted({node.subject_id for node in nodes if node.subject_id})
+
+    for subject_id in subject_ids:
+        try:
+            alias_data = load_alias_dictionary(subject_id)
+        except ConceptNormalizerError:
+            continue
+
+        for concept in alias_data.get("concepts", []):
+            concept_id = concept.get("concept_id")
+            if isinstance(concept_id, str) and concept_id:
+                cache[f"{subject_id}:{concept_id}"] = concept
+
+    return cache
+
+
+def build_node_response_data(node: ConceptNode, alias_cache: dict[str, dict] | None = None) -> dict:
+    alias_concept = _get_alias_concept(node, alias_cache or {})
+    return {
+        "node_id": node.node_id,
+        "project_id": node.project_id,
+        "file_id": node.file_id,
+        "concept_id": node.concept_id,
+        "subject_id": node.subject_id,
+        "name": node.name,
+        "display_name": build_display_name(node, alias_concept),
+        "description": node.description,
+        "group": node.group,
+        "status": node.status,
+        "understanding_score": node.understanding_score,
+        "understanding_level": node.understanding_level,
+        "confidence": node.confidence,
+        "diagnosis_count": node.diagnosis_count,
+        "core_score": node.core_score,
+        "is_core": node.is_core,
+        "node_source": node.node_source,
+        "updated_at": node.updated_at,
+    }
 
 
 def get_node_by_id(node_id: str, db: Session) -> ConceptNode | None:
@@ -168,6 +212,44 @@ def _get_concept_name(concept: dict) -> str | None:
     if concept.get("name"):
         return concept["name"]
     return None
+
+
+def build_display_name(node: ConceptNode, alias_concept: dict | None = None) -> str:
+    if alias_concept:
+        korean_name = alias_concept.get("korean_name")
+        if isinstance(korean_name, str) and korean_name.strip():
+            return korean_name.strip()
+
+        korean_alias = first_korean_alias(alias_concept.get("aliases"))
+        if korean_alias:
+            return korean_alias
+
+    if node.name:
+        return node.name
+    if alias_concept and isinstance(alias_concept.get("canonical_name"), str):
+        canonical_name = alias_concept["canonical_name"].strip()
+        if canonical_name:
+            return canonical_name
+    return node.concept_id or node.node_id
+
+
+def first_korean_alias(aliases: list[str] | None) -> str | None:
+    if not isinstance(aliases, list):
+        return None
+    for alias in aliases:
+        if isinstance(alias, str) and contains_korean(alias):
+            return alias.strip()
+    return None
+
+
+def contains_korean(text: str | None) -> bool:
+    return isinstance(text, str) and any("가" <= char <= "힣" for char in text)
+
+
+def _get_alias_concept(node: ConceptNode, alias_cache: dict[str, dict]) -> dict | None:
+    if not node.subject_id or not node.concept_id:
+        return None
+    return alias_cache.get(f"{node.subject_id}:{node.concept_id}")
 
 
 def _resolve_relation_nodes(

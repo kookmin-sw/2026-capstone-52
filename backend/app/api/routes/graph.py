@@ -48,9 +48,10 @@ def get_node_detail(
 
     related_nodes = graph_service.get_related_nodes(node_id, db)
     related_chats = graph_service.get_related_chats(node, db)
+    alias_cache = graph_service.build_alias_cache([node])
 
     data = NodeDetailResponse(
-        **NodeResponse.model_validate(node).model_dump(),
+        **NodeResponse(**graph_service.build_node_response_data(node, alias_cache)).model_dump(),
         related_nodes=related_nodes,
         related_chats=[RelatedChatResponse(**c) for c in related_chats],
     )
@@ -84,8 +85,9 @@ def get_project_graph(
     _get_project_or_403(project_id, current_user, db)
 
     graph = graph_service.get_graph_by_project(project_id, db)
+    alias_cache = graph_service.build_alias_cache(graph["nodes"])
     data = {
-        "nodes": [NodeResponse.model_validate(n) for n in graph["nodes"]],
+        "nodes": [NodeResponse(**graph_service.build_node_response_data(n, alias_cache)) for n in graph["nodes"]],
         "edges": [EdgeResponse.model_validate(e) for e in graph["edges"]],
     }
     return {"success": True, "data": data, "message": ""}
@@ -101,4 +103,9 @@ def get_recent_nodes(
     _get_project_or_403(project_id, current_user, db)
 
     nodes = graph_service.get_recent_nodes(project_id, db)
-    return {"success": True, "data": [NodeResponse.model_validate(n) for n in nodes], "message": ""}
+    alias_cache = graph_service.build_alias_cache(nodes)
+    return {
+        "success": True,
+        "data": [NodeResponse(**graph_service.build_node_response_data(n, alias_cache)) for n in nodes],
+        "message": "",
+    }
