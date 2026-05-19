@@ -2244,10 +2244,12 @@ export function buildBackendKnowledgeGraph(
     return buildProjectKnowledgeGraph(projectData, chats);
   }
 
-  const nodesById = new Map(backendGraph.nodes.map((node) => [node.node_id, node]));
+  const backendRootNode = (backendGraph.nodes || []).find((node) => (node as any).node_source === "root");
+  const conceptNodes = (backendGraph.nodes || []).filter((node) => (node as any).node_source !== "root");
+  const nodesById = new Map(conceptNodes.map((node) => [node.node_id, node]));
   const relatedIdsByNode = new Map<string, string[]>();
   const coreSlot = getGraphLayoutSlot(dashboardGraphSlotIds.core);
-  const hasExplicitCoreNode = backendGraph.nodes.some((node) => Boolean(node.is_core));
+  const hasExplicitCoreNode = conceptNodes.some((node) => Boolean(node.is_core));
 
   (backendGraph.edges || []).forEach((edge) => {
     if (!nodesById.has(edge.source_node_id) || !nodesById.has(edge.target_node_id)) {
@@ -2264,10 +2266,10 @@ export function buildBackendKnowledgeGraph(
     ]);
   });
 
-  const uiNodes = backendGraph.nodes.map((node, index) => {
+  const uiNodes = conceptNodes.map((node, index) => {
     const displayLabel = node.display_name || node.korean_name || node.name || node.concept_id || node.node_id;
     const slot = getGraphLayoutSlot(dashboardGraphSlotIds.concept[index % dashboardGraphSlotIds.concept.length]);
-    const fallbackAngle = (Math.PI * 2 * index) / Math.max(backendGraph.nodes!.length, 1);
+    const fallbackAngle = (Math.PI * 2 * index) / Math.max(conceptNodes.length, 1);
     const fallbackRadius = 0.28;
     const x = slot?.x ?? 0.5 + Math.cos(fallbackAngle) * fallbackRadius;
     const y = slot?.y ?? 0.5 + Math.sin(fallbackAngle) * fallbackRadius;
@@ -2315,8 +2317,8 @@ export function buildBackendKnowledgeGraph(
   });
   const coreConceptIds = uiNodes.filter((node) => node.isCore).map((node) => node.id);
   const projectRootNode: ProjectKnowledgeGraphNode = {
-    id: `${projectData.projectId}-project-root`,
-    label: projectData.title,
+    id: backendRootNode ? backendRootNode.node_id : `${projectData.projectId}-project-root`,
+    label: backendRootNode?.name || projectData.title,
     x: coreSlot?.x ?? 0.5,
     y: coreSlot?.y ?? 0.5,
     size: (coreSlot?.size || 1) + 0.8,
@@ -2324,10 +2326,10 @@ export function buildBackendKnowledgeGraph(
     isProjectRoot: true,
     kind: "project",
     subtitle: "프로젝트 중심",
-    description: `${projectData.title} 프로젝트의 전체 지식 그래프입니다.`,
+    description: backendRootNode?.description || `${projectData.title} 프로젝트의 전체 지식 그래프입니다.`,
     relatedConceptIds: coreConceptIds.length ? coreConceptIds : uiNodes.map((node) => node.id),
     relatedLearningEvents: [],
-    keywords: [projectData.title],
+    keywords: [backendRootNode?.name || projectData.title],
   };
   const projectRootEdges = projectRootNode.relatedConceptIds.map((nodeId) => ({
     source: projectRootNode.id,
