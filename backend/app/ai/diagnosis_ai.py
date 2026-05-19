@@ -93,7 +93,14 @@ def generate_question(
         "Include diagnostic_tag for every choice. "
         "Include target_concept_id and misconception_type for every choice. "
         "Include diagnostic_tags, tag_group, and llm_reason. "
-        "Do not build reuse_key."
+        "Do not build reuse_key. "
+        "Generate the question only for the provided target_concept. "
+        "If the target_concept is a prerequisite follow-up concept, test that prerequisite concept directly as the knowledge needed to understand the weak concept. "
+        "Do not switch to arbitrary related concepts, sub-concepts, or broader concepts. "
+        "Use only the uploaded-material graph context that is provided in the request. "
+        "Do not introduce concepts that are absent from target_concept and graph_context. "
+        "Do not expand diagnosis scope with global backbone-only knowledge. "
+        "Use previous_reuse_keys to avoid creating a question that is equivalent to a previously asked question."
     )
     user_prompt = json.dumps(
         {
@@ -104,6 +111,18 @@ def generate_question(
             "question_difficulty": question_difficulty,
             "preferred_correct_count": preferred_correct_count,
             "previous_reuse_keys": previous_reuse_keys or [],
+            "selection_policy": {
+                "target_scope": "provided_target_concept_only",
+                "follow_up_policy": "When this is a follow-up, the selected target is already the prerequisite concept from uploaded material. Ask about that prerequisite concept directly.",
+                "allowed_concept_source": "uploaded_material_graph_context_only",
+                "disallowed": [
+                    "inventing new concept_id values",
+                    "asking about arbitrary related concepts",
+                    "descending into sub-concepts not present in graph_context",
+                    "using global backbone-only concepts for diagnosis scope",
+                    "creating a near-duplicate of a previous_reuse_key question",
+                ],
+            },
             "language_policy": {
                 "default_response_language": "Korean",
                 "apply_to": [

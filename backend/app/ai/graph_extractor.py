@@ -740,11 +740,9 @@ def _sanitize_page_refs(page_refs: Any) -> list[int]:
 def _determine_core_limit(total_concepts: int, max_core_concepts: int) -> int:
     if total_concepts <= 0:
         return 0
-    if total_concepts <= 5:
-        return min(total_concepts, max_core_concepts)
-    if total_concepts <= 8:
-        return min(total_concepts, max_core_concepts)
-    return min(8, total_concepts, max_core_concepts)
+    if max_core_concepts <= 0:
+        return 0
+    return min(total_concepts, max_core_concepts)
 
 
 # 문자열 정리 함수
