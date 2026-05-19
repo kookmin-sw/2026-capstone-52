@@ -8165,7 +8165,8 @@ a {
   font-weight: 800;
 }
 
-.diagnosis-flow-question-card h2 {
+.diagnosis-flow-question-card h2,
+.diagnosis-flow-question-title {
   margin: 0;
   max-width: 58rem;
   color: #202039;
@@ -8701,7 +8702,8 @@ a {
   color: #e36b7f;
 }
 
-.diagnosis-flow-review-card h2 {
+.diagnosis-flow-review-card h2,
+.diagnosis-flow-review-question {
   margin: 0;
   color: #202039;
   font-size: 1.16rem;
@@ -9007,7 +9009,8 @@ a {
     padding: 1.3rem;
   }
 
-  .diagnosis-flow-question-card h2 {
+  .diagnosis-flow-question-card h2,
+  .diagnosis-flow-question-title {
     font-size: 1.33rem;
   }
 
