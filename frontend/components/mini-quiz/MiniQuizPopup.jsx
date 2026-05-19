@@ -516,6 +516,10 @@ export default function MiniQuizPopup({
                         : summary.answerScore !== null
                           ? ` · 점수 ${Number(summary.answerScore).toFixed(2)}`
                           : ""}
+                      {summary.updatedNode?.understanding_score !== undefined &&
+                      summary.updatedNode?.understanding_score !== null
+                        ? ` · 이해도 ${Number(summary.updatedNode.understanding_score).toFixed(2)}`
+                        : ""}
                       {summary.updatedNode?.status ? ` · ${summary.updatedNode.status}` : ""}
                     </span>
                     {summary.resultMessage ? <small>{summary.resultMessage}</small> : null}
