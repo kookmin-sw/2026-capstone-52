@@ -516,7 +516,7 @@ export default function MiniQuizPopup({
 
         {step === "quiz" && question ? (
           <div className="mini-quiz-popup-body">
-            <h2 className="mini-quiz-popup-question">{question.question}</h2>
+            <MarkdownContent content={question.question} className="mini-quiz-popup-question" />
             <div className="mini-quiz-popup-choices">
               {choices.map((choice, index) => (
                 <button
@@ -528,7 +528,7 @@ export default function MiniQuizPopup({
                   onClick={() => toggleChoice(choice.id)}
                 >
                   <span className="mini-quiz-popup-choice-index">{String.fromCharCode(65 + index)}</span>
-                  <span className="mini-quiz-popup-choice-text">{choice.label}</span>
+                  <MarkdownContent content={choice.label} className="mini-quiz-popup-choice-text" />
                 </button>
               ))}
             </div>
@@ -606,8 +606,9 @@ export default function MiniQuizPopup({
           <div className="mini-quiz-popup-body">
             <section className="mini-quiz-popup-answer-item">
               <h3>
-                {answerIndex + 1} / {submittedResults.length}. {currentAnswer.question.question}
+                {answerIndex + 1} / {submittedResults.length}.
               </h3>
+              <MarkdownContent content={currentAnswer.question.question} />
               <div className="mini-quiz-popup-choices">
                 {currentAnswer.choices.map((choice) => {
                   const correctOptionIds = Array.isArray(currentAnswer.result?.correct_option_ids)
@@ -624,7 +625,7 @@ export default function MiniQuizPopup({
 
                   return (
                     <div key={choice.id} className={`mini-quiz-popup-choice mini-quiz-popup-choice-static ${tone}`}>
-                      <span>{choice.label}</span>
+                      <MarkdownContent content={choice.label} />
                       {wasSelected ? <span className="mini-quiz-popup-selected-check">✓</span> : null}
                     </div>
                   );

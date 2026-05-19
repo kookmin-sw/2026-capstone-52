@@ -34,7 +34,7 @@ export default function QuizReviewPopup({ entry, onClose }) {
     >
       <div className="quiz-review-popup-card">
         <div className="quiz-review-popup-body">
-          <h2 className="quiz-review-popup-question">{entry.question}</h2>
+          <MarkdownContent content={entry.question} className="quiz-review-popup-question" />
 
           <div className="quiz-review-popup-choices">
             {choices.map((choice, index) => {
@@ -47,7 +47,7 @@ export default function QuizReviewPopup({ entry, onClose }) {
               return (
                 <div key={choice.option_id || index} className={`quiz-review-popup-choice ${tone}`}>
                   <span className="quiz-review-popup-choice-index">{String.fromCharCode(65 + index)}</span>
-                  <span className="quiz-review-popup-choice-text">{choice.text}</span>
+                  <MarkdownContent content={choice.text} className="quiz-review-popup-choice-text" />
                   {choice.is_selected ? <span className="quiz-review-popup-selected-check">✓</span> : null}
                 </div>
               );

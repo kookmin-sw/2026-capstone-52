@@ -134,26 +134,6 @@ function CelebrationMark() {
   );
 }
 
-function renderQuestionPrompt(prompt) {
-  if (!prompt) {
-    return null;
-  }
-
-  const parts = prompt.split(/('.*?')/g).filter(Boolean);
-
-  return parts.map((part, index) => {
-    if (part.startsWith("'") && part.endsWith("'")) {
-      return (
-        <span key={`${part}-${index}`} className="diagnosis-flow-question-highlight">
-          {part.slice(1, -1)}
-        </span>
-      );
-    }
-
-    return <span key={`${part}-${index}`}>{part}</span>;
-  });
-}
-
 function getConceptStatusText(concept) {
   if (concept.tone === diagnosisStatusMap.understood.tone) {
     return "✓ 이해";
@@ -1137,7 +1117,7 @@ export default function DiagnosisPageView({ projectId }) {
                 <span>🎯 {projectData.title}</span>
               </div>
 
-              <h2>{renderQuestionPrompt(currentQuestion.prompt)}</h2>
+              <MarkdownContent content={currentQuestion.prompt} className="diagnosis-flow-question-title" />
               {diagnosisError ? <p className="diagnosis-flow-error">{diagnosisError}</p> : null}
 
               {currentQuestion.type === "multiple-choice" ? (
@@ -1153,7 +1133,7 @@ export default function DiagnosisPageView({ projectId }) {
                       disabled={isQuestionTransitionLoading}
                     >
                       <span className="diagnosis-flow-choice-index">{String.fromCharCode(65 + index)}</span>
-                      <span>{choice.label}</span>
+                      <MarkdownContent content={choice.label} />
                       {selectedChoiceIds.includes(choice.id) ? <span className="diagnosis-flow-choice-check">✓</span> : null}
                     </button>
                   ))}
@@ -1310,7 +1290,10 @@ export default function DiagnosisPageView({ projectId }) {
                       {currentDiagnosisReviewItem.is_fully_correct ? "정답" : "오답"}
                     </b>
                   </div>
-                  <h2>{currentDiagnosisReviewItem.question}</h2>
+                  <MarkdownContent
+                    content={currentDiagnosisReviewItem.question}
+                    className="diagnosis-flow-review-question"
+                  />
 
                   <div className="diagnosis-flow-review-choices">
                     {currentDiagnosisReviewChoices.map((choice, choiceIndex) => {
@@ -1327,7 +1310,7 @@ export default function DiagnosisPageView({ projectId }) {
                       return (
                         <div key={choice.option_id || choiceIndex} className={choiceClassName}>
                           <span className="diagnosis-flow-review-choice-index">{choiceIndex + 1}</span>
-                          <span className="diagnosis-flow-review-choice-text">{choice.text}</span>
+                          <MarkdownContent content={choice.text} className="diagnosis-flow-review-choice-text" />
                           <span className="diagnosis-flow-review-choice-tags">
                             {isAnswer ? <b className="diagnosis-flow-review-tag-correct">정답</b> : null}
                             {isSelected ? <b className="diagnosis-flow-review-tag-selected">내 선택</b> : null}
