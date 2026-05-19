@@ -5,6 +5,7 @@
 
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sqlalchemy.orm import Session
 from app.models.file import File
 from app.models.graph import ConceptNode, ConceptEdge
@@ -314,7 +315,7 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
 
 
 def pregenerate_core_questions(project_id: int, file_id: str, db: Session) -> None:
-    """PDF 분석 완료 시점에 핵심 개념 문제 미리 생성 — 진단 시작 시 즉시 제공하기 위함"""
+    """PDF 분석 완료 시점에 핵심 개념 문제 병렬 생성 — 진단 시작 시 즉시 제공하기 위함"""
     diagnosed_file_ids = {
         row.file_id
         for row in db.query(File.file_id)
@@ -339,16 +340,45 @@ def pregenerate_core_questions(project_id: int, file_id: str, db: Session) -> No
     all_nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     graph_context = _build_graph_context(project_id, all_nodes)
 
+    target_node_ids = [
+        node.node_id for node in core_nodes
+        if not _has_question_for_node(node.node_id, db, diagnosis_purpose="concept_check")
+    ]
+    if not target_node_ids:
+        return
+
+    with ThreadPoolExecutor(max_workers=len(target_node_ids)) as executor:
+        futures = [
+            executor.submit(_pregenerate_single_node, project_id, node_id, graph_context)
+            for node_id in target_node_ids
+        ]
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception:
+                pass
+
+
+def _pregenerate_single_node(project_id: int, node_id: str, graph_context: dict) -> None:
+    """단일 노드 문제 생성 — 독립 DB 세션 사용 (ThreadPoolExecutor 병렬 처리용)"""
+    from app.db.session import SessionLocal
+    db = SessionLocal()
     try:
-        _ensure_core_questions_generated(
-            project_id=project_id,
-            core_nodes=core_nodes,
+        node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
+        if not node:
+            return
+        if _has_question_for_node(node_id, db, diagnosis_purpose="concept_check"):
+            return
+        _generate_and_store_question(
+            target_node=node,
             graph_context=graph_context,
-            session_id=None,
             db=db,
+            diagnosis_purpose="concept_check",
         )
     except Exception:
         pass
+    finally:
+        db.close()
 
 
 def generate_followup_question_background(
