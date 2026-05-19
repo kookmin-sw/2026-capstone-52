@@ -364,7 +364,7 @@ def pregenerate_core_questions(project_id: int, file_id: str, db: Session) -> No
 
     target_node_ids = [
         node.node_id for node in core_nodes
-        if not _has_question_for_node(node.node_id, db, diagnosis_purpose="concept_check")
+        if not _has_unanswered_question_for_node(node.node_id, db, diagnosis_purpose="concept_check")
     ]
     if not target_node_ids:
         return
@@ -389,7 +389,7 @@ def _pregenerate_single_node(project_id: int, node_id: str, graph_context: dict)
         node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
         if not node:
             return
-        if _has_question_for_node(node_id, db, diagnosis_purpose="concept_check"):
+        if _has_unanswered_question_for_node(node_id, db, diagnosis_purpose="concept_check"):
             return
         _generate_and_store_question(
             target_node=node,
