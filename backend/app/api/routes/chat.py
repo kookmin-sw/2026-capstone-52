@@ -5,19 +5,20 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, get_optional_current_user
 from app.db.session import get_db
-from app.schemas.chat import ChatRequest, ChatSessionCreate, ChatSessionResponse
+from app.schemas.chat import ChatRequest
+from app.models.chat import Chat
 from app.models.project import Project
 from app.models.user import User
 from app.ai.chat_ai import process_chat
+from app.ai.title_ai import generate_chat_title
 from app.services.chat_service import (
     build_chat_context,
     save_chat,
     get_chats_by_project,
-    create_chat_session,
-    get_chat_sessions_by_project,
     get_chats_by_session,
     get_chat_session,
     get_or_create_default_session,
+    update_chat_session_title,
 )
 from app.services.concept_quiz_counter_service import (
     TURN_CHECK_INTERVAL,
@@ -66,6 +67,10 @@ def chat(
         chat_session = get_or_create_default_session(db, project_id)
     resolved_session_id = chat_session.id
 
+    is_first_message = (
+        db.query(Chat).filter(Chat.session_id == resolved_session_id).count() == 0
+    )
+
     chat_context = build_chat_context(
         db=db,
         project_id=project_id,
@@ -105,6 +110,11 @@ def chat(
         user_id=user_id,
         session_id=resolved_session_id,
     )
+
+    if is_first_message:
+        new_title = generate_chat_title(body.message)
+        chat_session = update_chat_session_title(db, chat_session, new_title)
+
     turn_count = get_project_turn_count(db, project_id)
     recent_assistant_messages = get_recent_assistant_messages(
         db=db,
@@ -131,6 +141,7 @@ def chat(
     data = {
         "chat_id": chat_log.chat_id,
         "session_id": resolved_session_id,
+        "session_title": chat_session.title,
         "user_id": chat_log.user_id,
         "project_id": chat_log.project_id,
         "user_message": chat_log.user_message,
