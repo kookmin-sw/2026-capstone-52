@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 export default function QuizReviewPopup({ entry, onClose }) {
   useEffect(() => {
@@ -51,7 +52,14 @@ export default function QuizReviewPopup({ entry, onClose }) {
                 </div>
               );
             })}
-        </div>
+          </div>
+
+          {entry.explanation ? (
+            <section className="quiz-review-popup-explanation">
+              <h3>해설</h3>
+              <MarkdownContent content={entry.explanation} />
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ export type KnowledgeGraphNode = {
   size: number;
   color: string;
   isCore?: boolean;
+  isProjectRoot?: boolean;
 };
 
 export type KnowledgeGraphEdge = {
@@ -38,6 +39,7 @@ type KnowledgeGraphSceneProps = {
   labelVariant?: "dark" | "light";
   nodeSizeScale?: number;
   autoFitDuration?: number;
+  autoFitOnMount?: boolean;
 };
 
 type ForceNode = KnowledgeGraphNode & {
@@ -100,9 +102,12 @@ export default function KnowledgeGraphScene({
   labelVariant = "dark",
   nodeSizeScale = 1,
   autoFitDuration = 420,
+  autoFitOnMount = false,
 }: KnowledgeGraphSceneProps) {
   const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const hasHandledInitialFitRef = useRef(false);
+  const previousResetViewKeyRef = useRef<string | number | undefined>(resetViewKey);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string | null>(null);
@@ -128,7 +133,7 @@ export default function KnowledgeGraphScene({
           y: seedY,
           __seedX: seedX,
           __seedY: seedY,
-          val: Math.max(1.2, Math.min(7.5, (node.isCore ? 1.25 : 1) * node.size)),
+          val: Math.max(1.2, Math.min(7.5, (node.isProjectRoot ? 1.25 : 1) * node.size)),
           searchText: node.label.toLowerCase(),
         };
       }),
@@ -200,7 +205,7 @@ export default function KnowledgeGraphScene({
       const source = link.source as ForceNode | undefined;
       const target = link.target as ForceNode | undefined;
 
-      if (source?.isCore || target?.isCore) {
+      if (source?.isProjectRoot || target?.isProjectRoot) {
         return compact ? 38 : 78;
       }
 
@@ -232,12 +237,23 @@ export default function KnowledgeGraphScene({
       return;
     }
 
+    const resetViewChanged =
+      hasHandledInitialFitRef.current && resetViewKey !== previousResetViewKeyRef.current;
+    const shouldFitView = !hasHandledInitialFitRef.current ? autoFitOnMount : resetViewChanged;
+
+    hasHandledInitialFitRef.current = true;
+    previousResetViewKeyRef.current = resetViewKey;
+
+    if (!shouldFitView) {
+      return;
+    }
+
     const timer = window.setTimeout(() => {
       fitGraphToView();
     }, 220);
 
     return () => window.clearTimeout(timer);
-  }, [dimensions.height, dimensions.width, fitGraphToView, graphData, resetViewKey]);
+  }, [autoFitOnMount, dimensions.height, dimensions.width, fitGraphToView, graphData.nodes.length, resetViewKey]);
 
   useEffect(() => {
     if (!focusNodeId || !graphRef.current) {
@@ -300,13 +316,18 @@ export default function KnowledgeGraphScene({
         dimmedNodeIdSet.has(sourceId) ||
         dimmedNodeIdSet.has(targetId) ||
         (Boolean(activeSelectedNodeId) && !isSelectedLink);
+      const isProjectLink = Boolean(source?.isProjectRoot || target?.isProjectRoot);
 
       ctx.save();
       ctx.globalAlpha = isDimmed ? 0.12 : 1;
       ctx.strokeStyle = isSelectedLink
-        ? isLight
-          ? "rgba(129,124,242,0.68)"
-          : "rgba(245,211,138,0.58)"
+        ? isProjectLink
+          ? isLight
+            ? "rgba(201,154,62,0.58)"
+            : "rgba(245,211,138,0.58)"
+          : isLight
+            ? "rgba(129,124,242,0.68)"
+            : "rgba(160,196,255,0.56)"
         : isLight
           ? "rgba(116,112,139,0.24)"
           : "rgba(160,196,255,0.18)";
@@ -333,14 +354,16 @@ export default function KnowledgeGraphScene({
       ctx.save();
       ctx.globalAlpha = isDimmed ? 0.18 : 1;
 
-      if (forceNode.isCore || isSelected || isHovered) {
+      if (forceNode.isProjectRoot || isSelected || isHovered) {
         ctx.beginPath();
-        ctx.arc(forceNode.x!, forceNode.y!, radius + (forceNode.isCore ? 5.5 : 3.5), 0, Math.PI * 2);
+        ctx.arc(forceNode.x!, forceNode.y!, radius + (forceNode.isProjectRoot ? 5.5 : 3.5), 0, Math.PI * 2);
         ctx.fillStyle = isSelected
-          ? isLight
-            ? "rgba(129,124,242,0.18)"
-            : "rgba(245,211,138,0.16)"
-          : forceNode.isCore
+          ? forceNode.isProjectRoot
+            ? isLight
+              ? "rgba(201,154,62,0.18)"
+              : "rgba(245,211,138,0.16)"
+            : `${forceNode.color}24`
+          : forceNode.isProjectRoot
             ? `${CORE_RING_COLOR}34`
             : `${forceNode.color}22`;
         ctx.fill();
@@ -350,9 +373,11 @@ export default function KnowledgeGraphScene({
         ctx.beginPath();
         ctx.arc(forceNode.x!, forceNode.y!, radius + (isSelected ? 4.5 : 3), 0, Math.PI * 2);
         ctx.strokeStyle = isSelected
-          ? isLight
-            ? "rgba(129,124,242,0.72)"
-            : "rgba(245,211,138,0.68)"
+          ? forceNode.isProjectRoot
+            ? isLight
+              ? "rgba(201,154,62,0.72)"
+              : "rgba(245,211,138,0.68)"
+            : forceNode.color
           : "rgba(255,255,255,0.48)";
         ctx.lineWidth = (isSelected ? 1.45 : 1.05) / globalScale;
         ctx.stroke();
@@ -362,11 +387,11 @@ export default function KnowledgeGraphScene({
       ctx.arc(forceNode.x!, forceNode.y!, radius, 0, Math.PI * 2);
       ctx.fillStyle = forceNode.color;
       ctx.shadowColor = forceNode.color;
-      ctx.shadowBlur = isSelected ? 7 : forceNode.isCore ? 4 : compact ? 0.8 : 1.5;
+      ctx.shadowBlur = isSelected ? 7 : forceNode.isProjectRoot ? 4 : compact ? 0.8 : 1.5;
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      if (forceNode.isCore) {
+      if (forceNode.isProjectRoot) {
         ctx.strokeStyle = CORE_RING_COLOR;
         ctx.lineWidth = 1.35 / globalScale;
         ctx.stroke();
@@ -375,14 +400,14 @@ export default function KnowledgeGraphScene({
       const shouldDrawLabel =
         showLabels &&
         forceNode.label &&
-        (globalScale > 0.72 || isSelected || isHovered || forceNode.isCore);
+        (globalScale > 0.72 || isSelected || isHovered || forceNode.isProjectRoot);
 
       if (shouldDrawLabel) {
         const labelScale = Math.max(0.5, Math.min(0.92, 1 / globalScale));
-        const fontSize = (isSelected ? 11.8 : forceNode.isCore ? 10.6 : 9.3) * labelScale;
-        const label = truncateLabel(forceNode.label, forceNode.isCore ? 24 : 18);
+        const fontSize = (isSelected ? 11.8 : forceNode.isProjectRoot ? 10.6 : 9.3) * labelScale;
+        const label = truncateLabel(forceNode.label, forceNode.isProjectRoot ? 24 : 18);
 
-        ctx.font = `${isSelected || forceNode.isCore ? 700 : 560} ${fontSize}px "Pretendard Variable", system-ui, sans-serif`;
+        ctx.font = `${isSelected || forceNode.isProjectRoot ? 700 : 560} ${fontSize}px "Pretendard Variable", system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillStyle = isLight

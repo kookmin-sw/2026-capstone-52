@@ -17,6 +17,7 @@ export type ProjectKnowledgeGraphNode = {
   size: number;
   color: string;
   isCore?: boolean;
+  isProjectRoot?: boolean;
   kind: "concept" | "chat" | "project";
   subtitle: string;
   description: string;
@@ -77,6 +78,8 @@ type IntegratedProjectGraphInput = {
   project: ProjectDataInput;
   graph: ProjectKnowledgeGraphData;
 };
+
+const PROJECT_ROOT_NODE_COLOR = "#f5d38a";
 
 type GraphConceptPreset = {
   key: string;
@@ -2243,6 +2246,8 @@ export function buildBackendKnowledgeGraph(
 
   const nodesById = new Map(backendGraph.nodes.map((node) => [node.node_id, node]));
   const relatedIdsByNode = new Map<string, string[]>();
+  const coreSlot = getGraphLayoutSlot(dashboardGraphSlotIds.core);
+  const hasExplicitCoreNode = backendGraph.nodes.some((node) => Boolean(node.is_core));
 
   (backendGraph.edges || []).forEach((edge) => {
     if (!nodesById.has(edge.source_node_id) || !nodesById.has(edge.target_node_id)) {
@@ -2261,10 +2266,9 @@ export function buildBackendKnowledgeGraph(
 
   const uiNodes = backendGraph.nodes.map((node, index) => {
     const displayLabel = node.display_name || node.korean_name || node.name || node.concept_id || node.node_id;
-    const slot =
-      getGraphLayoutSlot(index === 0 ? dashboardGraphSlotIds.core : dashboardGraphSlotIds.concept[(index - 1) % dashboardGraphSlotIds.concept.length]);
+    const slot = getGraphLayoutSlot(dashboardGraphSlotIds.concept[index % dashboardGraphSlotIds.concept.length]);
     const fallbackAngle = (Math.PI * 2 * index) / Math.max(backendGraph.nodes!.length, 1);
-    const fallbackRadius = index === 0 ? 0 : 0.28;
+    const fallbackRadius = 0.28;
     const x = slot?.x ?? 0.5 + Math.cos(fallbackAngle) * fallbackRadius;
     const y = slot?.y ?? 0.5 + Math.sin(fallbackAngle) * fallbackRadius;
     const chatEvents = chats.flatMap((chat) => {
@@ -2294,9 +2298,9 @@ export function buildBackendKnowledgeGraph(
       label: displayLabel,
       x,
       y,
-      size: (slot?.size || 1) + (index === 0 ? 0.55 : 0.18),
+      size: (slot?.size || 1) + 0.18,
       color: slot?.color || "#8b5cf6",
-      isCore: node.is_core ?? (index === 0),
+      isCore: hasExplicitCoreNode ? Boolean(node.is_core) : index === 0,
       kind: "concept" as const,
       subtitle: node.group || node.status || "개념 노드",
       description: node.description || "아직 개념 설명이 없습니다.",
@@ -2309,18 +2313,41 @@ export function buildBackendKnowledgeGraph(
       diagnosisCount: node.diagnosis_count ?? null,
     };
   });
+  const coreConceptIds = uiNodes.filter((node) => node.isCore).map((node) => node.id);
+  const projectRootNode: ProjectKnowledgeGraphNode = {
+    id: `${projectData.projectId}-project-root`,
+    label: projectData.title,
+    x: coreSlot?.x ?? 0.5,
+    y: coreSlot?.y ?? 0.5,
+    size: (coreSlot?.size || 1) + 0.8,
+    color: PROJECT_ROOT_NODE_COLOR,
+    isProjectRoot: true,
+    kind: "project",
+    subtitle: "프로젝트 중심",
+    description: `${projectData.title} 프로젝트의 전체 지식 그래프입니다.`,
+    relatedConceptIds: coreConceptIds.length ? coreConceptIds : uiNodes.map((node) => node.id),
+    relatedLearningEvents: [],
+    keywords: [projectData.title],
+  };
+  const projectRootEdges = projectRootNode.relatedConceptIds.map((nodeId) => ({
+    source: projectRootNode.id,
+    target: nodeId,
+  }));
 
   return {
-    nodes: uiNodes,
+    nodes: [projectRootNode, ...uiNodes],
     edges: uniqueEdges(
-      (backendGraph.edges || [])
+      [
+        ...projectRootEdges,
+        ...(backendGraph.edges || [])
         .filter((edge) => nodesById.has(edge.source_node_id) && nodesById.has(edge.target_node_id))
         .map((edge) => ({
           source: edge.source_node_id,
           target: edge.target_node_id,
-        }))
+        })),
+      ]
     ),
-    defaultSelectedNodeId: uiNodes[0]?.id || null,
+    defaultSelectedNodeId: projectRootNode.id,
   } satisfies ProjectKnowledgeGraphData;
 }
 
@@ -2350,7 +2377,7 @@ export function buildIntegratedKnowledgeGraph(projectGraphs: IntegratedProjectGr
         id: `${project.projectId}::${node.id}`,
         x: Math.min(Math.max(center.x + offsetX + (node.x - 0.5) * clusterScale, 0.06), 0.94),
         y: Math.min(Math.max(center.y + offsetY + (node.y - 0.5) * clusterScale, 0.08), 0.92),
-        size: node.isCore ? node.size * 0.82 : node.size * 0.72,
+        size: node.isProjectRoot ? node.size * 0.82 : node.size * 0.72,
         subtitle: `${project.title} · ${node.subtitle}`,
         relatedConceptIds: node.relatedConceptIds.map((nodeId) => `${project.projectId}::${nodeId}`),
       });
@@ -2367,6 +2394,6 @@ export function buildIntegratedKnowledgeGraph(projectGraphs: IntegratedProjectGr
   return {
     nodes: uniqueById(nodes),
     edges: uniqueEdges(edges),
-    defaultSelectedNodeId: nodes.find((node) => node.isCore)?.id || nodes[0]?.id || null,
+    defaultSelectedNodeId: nodes.find((node) => node.isProjectRoot)?.id || nodes[0]?.id || null,
   } satisfies ProjectKnowledgeGraphData;
 }

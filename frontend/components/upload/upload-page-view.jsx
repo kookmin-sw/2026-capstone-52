@@ -8,7 +8,6 @@ import WorkspaceProfileCard from "@/components/dashboard/WorkspaceProfileCard";
 import { getProjectChats, getProjects } from "../../features/dashboard/service";
 import { getProjectData } from "../../features/project/model";
 import {
-  hasCompletedAnalysis,
   isBackendApiEnabled,
   listProjectFiles,
   refreshAnalysisStatuses,
@@ -62,6 +61,7 @@ export default function UploadPageView({ initialProjectId = null }) {
   const fileInputRef = useRef(null);
   const fileTableRef = useRef(null);
   const loggedGraphUpdateFileIdsRef = useRef(new Set());
+  const currentUploadFileIdsRef = useRef(new Set());
   const [projectId, setProjectId] = useState(initialProjectId);
   const [projectTitle, setProjectTitle] = useState("");
   const [projects, setProjects] = useState([]);
@@ -126,6 +126,7 @@ export default function UploadPageView({ initialProjectId = null }) {
       setIsSubmitting(false);
       setCanStartDiagnosis(false);
       setUploadFeedback(null);
+      currentUploadFileIdsRef.current = new Set();
       return;
     }
 
@@ -134,16 +135,19 @@ export default function UploadPageView({ initialProjectId = null }) {
     async function loadFiles() {
       try {
         const files = await listProjectFiles(projectId, projectTitle || "새 프로젝트");
-        const hasCompleted = await hasCompletedAnalysis(projectId);
         const chats = await getProjectChats(projectId);
 
         if (!isMounted) {
           return;
         }
 
+        currentUploadFileIdsRef.current = new Set();
+        files
+          .filter((file) => file.rawStatus === "DONE" || file.statusTone === "done")
+          .forEach((file) => loggedGraphUpdateFileIdsRef.current.add(file.id));
         setUploadedFiles(files);
         setRecentChats(chats);
-        setCanStartDiagnosis(hasCompleted);
+        setCanStartDiagnosis(false);
         setUploadFeedback(null);
       } catch (error) {
         console.error(error);
@@ -181,8 +185,10 @@ export default function UploadPageView({ initialProjectId = null }) {
     const timer = window.setInterval(async () => {
       try {
         const files = await refreshAnalysisStatuses(projectId, uploadedFiles);
+        const currentUploadFileIds = currentUploadFileIdsRef.current;
         const completedFiles = files.filter((file) => file.rawStatus === "DONE" || file.statusTone === "done");
-        const newlyCompletedFiles = completedFiles.filter((file) => !loggedGraphUpdateFileIdsRef.current.has(file.id));
+        const completedCurrentUploadFiles = completedFiles.filter((file) => currentUploadFileIds.has(file.id));
+        const newlyCompletedFiles = completedCurrentUploadFiles.filter((file) => !loggedGraphUpdateFileIdsRef.current.has(file.id));
 
         if (newlyCompletedFiles.length) {
           newlyCompletedFiles.forEach((file) => loggedGraphUpdateFileIdsRef.current.add(file.id));
@@ -194,7 +200,7 @@ export default function UploadPageView({ initialProjectId = null }) {
         }
 
         setUploadedFiles(files);
-        setCanStartDiagnosis(completedFiles.length > 0);
+        setCanStartDiagnosis(completedCurrentUploadFiles.length > 0);
       } catch (error) {
         console.error(error);
       }
@@ -295,11 +301,19 @@ export default function UploadPageView({ initialProjectId = null }) {
         uploaded.map((file) => file.id),
         projectTitle || "새 프로젝트"
       );
-      const hasCompleted = await hasCompletedAnalysis(projectId);
+      const uploadedFileIds = new Set(uploaded.map((file) => file.id));
+      currentUploadFileIdsRef.current = new Set([
+        ...currentUploadFileIdsRef.current,
+        ...uploadedFileIds,
+      ]);
+      const currentUploadFileIds = currentUploadFileIdsRef.current;
+      const hasCompletedCurrentUpload = nextFiles.some(
+        (file) => currentUploadFileIds.has(file.id) && (file.rawStatus === "DONE" || file.statusTone === "done")
+      );
 
       setUploadedFiles(nextFiles);
       setPendingFiles([]);
-      setCanStartDiagnosis(hasCompleted);
+      setCanStartDiagnosis(hasCompletedCurrentUpload);
 
       window.setTimeout(() => {
         fileTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import MarkdownContent from "@/components/common/MarkdownContent";
 import EeumIcon from "@/components/common/EeumIcon";
 import { LandingBackgroundLayer } from "@/components/landing/landing-background-layer";
 import {
@@ -20,6 +21,7 @@ import {
   createApiDiagnosisSession,
   createApiDiagnosisQuestion,
   createApiDiagnosisReport,
+  getApiDiagnosisReview,
   getApiDiagnosisNodes,
   getApiDiagnosisStatus,
   isDiagnosisBackendApiEnabled,
@@ -203,6 +205,57 @@ function buildDashboardChatId(projectId, chatSessionId) {
   return `${projectId}-session-${chatSessionId}`;
 }
 
+function areSameChoiceSets(leftIds, rightIds) {
+  const left = new Set((leftIds || []).map(String));
+  const right = new Set((rightIds || []).map(String));
+
+  return left.size === right.size && Array.from(left).every((choiceId) => right.has(choiceId));
+}
+
+function buildMockDiagnosisReviewItems(session, answers) {
+  return (session.questions || []).map((question) => {
+    const selectedChoiceIds = getSelectedChoiceIds(answers[question.id]);
+    const correctChoiceIds =
+      question.correctChoiceIds || question.correct_choice_ids || (question.correctChoiceId ? [question.correctChoiceId] : []);
+    const normalizedCorrectChoiceIds = correctChoiceIds.map(String);
+    const normalizedSelectedChoiceIds = selectedChoiceIds.map(String);
+
+    return {
+      question_id: question.id,
+      concept_id: Array.isArray(question.conceptIds) ? question.conceptIds[0] : question.node_id,
+      question: question.prompt,
+      choices: (question.choices || [])
+        .filter((choice) => choice.id !== "unknown")
+        .map((choice) => ({
+          option_id: choice.optionId || choice.id,
+          text: choice.label || choice.text || "",
+          is_correct: normalizedCorrectChoiceIds.includes(String(choice.id)),
+          is_selected: normalizedSelectedChoiceIds.includes(String(choice.id)),
+        })),
+      correct_option_ids: normalizedCorrectChoiceIds,
+      selected_option_ids: normalizedSelectedChoiceIds,
+      is_fully_correct: areSameChoiceSets(normalizedSelectedChoiceIds, normalizedCorrectChoiceIds),
+      explanation: question.explanation || "",
+    };
+  });
+}
+
+function getDiagnosisReviewExplanation(item) {
+  const candidates = [
+    item?.explanation,
+    item?.answer_explanation,
+    item?.answerExplanation,
+    item?.solution,
+    item?.solution_text,
+    item?.solutionText,
+    item?.reason,
+  ];
+
+  const explanation = candidates.find((value) => typeof value === "string" && value.trim());
+
+  return explanation || "";
+}
+
 export default function DiagnosisPageView({ projectId }) {
   const router = useRouter();
   const [projectData, setProjectData] = useState(() => {
@@ -220,9 +273,10 @@ export default function DiagnosisPageView({ projectId }) {
   const [isQuestionTransitionLoading, setIsQuestionTransitionLoading] = useState(false);
   const [isFollowUpQuestion, setIsFollowUpQuestion] = useState(false);
   const [diagnosisError, setDiagnosisError] = useState(null);
-  const [diagnosisReport, setDiagnosisReport] = useState(null);
-  const [diagnosisReportError, setDiagnosisReportError] = useState(null);
-  const [diagnosisUpdatedNodes, setDiagnosisUpdatedNodes] = useState([]);
+  const [diagnosisReviewItems, setDiagnosisReviewItems] = useState([]);
+  const [diagnosisReviewIndex, setDiagnosisReviewIndex] = useState(0);
+  const [isDiagnosisReviewLoading, setIsDiagnosisReviewLoading] = useState(false);
+  const [diagnosisReviewError, setDiagnosisReviewError] = useState(null);
   const initializedDiagnosisSessionRef = useRef(null);
   const initialQuestionRequestRef = useRef(null);
   const questionTransitionTimeoutRef = useRef(null);
@@ -323,6 +377,10 @@ export default function DiagnosisPageView({ projectId }) {
       setIsInitialQuestionLoading(false);
       setIsQuestionTransitionLoading(false);
       setIsFollowUpQuestion(false);
+      setDiagnosisReviewItems([]);
+      setDiagnosisReviewIndex(0);
+      setDiagnosisReviewError(null);
+      setIsDiagnosisReviewLoading(false);
       return;
     }
 
@@ -334,6 +392,10 @@ export default function DiagnosisPageView({ projectId }) {
     setQuestionIndex(0);
     setStep("intro");
     setDiagnosisError(null);
+    setDiagnosisReviewItems([]);
+    setDiagnosisReviewIndex(0);
+    setDiagnosisReviewError(null);
+    setIsDiagnosisReviewLoading(false);
     setIsInitialQuestionLoading(false);
     setIsQuestionTransitionLoading(false);
     setIsFollowUpQuestion(false);
@@ -448,6 +510,9 @@ export default function DiagnosisPageView({ projectId }) {
 
   async function handleStartDiagnosis() {
     setIsFollowUpQuestion(false);
+    setDiagnosisReviewItems([]);
+    setDiagnosisReviewIndex(0);
+    setDiagnosisReviewError(null);
 
     if (!isDiagnosisBackendApiEnabled) {
       setStep("quiz");
@@ -524,7 +589,7 @@ export default function DiagnosisPageView({ projectId }) {
   const selectedChoiceIds = getSelectedChoiceIds(draftAnswer);
   const isCurrentAnswerReady = currentQuestion ? isAnswerReady(currentQuestion, draftAnswer) : false;
   const conceptStatuses = useMemo(
-    () => buildConceptStatuses(session, answers, questionIndex, step === "ready"),
+    () => buildConceptStatuses(session, answers, questionIndex, step === "ready" || step === "review"),
     [answers, questionIndex, session, step]
   );
   const totalQuestionCount = session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
@@ -538,8 +603,6 @@ export default function DiagnosisPageView({ projectId }) {
   const progressPercent = totalQuestionCount
     ? Math.min(Math.max(Math.round((boundedCompletedQuestionCount / totalQuestionCount) * 100), 0), 100)
     : 0;
-  const currentQuestionNumber = Math.min(boundedCompletedQuestionCount + 1, totalQuestionCount);
-  const progressContextText = isFollowUpQuestion ? "보충 확인 중" : "나를 파악하는 중이에요";
 
   function updateCurrentAnswer(value) {
     if (!currentQuestion || isQuestionTransitionLoading) {
@@ -582,7 +645,7 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       if (isDiagnosisBackendApiEnabled && session?.id) {
-        const reportResponse = diagnosisReport || await createApiDiagnosisReport(targetProjectId, session.id);
+        const reportResponse = await createApiDiagnosisReport(targetProjectId, session.id);
         const chatId = buildDashboardChatId(targetProjectId, reportResponse?.chat_session?.id);
         const params = new URLSearchParams({ projectId: String(targetProjectId) });
 
@@ -608,9 +671,47 @@ export default function DiagnosisPageView({ projectId }) {
     }
   }
 
-  function handleViewReview() {
-    // 풀이보기 - 기능 미구현 (UI placeholder)
-    // 추후: GET /diagnosis/{project_id}/sessions/{session_id}/review 연결
+  async function handleViewReview() {
+    if (isDiagnosisReviewLoading) {
+      return;
+    }
+
+    if (diagnosisReviewItems.length) {
+      setDiagnosisReviewIndex((current) => Math.min(current, diagnosisReviewItems.length - 1));
+      setStep("review");
+      return;
+    }
+
+    setDiagnosisReviewError(null);
+
+    if (!isDiagnosisBackendApiEnabled) {
+      setDiagnosisReviewItems(buildMockDiagnosisReviewItems(session, answers));
+      setDiagnosisReviewIndex(0);
+      setStep("review");
+      return;
+    }
+
+    const targetProjectId = projectId || session.projectId || projectData.id;
+
+    if (!targetProjectId || !session?.id) {
+      setDiagnosisReviewError("진단 세션 정보를 찾지 못했습니다.");
+      setStep("review");
+      return;
+    }
+
+    setIsDiagnosisReviewLoading(true);
+
+    try {
+      const reviewItems = await getApiDiagnosisReview(targetProjectId, session.id);
+      setDiagnosisReviewItems(Array.isArray(reviewItems) ? reviewItems : []);
+      setDiagnosisReviewIndex(0);
+      setStep("review");
+    } catch (error) {
+      setDiagnosisReviewError(error instanceof Error ? error.message : "풀이를 불러오지 못했습니다.");
+      setStep("review");
+    } finally {
+      setIsDiagnosisReviewLoading(false);
+    }
   }
 
   async function handleAdvance(nextAnswer = null) {
@@ -658,17 +759,6 @@ export default function DiagnosisPageView({ projectId }) {
             isSkipped,
           }
         );
-        if (Array.isArray(result?.updated_nodes) && result.updated_nodes.length) {
-          setDiagnosisUpdatedNodes((current) => {
-            const nextByNodeId = new Map(current.map((node) => [node.node_id, node]));
-            result.updated_nodes.forEach((node) => {
-              if (node?.node_id) {
-                nextByNodeId.set(node.node_id, node);
-              }
-            });
-            return Array.from(nextByNodeId.values());
-          });
-        }
         const status = await getApiDiagnosisStatus(projectId, session.id).catch(() => null);
         const correctOptionIds = Array.isArray(result.correct_option_ids) ? result.correct_option_ids : [];
         const correctChoiceIdsFromOptions = correctOptionIds.length
@@ -871,12 +961,16 @@ export default function DiagnosisPageView({ projectId }) {
     }, MOCK_QUESTION_TRANSITION_DELAY_MS);
   }
 
-  const reportData = diagnosisReport?.report || null;
-  const reportMessages = Array.isArray(diagnosisReport?.messages) ? diagnosisReport.messages : [];
-  const weakConcepts = Array.isArray(reportData?.weak_concepts) ? reportData.weak_concepts : [];
-  const learningPath = Array.isArray(reportData?.recommended_learning_path)
-    ? reportData.recommended_learning_path
+  const boundedDiagnosisReviewIndex = diagnosisReviewItems.length
+    ? Math.min(Math.max(diagnosisReviewIndex, 0), diagnosisReviewItems.length - 1)
+    : 0;
+  const currentDiagnosisReviewItem = diagnosisReviewItems[boundedDiagnosisReviewIndex] || null;
+  const currentDiagnosisReviewChoices = Array.isArray(currentDiagnosisReviewItem?.choices)
+    ? currentDiagnosisReviewItem.choices
     : [];
+  const currentDiagnosisReviewExplanation = getDiagnosisReviewExplanation(currentDiagnosisReviewItem);
+  const hasPreviousDiagnosisReview = boundedDiagnosisReviewIndex > 0;
+  const hasNextDiagnosisReview = boundedDiagnosisReviewIndex < diagnosisReviewItems.length - 1;
 
   return (
     <main className={`diagnosis-flow-shell diagnosis-flow-shell-${step}`}>
@@ -911,10 +1005,6 @@ export default function DiagnosisPageView({ projectId }) {
                 ? "진단 준비 중"
                 : "진단 시작하기"} <span>→</span>
             </button>
-            <div className="diagnosis-flow-meta">
-              <span>📋 약 15문항</span>
-              <span>🎯 수준 자동 분석</span>
-            </div>
           </div>
         </section>
       ) : null}
@@ -944,9 +1034,6 @@ export default function DiagnosisPageView({ projectId }) {
             <section className="diagnosis-flow-question-card">
               <div className="diagnosis-flow-question-subject">
                 <span>🎯 {projectData.title}</span>
-                <b>
-                  {progressContextText} · {currentQuestionNumber} / {totalQuestionCount}
-                </b>
               </div>
 
               <h2>{renderQuestionPrompt(currentQuestion.prompt)}</h2>
@@ -1038,47 +1125,155 @@ export default function DiagnosisPageView({ projectId }) {
             <CelebrationMark />
             <h1>준비됐어요!</h1>
             <p>이제 대화할 때마다 딱 맞는 설명을 드릴게요</p>
-            {diagnosisUpdatedNodes.length ? (
-              <div className="diagnosis-flow-result-pill">
-                <span>그래프 업데이트</span>
-                <b>{diagnosisUpdatedNodes.length}개 노드 반영</b>
-              </div>
-            ) : null}
-            {reportData ? (
-              <div className="diagnosis-flow-result-pill">
-                <span>진단 리포트</span>
-                <b>{reportData.document_summary || "수준진단 리포트가 생성되었습니다."}</b>
-              </div>
-            ) : reportMessages.length ? (
-              <div className="diagnosis-flow-result-pill">
-                <span>진단 리포트</span>
-                <b>{reportMessages[0]?.ai_response || "수준진단 리포트가 생성되었습니다."}</b>
-              </div>
-            ) : diagnosisReportError ? (
-              <small className="diagnosis-flow-error">{diagnosisReportError}</small>
-            ) : null}
-            {weakConcepts.length || learningPath.length ? (
-              <div className="diagnosis-flow-meta">
-                {weakConcepts.length ? (
-                  <span>보완 개념 {weakConcepts.slice(0, 3).map((item) => item.name).join(", ")}</span>
-                ) : null}
-                {learningPath.length ? (
-                  <span>추천 경로 {learningPath.slice(0, 3).map((item) => item.name).join(" → ")}</span>
-                ) : null}
-              </div>
-            ) : null}
             <div className="diagnosis-flow-ready-actions">
               <button
                 type="button"
-                className="diagnosis-flow-start-button"
+                className="diagnosis-flow-start-button diagnosis-flow-start-button-secondary"
                 onClick={handleViewReview}
+                disabled={isDiagnosisReviewLoading}
               >
-                풀이보기 <span>→</span>
+                {isDiagnosisReviewLoading ? "불러오는 중" : "풀이보기"} <span>→</span>
               </button>
-              <button type="button" className="diagnosis-flow-start-button" onClick={handleStartLearning}>
+              <button
+                type="button"
+                className="diagnosis-flow-start-button diagnosis-flow-start-button-primary"
+                onClick={handleStartLearning}
+              >
                 학습하기 <span>→</span>
               </button>
             </div>
+          </div>
+        </section>
+      ) : null}
+
+      {step === "review" ? (
+        <section className="diagnosis-flow-review">
+          <header className="diagnosis-flow-page-header">
+            <div className="diagnosis-flow-brand">
+              <EeumMark />
+              <strong>이음</strong>
+              <span>/</span>
+              <b>수준 진단 풀이</b>
+            </div>
+          </header>
+
+          <div className="diagnosis-flow-review-wrap">
+            <div className="diagnosis-flow-review-header">
+              <div>
+                <span>진단 결과</span>
+                <h1>풀이를 확인해보세요</h1>
+                <p>
+                  {diagnosisReviewItems.length
+                    ? `${boundedDiagnosisReviewIndex + 1} / ${diagnosisReviewItems.length}`
+                    : "내가 고른 답과 정답을 문제별로 비교할 수 있어요."}
+                </p>
+              </div>
+              <div className="diagnosis-flow-review-actions">
+                <button
+                  type="button"
+                  className="diagnosis-flow-start-button diagnosis-flow-start-button-primary"
+                  onClick={handleStartLearning}
+                >
+                  학습하기 <span>→</span>
+                </button>
+              </div>
+            </div>
+
+            {diagnosisReviewError ? <p className="diagnosis-flow-error">{diagnosisReviewError}</p> : null}
+
+            {isDiagnosisReviewLoading ? (
+              <div className="diagnosis-flow-review-empty">
+                <LoadingThreeDotsJumping />
+              </div>
+            ) : null}
+
+            {!isDiagnosisReviewLoading && !diagnosisReviewError && diagnosisReviewItems.length === 0 ? (
+              <p className="diagnosis-flow-review-empty">풀이 내역이 없습니다.</p>
+            ) : null}
+
+            {!isDiagnosisReviewLoading && currentDiagnosisReviewItem ? (
+              <>
+                <article
+                  key={currentDiagnosisReviewItem.question_id || boundedDiagnosisReviewIndex}
+                  className="diagnosis-flow-review-card"
+                >
+                  <div className="diagnosis-flow-review-question-head">
+                    <span>문제 {boundedDiagnosisReviewIndex + 1}</span>
+                    <b
+                      className={`diagnosis-flow-review-verdict ${
+                        currentDiagnosisReviewItem.is_fully_correct
+                          ? "diagnosis-flow-review-verdict-correct"
+                          : "diagnosis-flow-review-verdict-wrong"
+                      }`}
+                    >
+                      {currentDiagnosisReviewItem.is_fully_correct ? "정답" : "오답"}
+                    </b>
+                  </div>
+                  <h2>{currentDiagnosisReviewItem.question}</h2>
+
+                  <div className="diagnosis-flow-review-choices">
+                    {currentDiagnosisReviewChoices.map((choice, choiceIndex) => {
+                      const isSelected = Boolean(choice.is_selected);
+                      const isAnswer = Boolean(choice.is_correct);
+                      const choiceClassName = [
+                        "diagnosis-flow-review-choice",
+                        isAnswer ? "diagnosis-flow-review-choice-correct" : "",
+                        isSelected && !isAnswer ? "diagnosis-flow-review-choice-wrong" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                      return (
+                        <div key={choice.option_id || choiceIndex} className={choiceClassName}>
+                          <span className="diagnosis-flow-review-choice-index">{choiceIndex + 1}</span>
+                          <span className="diagnosis-flow-review-choice-text">{choice.text}</span>
+                          <span className="diagnosis-flow-review-choice-tags">
+                            {isAnswer ? <b className="diagnosis-flow-review-tag-correct">정답</b> : null}
+                            {isSelected ? <b className="diagnosis-flow-review-tag-selected">내 선택</b> : null}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="diagnosis-flow-review-explanation">
+                    <h3>해설</h3>
+                    {currentDiagnosisReviewExplanation ? (
+                      <MarkdownContent content={currentDiagnosisReviewExplanation} />
+                    ) : (
+                      <p>아직 해설이 준비되지 않았어요.</p>
+                    )}
+                  </div>
+                </article>
+
+                <div className="diagnosis-flow-review-pagination">
+                  <button
+                    type="button"
+                    className="diagnosis-flow-review-page-button"
+                    onClick={() => setDiagnosisReviewIndex((current) => Math.max(0, current - 1))}
+                    disabled={!hasPreviousDiagnosisReview}
+                  >
+                    이전 문제
+                  </button>
+                  <span>
+                    {boundedDiagnosisReviewIndex + 1} / {diagnosisReviewItems.length}
+                  </span>
+                  <span className="diagnosis-flow-review-page-slot">
+                    {hasNextDiagnosisReview ? (
+                      <button
+                        type="button"
+                        className="diagnosis-flow-review-page-button diagnosis-flow-review-page-button-primary"
+                        onClick={() =>
+                          setDiagnosisReviewIndex((current) => Math.min(diagnosisReviewItems.length - 1, current + 1))
+                        }
+                      >
+                        다음 문제
+                      </button>
+                    ) : null}
+                  </span>
+                </div>
+              </>
+            ) : null}
           </div>
         </section>
       ) : null}

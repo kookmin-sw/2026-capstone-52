@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
+import MarkdownContent from "@/components/common/MarkdownContent";
 import {
   generateApiMiniQuizQuestion,
   isMiniQuizBackendApiEnabled,
@@ -177,6 +178,11 @@ export default function MiniQuizPopup({
   }
 
   function completeQuiz(nextSubmittedResults) {
+    const completePayload = {
+      completedNodeIds: Array.from(completedNodeIdsRef.current),
+      results: nextSubmittedResults,
+    };
+
     if (typeof onResult === "function") {
       nextSubmittedResults.forEach((entry) => {
         onResult({
@@ -192,11 +198,9 @@ export default function MiniQuizPopup({
         completedNodeIdsRef.current.add(entry.currentTarget.nodeId);
       }
     });
-    onComplete?.({
-      completedNodeIds: Array.from(completedNodeIdsRef.current),
-      results: nextSubmittedResults,
-    });
-    setStep("complete");
+    completePayload.completedNodeIds = Array.from(completedNodeIdsRef.current);
+    onComplete?.(completePayload);
+    onClose?.(completePayload);
   }
 
   async function submitBackendAnswerGroups(answerEntries) {
@@ -627,7 +631,10 @@ export default function MiniQuizPopup({
                 })}
               </div>
               {currentAnswer.reviewEntry?.explanation ? (
-                <p className="mini-quiz-popup-summary-copy">{currentAnswer.reviewEntry.explanation}</p>
+                <MarkdownContent
+                  content={currentAnswer.reviewEntry.explanation}
+                  className="mini-quiz-popup-summary-markdown"
+                />
               ) : null}
             </section>
             <div className="mini-quiz-popup-actions">

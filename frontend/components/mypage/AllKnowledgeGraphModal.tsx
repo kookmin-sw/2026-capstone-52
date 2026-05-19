@@ -7,7 +7,6 @@ import {
   buildIntegratedKnowledgeGraph,
   buildProjectKnowledgeGraph,
   type ProjectKnowledgeGraphData,
-  type ProjectKnowledgeGraphNode,
 } from "@/features/dashboard/graph";
 import { getProjectChats, getProjectGraphData, getProjects } from "@/features/dashboard/service";
 import EeumIcon from "@/components/common/EeumIcon";
@@ -40,15 +39,6 @@ const fallbackFilters: GraphFilter[] = [
 
 function getProjectId(nodeId: string) {
   return nodeId.includes("::") ? nodeId.split("::")[0] : nodeId;
-}
-
-function getFilterLabel(coreNode: ProjectKnowledgeGraphNode | undefined, fallback: string) {
-  if (!coreNode) {
-    return fallback;
-  }
-
-  const subtitleParts = coreNode.subtitle.split("·").map((part) => part.trim()).filter(Boolean);
-  return subtitleParts[subtitleParts.length - 1] || coreNode.label || fallback;
 }
 
 function EeumMark() {
@@ -105,7 +95,7 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
 
             return {
               id: project.projectId,
-              label: getFilterLabel(coreNode, project.title),
+              label: project.title,
               color: coreNode?.color || "#817cf2",
             };
           });

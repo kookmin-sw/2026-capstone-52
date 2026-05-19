@@ -2370,6 +2370,25 @@ a {
   font-weight: 700;
 }
 
+.workspace-sidebar-heading-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.workspace-sidebar-heading-toggle:hover,
+.workspace-sidebar-heading-toggle:focus-visible {
+  color: #817cf2;
+}
+
+.workspace-sidebar-heading-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .workspace-sidebar-heading-button {
   border: 0;
   background: transparent;
@@ -5880,6 +5899,22 @@ a {
   font-weight: 900;
 }
 
+.workspace-sidebar-heading-toggle {
+  min-height: 1.8rem;
+  border-radius: 0.65rem;
+}
+
+.workspace-sidebar-heading-toggle:hover,
+.workspace-sidebar-heading-toggle:focus-visible {
+  background: rgba(129, 124, 242, 0.08);
+}
+
+.workspace-sidebar-heading-toggle:disabled:hover,
+.workspace-sidebar-heading-toggle:disabled:focus-visible {
+  background: transparent;
+  color: #74708b;
+}
+
 .workspace-sidebar-heading-button,
 .workspace-project-chevron {
   color: #aaa6c0;
@@ -6100,6 +6135,8 @@ a {
 }
 
 .workspace-message-bubble {
+  width: fit-content;
+  max-width: 100%;
   border: 1px solid #ebe9f5;
   border-radius: 1.15rem;
   padding: 1.1rem 1.2rem;
@@ -6195,81 +6232,6 @@ a {
   border-radius: 50%;
   background-color: #8b7ff0;
   will-change: transform;
-}
-
-.workspace-mini-quiz-fly-card {
-  position: fixed;
-  z-index: 95;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.85rem 1rem;
-  border-radius: 0.9rem;
-  border: 1px solid #d8d3f9;
-  background: #fff;
-  box-shadow: 0 18px 42px rgba(84, 80, 177, 0.16);
-  overflow: hidden;
-  transform-origin: center;
-}
-
-.workspace-mini-quiz-fly-card::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 18px;
-  width: 16px;
-  height: 12px;
-  background: #fff;
-  clip-path: polygon(0 0, 100% 0, 40% 100%);
-  border-left: 1px solid #d8d3f9;
-  transform-origin: top left;
-  animation: workspaceMiniQuizTailHide 160ms ease forwards;
-}
-
-.workspace-mini-quiz-fly-card-to-ball {
-  animation: workspaceMiniQuizToBall 450ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
-}
-
-.workspace-mini-quiz-fly-card-suck {
-  width: 52px !important;
-  height: 52px !important;
-  padding: 0;
-  border-radius: 50%;
-}
-
-.workspace-mini-quiz-fly-sparkle {
-  width: 1.45rem;
-  height: 1.45rem;
-  color: #8b7ff0;
-}
-
-@keyframes workspaceMiniQuizTailHide {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0);
-  }
-}
-
-@keyframes workspaceMiniQuizToBall {
-  0% {
-    border-radius: 0.9rem;
-    padding: 0.85rem 1rem;
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  100% {
-    width: 52px;
-    height: 52px;
-    padding: 0;
-    border-radius: 50%;
-    opacity: 1;
-    transform: translate3d(var(--mini-quiz-fly-shrink-x), var(--mini-quiz-fly-shrink-y), 0) scale(1);
-  }
 }
 
 .mini-quiz-popup-backdrop {
@@ -6404,6 +6366,13 @@ a {
   line-height: 1.55;
 }
 
+.mini-quiz-popup-summary-markdown {
+  margin-top: -0.15rem;
+  color: #4a4865;
+  font-size: 0.92rem;
+  line-height: 1.62;
+}
+
 .mini-quiz-popup-answer-item {
   display: flex;
   flex-direction: column;
@@ -6534,16 +6503,40 @@ a {
   border-top-left-radius: 0.58rem;
 }
 
+.workspace-message-diagnosis-report .workspace-message-bubble,
+.workspace-message-mini-quiz-result .workspace-message-bubble {
+  width: 100%;
+}
+
+.workspace-message-pending {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.workspace-message-pending-indicator {
+  display: inline-grid;
+  place-items: center;
+  width: 2.88rem;
+  height: 2.88rem;
+}
+
+.workspace-message-pending-icon {
+  width: 2.88rem;
+  height: 2.88rem;
+}
+
 .workspace-message-user-row {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
   gap: 0.35rem;
-  width: min(100%, 28rem);
+  width: auto;
+  max-width: min(100%, 28rem);
 }
 
 .workspace-message-user .workspace-message-bubble {
-  flex: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   margin-left: 0;
   border: 0;
   border-top-right-radius: 0.58rem;
@@ -7933,6 +7926,34 @@ a {
   box-shadow: 0 18px 34px rgba(126, 130, 238, 0.18);
 }
 
+.diagnosis-flow-start-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.diagnosis-flow-start-button-primary {
+  background: #817cf2;
+  box-shadow: 0 18px 34px rgba(129, 124, 242, 0.24);
+  color: #fff;
+}
+
+.diagnosis-flow-start-button-primary:hover {
+  background: #726de3;
+  box-shadow: 0 18px 34px rgba(129, 124, 242, 0.32);
+}
+
+.diagnosis-flow-start-button-secondary {
+  border: 1px solid #d8d3f9;
+  background: #fff;
+  box-shadow: 0 18px 34px rgba(90, 85, 201, 0.1);
+  color: #5a55c9;
+}
+
+.diagnosis-flow-start-button-secondary:hover {
+  background: #f7f5ff;
+  box-shadow: 0 18px 34px rgba(90, 85, 201, 0.16);
+}
+
 .diagnosis-flow-start-button span {
   font-size: 1.7rem;
   line-height: 1;
@@ -8531,6 +8552,312 @@ a {
   margin-top: 0;
 }
 
+.diagnosis-flow-review {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  padding: 0 0 5.4rem;
+}
+
+.diagnosis-flow-review-wrap {
+  width: min(87vw, 1120px);
+  margin: 1.7rem auto 0;
+}
+
+.diagnosis-flow-review-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.diagnosis-flow-review-header > div:first-child > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  background: #eeedff;
+  color: #7b7eea;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.diagnosis-flow-review-header h1 {
+  margin: 0.85rem 0 0;
+  color: #202039;
+  font-size: 2.15rem;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.diagnosis-flow-review-header p {
+  margin: 0.55rem 0 0;
+  color: #6e7392;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.diagnosis-flow-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+.diagnosis-flow-review-actions .diagnosis-flow-start-button {
+  min-width: 9.5rem;
+  min-height: 3.55rem;
+  margin-top: 0;
+  font-size: 0.98rem;
+}
+
+.diagnosis-flow-review-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.diagnosis-flow-review-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #e7e7f4;
+  border-radius: 1.35rem;
+  padding: 1.35rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 58px rgba(117, 116, 158, 0.12);
+}
+
+.diagnosis-flow-review-question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.diagnosis-flow-review-question-head > span {
+  color: #7b7eea;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-verdict {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  border-radius: 999px;
+  padding: 0 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-verdict-correct {
+  background: rgba(43, 191, 138, 0.14);
+  color: #2bbf8a;
+}
+
+.diagnosis-flow-review-verdict-wrong {
+  background: rgba(227, 107, 127, 0.14);
+  color: #e36b7f;
+}
+
+.diagnosis-flow-review-card h2 {
+  margin: 0;
+  color: #202039;
+  font-size: 1.16rem;
+  font-weight: 850;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.diagnosis-flow-review-choices {
+  display: grid;
+  gap: 0.56rem;
+}
+
+.diagnosis-flow-review-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #e8e6f4;
+  border-radius: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  color: #2f2c4d;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.diagnosis-flow-review-choice-correct {
+  border-color: #2bbf8a;
+  background: rgba(43, 191, 138, 0.1);
+}
+
+.diagnosis-flow-review-choice-wrong {
+  border-color: #e36b7f;
+  background: rgba(227, 107, 127, 0.1);
+}
+
+.diagnosis-flow-review-choice-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: #f1efff;
+  color: #5a55c9;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-choice-correct .diagnosis-flow-review-choice-index {
+  background: rgba(43, 191, 138, 0.2);
+  color: #2bbf8a;
+}
+
+.diagnosis-flow-review-choice-wrong .diagnosis-flow-review-choice-index {
+  background: rgba(227, 107, 127, 0.2);
+  color: #e36b7f;
+}
+
+.diagnosis-flow-review-choice-text {
+  min-width: 0;
+}
+
+.diagnosis-flow-review-choice-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.diagnosis-flow-review-choice-tags b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-tag-correct {
+  background: rgba(43, 191, 138, 0.18);
+  color: #2bbf8a;
+}
+
+.diagnosis-flow-review-tag-selected {
+  background: rgba(90, 85, 201, 0.16);
+  color: #5a55c9;
+}
+
+.diagnosis-flow-review-explanation {
+  border-radius: 0.95rem;
+  background: #f7f6fc;
+  padding: 1rem 1.05rem;
+}
+
+.diagnosis-flow-review-explanation h3 {
+  margin: 0 0 0.45rem;
+  color: #5a55c9;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-explanation p {
+  color: #4a4865;
+  font-size: 0.94rem;
+  line-height: 1.62;
+}
+
+.diagnosis-flow-review-empty {
+  display: grid;
+  place-items: center;
+  min-height: 16rem;
+  border: 1px solid #e7e7f4;
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: #6e7392;
+  font-weight: 800;
+  box-shadow: 0 24px 58px rgba(117, 116, 158, 0.1);
+}
+
+.diagnosis-flow-review-pagination {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 1.1rem;
+}
+
+.diagnosis-flow-review-pagination > span {
+  color: #777b9a;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.diagnosis-flow-review-page-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 9.2rem;
+  min-height: 3.4rem;
+  border: 1px solid #d8d3f9;
+  border-radius: 999px;
+  padding: 0 1.4rem;
+  background: #fff;
+  color: #5a55c9;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(90, 85, 201, 0.09);
+  transition: background 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.diagnosis-flow-review-page-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 9.2rem;
+  min-height: 3.4rem;
+}
+
+.diagnosis-flow-review-page-button:hover {
+  background: #f7f5ff;
+  box-shadow: 0 16px 34px rgba(90, 85, 201, 0.14);
+}
+
+.diagnosis-flow-review-page-button-primary {
+  border-color: transparent;
+  background: #817cf2;
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(129, 124, 242, 0.2);
+}
+
+.diagnosis-flow-review-page-button-primary:hover {
+  background: #726de3;
+  box-shadow: 0 16px 34px rgba(129, 124, 242, 0.28);
+}
+
+.diagnosis-flow-review-page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.diagnosis-flow-review-page-button:disabled:hover {
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(90, 85, 201, 0.09);
+}
+
+.diagnosis-flow-review-page-button-primary:disabled:hover {
+  background: #817cf2;
+  box-shadow: 0 16px 34px rgba(129, 124, 242, 0.2);
+}
+
 
 .diagnosis-flow-result-pill {
   display: inline-flex;
@@ -8642,6 +8969,50 @@ a {
 
   .diagnosis-flow-question-card h2 {
     font-size: 1.33rem;
+  }
+
+  .diagnosis-flow-review-wrap {
+    width: min(92vw, 1120px);
+    margin-top: 1.1rem;
+  }
+
+  .diagnosis-flow-review-header {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .diagnosis-flow-review-header h1 {
+    font-size: 1.72rem;
+  }
+
+  .diagnosis-flow-review-actions {
+    justify-content: stretch;
+  }
+
+  .diagnosis-flow-review-actions .diagnosis-flow-start-button {
+    width: 100%;
+  }
+
+  .diagnosis-flow-review-card {
+    border-radius: 1.15rem;
+    padding: 1rem;
+  }
+
+  .diagnosis-flow-review-choice {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .diagnosis-flow-review-choice-tags {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .diagnosis-flow-review-pagination {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnosis-flow-review-page-button {
+    width: 100%;
   }
 
   .diagnosis-flow-actions {
