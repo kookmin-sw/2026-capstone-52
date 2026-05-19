@@ -522,13 +522,13 @@ export default function MiniQuizPopup({
                 <button
                   key={choice.id}
                   type="button"
-                  className={`mini-quiz-popup-choice ${
+                  className={`mini-quiz-popup-choice mini-quiz-popup-choice-with-index ${
                     selectedIds.includes(choice.id) ? "mini-quiz-popup-choice-active" : ""
                   }`}
                   onClick={() => toggleChoice(choice.id)}
                 >
                   <span className="mini-quiz-popup-choice-index">{String.fromCharCode(65 + index)}</span>
-                  <span>{choice.label}</span>
+                  <span className="mini-quiz-popup-choice-text">{choice.label}</span>
                 </button>
               ))}
             </div>
