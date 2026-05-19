@@ -67,6 +67,41 @@ const MINI_QUIZ_READY_STORAGE_KEY = "eeum-mini-quiz-ready-v1";
 const MINI_QUIZ_COMPLETED_STORAGE_KEY = "eeum-mini-quiz-completed-v1";
 const MINI_QUIZ_DEFERRED_STORAGE_KEY = "eeum-mini-quiz-deferred-v1";
 
+const miniQuizOpeningDotVariants = {
+  jump: {
+    y: -30,
+    transition: {
+      duration: 0.8,
+      repeat: Infinity,
+      repeatType: "mirror",
+      ease: "easeInOut",
+    },
+  },
+};
+
+function MiniQuizOpeningOverlay() {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="workspace-mini-quiz-opening-overlay">
+      <motion.div
+        animate="jump"
+        transition={{ staggerChildren: -0.2, staggerDirection: -1 }}
+        className="workspace-mini-quiz-opening-loader"
+        role="status"
+        aria-label="미니퀴즈를 준비하는 중"
+      >
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizOpeningDotVariants} />
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizOpeningDotVariants} />
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizOpeningDotVariants} />
+      </motion.div>
+    </div>,
+    document.body
+  );
+}
+
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
 }
@@ -1551,10 +1586,13 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [miniQuizFloatOffset, setMiniQuizFloatOffset] = useState({ x: 0, y: 0 });
   const [miniQuizFloatDockSide, setMiniQuizFloatDockSide] = useState("right");
   const [isMiniQuizFloatDragging, setIsMiniQuizFloatDragging] = useState(false);
+  const [openingMiniQuizMessageId, setOpeningMiniQuizMessageId] = useState(null);
   const chatStageRef = useRef(null);
   const miniQuizFloatWrapRef = useRef(null);
   const miniQuizFloatDragRef = useRef(null);
   const previousDeferredMiniQuizCountRef = useRef(0);
+  const miniQuizOpenRequestIdRef = useRef(0);
+  const miniQuizOpeningRef = useRef(false);
 
   function updateMiniQuizReadyByMessage(updater) {
     const projectId = selectedProjectId;
@@ -2387,7 +2425,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   useEffect(() => {
     if (activeProjectData?.projectId) {
       setSelectedGraphNodeId(projectGraph.defaultSelectedNodeId);
-      setGraphFocusNodeId(projectGraph.defaultSelectedNodeId);
+      setGraphFocusNodeId(null);
       setGraphDetailNodeId(null);
       setVisibleGraphDetailNodeId(null);
       setGraphNodeDetail(null);
@@ -2417,7 +2455,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     if (!projectGraph.nodes.some((node) => node.id === selectedGraphNodeId)) {
       setSelectedGraphNodeId(projectGraph.defaultSelectedNodeId);
-      setGraphFocusNodeId(projectGraph.defaultSelectedNodeId);
+      setGraphFocusNodeId(null);
     }
   }, [projectGraph.defaultSelectedNodeId, projectGraph.nodes, selectedGraphNodeId]);
 
@@ -3119,11 +3157,15 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
   async function openMiniQuizFromTriggers(messageId, triggers) {
     const safeTriggers = Array.isArray(triggers) ? triggers : [];
-    if (!safeTriggers.length || !selectedProjectId) {
+    if (!safeTriggers.length || !selectedProjectId || miniQuizOpeningRef.current) {
       return;
     }
 
     const shouldUseMockQuiz = safeTriggers.some((target) => target.useMockMiniQuiz);
+    const requestId = miniQuizOpenRequestIdRef.current + 1;
+    miniQuizOpenRequestIdRef.current = requestId;
+    miniQuizOpeningRef.current = true;
+    setOpeningMiniQuizMessageId(messageId);
 
     if (isMiniQuizBackendApiEnabled && !shouldUseMockQuiz) {
       try {
@@ -3143,6 +3185,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           throw new Error("생성된 미니퀴즈가 없습니다.");
         }
 
+        if (miniQuizOpenRequestIdRef.current !== requestId) {
+          return;
+        }
+
         setActiveMiniQuiz({
           projectId: selectedProjectId,
           queue,
@@ -3150,19 +3196,96 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         });
       } catch (error) {
         console.error(error);
+      } finally {
+        if (miniQuizOpenRequestIdRef.current === requestId) {
+          miniQuizOpeningRef.current = false;
+          setOpeningMiniQuizMessageId(null);
+        }
       }
       return;
     }
 
-    setActiveMiniQuiz({
-      projectId: selectedProjectId,
-      queue: safeTriggers.map((target) => ({
-        nodeId: target.nodeId,
-        name: target.name,
-        useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
-      })),
-      sourceMessageId: messageId,
+    try {
+      if (miniQuizOpenRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setActiveMiniQuiz({
+        projectId: selectedProjectId,
+        queue: safeTriggers.map((target) => ({
+          nodeId: target.nodeId,
+          name: target.name,
+          useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
+        })),
+        sourceMessageId: messageId,
+      });
+    } finally {
+      if (miniQuizOpenRequestIdRef.current === requestId) {
+        miniQuizOpeningRef.current = false;
+        setOpeningMiniQuizMessageId(null);
+      }
+    }
+  }
+
+  function buildMiniQuizResultMessages(results, targetChatId) {
+    if (!targetChatId || !Array.isArray(results)) {
+      return [];
+    }
+
+    const messageById = new Map();
+    results.forEach((entry, index) => {
+      const backendResult = entry?.backendResult || entry?.result || {};
+      const resultMessage = backendResult?.result_message || null;
+      const text = typeof resultMessage?.ai_response === "string" ? resultMessage.ai_response.trim() : "";
+
+      if (!text) {
+        return;
+      }
+
+      const messageId =
+        resultMessage.chat_id !== undefined && resultMessage.chat_id !== null
+          ? `api-chat-${resultMessage.chat_id}-assistant`
+          : `${targetChatId}-mini-quiz-result-${entry?.currentTarget?.nodeId || index}`;
+
+      if (messageById.has(messageId)) {
+        return;
+      }
+
+      messageById.set(messageId, {
+        id: messageId,
+        role: "assistant",
+        text,
+        variant: "mini-quiz-result",
+      });
     });
+
+    return Array.from(messageById.values());
+  }
+
+  function appendMiniQuizResultMessagesToChat(chats, targetChatId, results) {
+    const resultMessages = buildMiniQuizResultMessages(results, targetChatId);
+    if (!resultMessages.length) {
+      return chats;
+    }
+
+    const existingChat = chats.find((chat) => chat.id === targetChatId) || activeChat;
+    if (!existingChat) {
+      return chats;
+    }
+
+    const existingMessageIds = new Set(existingChat.messages.map((message) => message.id));
+    const nextMessages = resultMessages.filter((message) => !existingMessageIds.has(message.id));
+    if (!nextMessages.length) {
+      return chats;
+    }
+
+    const nextChat = {
+      ...existingChat,
+      updatedAt: new Date().toISOString(),
+      messages: [...existingChat.messages, ...nextMessages],
+    };
+
+    return [nextChat, ...chats.filter((chat) => chat.id !== nextChat.id)];
   }
 
   const workspaceHeading = activeProjectData
@@ -3343,13 +3466,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                               const triggers =
                                 overridden !== undefined ? overridden : message.miniQuizReady || null;
                               if (!triggers || triggers.length === 0) return null;
+                              const isOpeningThisMiniQuiz = openingMiniQuizMessageId === message.id;
                               return (
                                 <div className="workspace-message-mini-quiz">
                                   <div className="workspace-message-mini-quiz-label">
                                     <strong>시험 준비가 되었습니다</strong>
                                     <span>
                                       {triggers.length > 1
-                                        ? `${triggers.length}개의 미니 퀴즈를 풀어볼까요?`
+                                        ? `${triggers.length}개 개념의 미니 퀴즈를 풀어볼까요?`
                                         : `${triggers[0].name} 미니 퀴즈를 풀어볼까요?`}
                                     </span>
                                   </div>
@@ -3358,12 +3482,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                       type="button"
                                       className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-primary"
                                       onClick={() => openMiniQuizFromTriggers(message.id, triggers)}
+                                      disabled={Boolean(openingMiniQuizMessageId)}
                                     >
-                                      퀴즈 풀기
+                                      {isOpeningThisMiniQuiz ? "준비 중..." : "퀴즈 풀기"}
                                     </button>
                                     <button
                                       type="button"
                                       className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
+                                      disabled={Boolean(openingMiniQuizMessageId)}
                                       onClick={async (event) => {
                                         const messageId = message.id;
                                         startMiniQuizDeferFlyAnimation(
@@ -4297,12 +4423,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             });
           }}
           onComplete={(completeInfo = {}) => {
+            const resultTargetChatId = selectedChatId;
             const completedNodeIds = Array.isArray(completeInfo.completedNodeIds) ? completeInfo.completedNodeIds : [];
             const updatedNodes = Array.isArray(completeInfo.results)
               ? completeInfo.results
                   .map((entry) => entry.backendResult?.updated_node || entry.backendResult?.group_result?.updated_node)
                   .filter((node) => node?.node_id)
               : [];
+            setRecentChats((currentChats) =>
+              appendMiniQuizResultMessagesToChat(currentChats, resultTargetChatId, completeInfo.results)
+            );
             if (selectedProjectId && completedNodeIds.length) {
               if (updatedNodes.length) {
                 const updatedNodeById = new Map(updatedNodes.map((node) => [node.node_id, node]));
@@ -4350,11 +4480,14 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                 .then((nextNodes) => setRecentGraphNodes(nextNodes))
                 .catch(() => null);
               getProjectChats(selectedProjectId)
-                .then((nextChats) => setRecentChats(nextChats))
+                .then((nextChats) =>
+                  setRecentChats(appendMiniQuizResultMessagesToChat(nextChats, resultTargetChatId, completeInfo.results))
+                )
                 .catch(() => null);
             }
           }}
           onClose={(closeInfo = {}) => {
+            const resultTargetChatId = selectedChatId;
             const sourceId = activeMiniQuiz.sourceMessageId;
             const deferredId = activeMiniQuiz.deferredId;
             const completedNodeIds = new Set(
@@ -4408,13 +4541,17 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   .then((nextNodes) => setRecentGraphNodes(nextNodes))
                   .catch(() => null);
                 getProjectChats(selectedProjectId)
-                  .then((nextChats) => setRecentChats(nextChats))
+                  .then((nextChats) =>
+                    setRecentChats(appendMiniQuizResultMessagesToChat(nextChats, resultTargetChatId, closeInfo.results))
+                  )
                   .catch(() => null);
               }
             }
           }}
         />
       ) : null}
+
+      {openingMiniQuizMessageId ? <MiniQuizOpeningOverlay /> : null}
 
     </div>
   );

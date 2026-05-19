@@ -48,10 +48,16 @@ export async function getApiDiagnosisStatus(projectId, sessionId) {
   });
 }
 
-export async function createApiDiagnosisReport(projectId, sessionId) {
+export async function createApiDiagnosisReport(projectId, sessionId, chatSessionId = null) {
+  const body = { session_id: sessionId };
+
+  if (chatSessionId !== null && chatSessionId !== undefined) {
+    body.chat_session_id = chatSessionId;
+  }
+
   return apiRequest(`/diagnosis/${encodeURIComponent(projectId)}/report`, {
     method: "POST",
-    body: { session_id: sessionId },
+    body,
   });
 }
 

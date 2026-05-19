@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import {
   generateApiMiniQuizQuestion,
   isMiniQuizBackendApiEnabled,
@@ -10,8 +12,43 @@ import {
 import { buildMockMiniQuizAnswerResponse, getMockMiniQuizQuestion } from "../../features/mini-quiz/mock-data";
 
 const MOCK_LATENCY_MS = 380;
+const miniQuizQuestionLoadingDotVariants = {
+  jump: {
+    y: -30,
+    transition: {
+      duration: 0.8,
+      repeat: Infinity,
+      repeatType: "mirror",
+      ease: "easeInOut",
+    },
+  },
+};
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function MiniQuizQuestionLoadingOverlay() {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="workspace-mini-quiz-opening-overlay">
+      <motion.div
+        animate="jump"
+        transition={{ staggerChildren: -0.2, staggerDirection: -1 }}
+        className="workspace-mini-quiz-opening-loader"
+        role="status"
+        aria-label="미니퀴즈 문제를 준비하는 중"
+      >
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizQuestionLoadingDotVariants} />
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizQuestionLoadingDotVariants} />
+        <motion.div className="workspace-mini-quiz-opening-dot" variants={miniQuizQuestionLoadingDotVariants} />
+      </motion.div>
+    </div>,
+    document.body
+  );
 }
 
 function normalizeChoice(choice, index) {
@@ -103,6 +140,7 @@ export default function MiniQuizPopup({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleQuestionIndex, setVisibleQuestionIndex] = useState(0);
   const [step, setStep] = useState("loading"); // loading | quiz | complete | answers | error
+  const [loadingReason, setLoadingReason] = useState("question"); // question | submit
   const [question, setQuestion] = useState(null);
   const [choices, setChoices] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -126,11 +164,15 @@ export default function MiniQuizPopup({
     setPendingBackendAnswers([]);
     setAnswerIndex(0);
     setErrorMessage("");
+    setLoadingReason("question");
     completedNodeIdsRef.current.clear();
   }, [projectId, queueKey]);
 
   function handleClose() {
-    onClose?.({ completedNodeIds: Array.from(completedNodeIdsRef.current) });
+    onClose?.({
+      completedNodeIds: Array.from(completedNodeIdsRef.current),
+      results: submittedResults,
+    });
   }
 
   function completeQuiz(nextSubmittedResults) {
@@ -245,6 +287,7 @@ export default function MiniQuizPopup({
     }
 
     let cancelled = false;
+    setLoadingReason("question");
     setStep("loading");
     setSelectedIds([]);
     setErrorMessage("");
@@ -323,6 +366,7 @@ export default function MiniQuizPopup({
       .map((choice) => choice.optionId)
       .filter(Boolean);
 
+    setLoadingReason("submit");
     setStep("loading");
     try {
       if (isMiniQuizBackendApiEnabled && !shouldUseMockMiniQuiz) {
@@ -446,9 +490,11 @@ export default function MiniQuizPopup({
           </button>
         </header>
 
-        {step === "loading" ? (
+        {step === "loading" && loadingReason === "question" ? <MiniQuizQuestionLoadingOverlay /> : null}
+
+        {step === "loading" && loadingReason === "submit" ? (
           <div className="mini-quiz-popup-body mini-quiz-popup-loading">
-            <p>문제를 준비하고 있어요…</p>
+            <p>답안을 제출하고 결과를 정리하고 있어요…</p>
           </div>
         ) : null}
 

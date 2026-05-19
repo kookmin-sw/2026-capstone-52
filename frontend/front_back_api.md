@@ -28,7 +28,7 @@
 - 진단 완료 후 학습 플로우를 추가했다.
   - 12문제 답변 완료 시 결과 화면에서 `풀이보기` / `학습하기` 버튼을 노출한다.
   - `풀이보기`는 UI만 두고 동작은 추후 구현. (`GET /diagnosis/{project_id}/sessions/{session_id}/review`와 연결될 예정)
-  - `학습하기` 누르면 `POST /diagnosis/{project_id}/report`로 리포트 채팅 메시지 2개를 백엔드에 저장한 뒤, 해당 프로젝트의 채팅 화면으로 이동한다. 현재 백엔드 리포트 채팅은 `ChatSession`에 묶이지 않으므로 다중 thread UI에서 자동 노출하려면 별도 백엔드 정책이 필요하다.
+  - `학습하기` 누르면 `POST /diagnosis/{project_id}/report`로 리포트 채팅 메시지 2개와 ChatSession을 백엔드에 저장한 뒤, 해당 채팅방으로 이동한다.
 - Mini-Quiz 플로우를 신규 연동했다.
   - `POST /chat/{project_id}` 응답의 `concept_counting.quiz_ready_concepts`가 비어있지 않으면 채팅 말풍선에 "시험 준비됨" + `시험보기` / `나중에보기` 버튼을 그린다.
   - `시험보기` 클릭 시 대시보드 위에 팝업 형태로 미니 퀴즈를 띄우고, 백엔드는 `POST /mini-quiz/{project_id}/generate?node_id=...` → `POST /mini-quiz/{project_id}/submit` 순서로 호출한다.
@@ -811,23 +811,31 @@ POST /api/diagnosis/{project_id}/report
 요청:
 
 ```json
-{ "session_id": "uuid" }
+{ "session_id": "uuid", "chat_session_id": 12 }
 ```
 
-응답 data: 채팅 메시지 2개. 현재 백엔드는 이 리포트 채팅을 특정 ChatSession에 연결하지 않고 저장한다. 다중 ChatSession UI에서 리포트를 특정 채팅방에 넣으려면 백엔드 report 생성 시 `session_id` 연결 정책을 별도로 정해야 한다.
+응답 data: 채팅 메시지 2개와 연결된 `chat_session`. `chat_session_id`를 요청에 넘기면 해당 ChatSession에 저장하고, 생략하면 백엔드가 `"수준진단 리포트"` ChatSession을 생성한 뒤 리포트 채팅을 연결한다.
 
 ```json
 {
   "messages": [
     {
       "chat_id": 1,
+      "session_id": 12,
       "project_id": 1,
       "user_message": null,
       "ai_response": "...",
       "response_type": "diagnosis_report",
       "created_at": "..."
     }
-  ]
+  ],
+  "chat_session": {
+    "id": 12,
+    "project_id": 1,
+    "title": "수준진단 리포트",
+    "created_at": "...",
+    "updated_at": "..."
+  }
 }
 ```
 
