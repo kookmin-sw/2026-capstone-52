@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models.chat import Chat
+from app.models.chat import Chat, ChatSession
 from app.models.deferred_mini_quiz import DeferredMiniQuiz
 from app.models.diagnosis import DiagnosisAnswer, DiagnosisQuestion
 from app.models.graph import ConceptNode
@@ -302,6 +302,7 @@ def submit_mini_quiz_group(
     user_id: int,
     answers: list[dict],
     db: Session,
+    session_id: int | None = None,
 ) -> dict:
     if len(answers) != MINI_QUIZ_GROUP_SIZE:
         raise ValueError("미니퀴즈 group 제출은 정확히 2개의 답변이 필요합니다.")
@@ -351,6 +352,7 @@ def submit_mini_quiz_group(
         db=db,
         user_id=user_id,
         project_id=project_id,
+        session_id=session_id,
         node=node,
         previous_status=previous_status,
         previous_level=previous_level,
@@ -395,6 +397,7 @@ def submit_mini_quiz_groups(
     user_id: int,
     groups: list[dict],
     db: Session,
+    session_id: int | None = None,
 ) -> dict:
     return {
         "groups": [
@@ -403,6 +406,7 @@ def submit_mini_quiz_groups(
                 user_id=user_id,
                 answers=group["answers"],
                 db=db,
+                session_id=session_id,
             )
             for group in groups
         ]
@@ -519,6 +523,7 @@ def submit_mini_quiz_answer(
     selected_option_ids: list[str] | None,
     is_skipped: bool,
     db: Session,
+    session_id: int | None = None,
 ) -> dict | None:
     q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == question_id).first()
     if not q:
@@ -599,6 +604,7 @@ def submit_mini_quiz_answer(
         db=db,
         user_id=user_id,
         project_id=project_id,
+        session_id=session_id,
         node=node,
         previous_status=previous_status,
         previous_level=previous_level,
@@ -637,6 +643,7 @@ def _create_mini_quiz_result_chat(
     db: Session,
     user_id: int,
     project_id: int,
+    session_id: int | None = None,
     node: ConceptNode,
     previous_status: str,
     previous_level: int | None,
@@ -653,11 +660,20 @@ def _create_mini_quiz_result_chat(
     chat = Chat(
         user_id=user_id,
         project_id=project_id,
+        session_id=session_id,
         user_message=MINI_QUIZ_RESULT_USER_MESSAGE,
         ai_response=message,
         response_type=MINI_QUIZ_RESULT_RESPONSE_TYPE,
     )
     db.add(chat)
+    if session_id is not None:
+        session = (
+            db.query(ChatSession)
+            .filter(ChatSession.project_id == project_id, ChatSession.id == session_id)
+            .first()
+        )
+        if session:
+            session.updated_at = datetime.now(timezone.utc)
     db.flush()
     return chat
 
@@ -711,6 +727,7 @@ def _serialize_result_message(chat: Chat) -> dict:
     return {
         "chat_id": chat.chat_id,
         "project_id": chat.project_id,
+        "session_id": chat.session_id,
         "user_message": chat.user_message,
         "ai_response": chat.ai_response,
         "response_type": chat.response_type,

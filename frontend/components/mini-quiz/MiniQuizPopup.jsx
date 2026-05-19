@@ -110,6 +110,7 @@ function getTargetGroupKey(target) {
 
 export default function MiniQuizPopup({
   projectId,
+  chatSessionId = null,
   conceptNodeId,
   conceptName,
   conceptQueue,
@@ -227,7 +228,8 @@ export default function MiniQuizPopup({
             questionId: getQuestionId(entry.question),
             selectedOptionIds: entry.selectedOptionIds,
             isSkipped: entry.isSkipped,
-          }))
+          })),
+          { sessionId: chatSessionId }
         );
         const questionResultById = new Map(
           (Array.isArray(result?.question_results) ? result.question_results : []).map((questionResult) => [
@@ -261,6 +263,7 @@ export default function MiniQuizPopup({
       const result = await submitApiMiniQuizAnswer(projectId, getQuestionId(entry.question), {
         selectedOptionIds: entry.isSkipped ? null : entry.selectedOptionIds.length ? entry.selectedOptionIds : null,
         isSkipped: entry.isSkipped,
+        sessionId: chatSessionId,
       });
       const reviewEntry = buildReviewEntry({
         question: entry.question,
