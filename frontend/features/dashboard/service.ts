@@ -78,6 +78,7 @@ const CATALOG_ID_BY_PROJECT_DOMAIN: Record<string, string> = {
 };
 
 const CATALOG_PROJECT_IDS = new Set(MOCK_PROJECT_CATALOG.map((project) => project.id));
+const MINI_QUIZ_KNOWLEDGE_STAGE_LABELS = ["진단 전", "입문", "기초", "심화", "마스터"];
 
 type ApiProject = {
   project_id: number | string;
@@ -191,6 +192,68 @@ function getLatestApiChatUpdatedAt(logs: ApiChatLog[]) {
   }, 0);
 }
 
+function stripMarkdownEmphasis(value: string) {
+  return value.replace(/\*\*/g, "").trim();
+}
+
+function getPersistedMiniQuizConceptName(text: string) {
+  const conceptMatch = text.match(/개념:\s*(?:\*\*)?(.+?)(?:\*\*)?\s+(?:현재\s+)?이해/);
+  return conceptMatch?.[1] ? stripMarkdownEmphasis(conceptMatch[1]) : null;
+}
+
+function getPersistedMiniQuizStageLabel(text: string) {
+  const levelMatch =
+    text.match(/이해\s*단계(?:도|는)?\s*(?:\d+\s*단계에서\s*)?(\d+)\s*단계/) ||
+    text.match(/(\d+)\s*단계로\s*조정/);
+  const level = levelMatch?.[1] ? Number(levelMatch[1]) : NaN;
+
+  if (Number.isFinite(level)) {
+    return MINI_QUIZ_KNOWLEDGE_STAGE_LABELS[Math.min(Math.max(Math.round(level) - 1, 0), MINI_QUIZ_KNOWLEDGE_STAGE_LABELS.length - 1)];
+  }
+
+  const scoreMatch = text.match(/그룹\s*점수:\s*(?:\*\*)?([0-9.]+)(?:\*\*)?/);
+  const score = scoreMatch?.[1] ? Number(scoreMatch[1]) : NaN;
+
+  if (!Number.isFinite(score)) {
+    return null;
+  }
+  if (score <= 0) return "입문";
+  if (score < 0.4) return "기초";
+  if (score < 0.8) return "심화";
+  return "마스터";
+}
+
+function extractPersistedMiniQuizFeedback(text: string) {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return (
+    paragraphs
+      .slice()
+      .reverse()
+      .find((part) => !/^개념\s*:/.test(part) && !/그룹\s*점수/.test(part)) || ""
+  );
+}
+
+function formatPersistedMiniQuizResultMessage(text: string) {
+  const trimmedText = text.trim();
+  const conceptName = getPersistedMiniQuizConceptName(trimmedText);
+  const stageLabel = getPersistedMiniQuizStageLabel(trimmedText);
+
+  if (!conceptName || !stageLabel) {
+    return trimmedText.replace(/\s*그룹\s*점수:\s*(?:\*\*)?[0-9.]+(?:\*\*)?/g, "").trim();
+  }
+
+  return [
+    "방금 푼 미니퀴즈 결과를 반영했어요.",
+    `현재 개념: **${conceptName}**의 이해 상태가 업데이트 되었습니다.\n현재 이해 단계는 **${stageLabel}** 단계입니다.`,
+    extractPersistedMiniQuizFeedback(trimmedText),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function buildCombinedMiniQuizResultMessage(logs: ApiChatLog[]): Chat["messages"][number] | null {
   const resultLogs = logs.filter((log) => typeof log.ai_response === "string" && log.ai_response.trim());
 
@@ -207,7 +270,7 @@ function buildCombinedMiniQuizResultMessage(logs: ApiChatLog[]): Chat["messages"
         ? `api-chat-${firstLog.chat_id}-assistant`
         : `api-chat-mini-quiz-result-${firstLog.chat_id}-${lastLog.chat_id}`,
     role: "assistant",
-    text: resultLogs.map((log) => String(log.ai_response).trim()).join("\n\n---\n\n"),
+    text: resultLogs.map((log) => formatPersistedMiniQuizResultMessage(String(log.ai_response))).join("\n\n---\n\n"),
     variant: "mini-quiz-result",
   };
 }

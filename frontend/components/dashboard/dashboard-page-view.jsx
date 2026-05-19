@@ -1069,6 +1069,83 @@ function getBackendNodeKnowledgeStageIndex(node) {
   return normalizedStageIndex;
 }
 
+function getBackendLikeNodeKnowledgeStageIndex(node) {
+  if (!node) {
+    return 0;
+  }
+
+  return getBackendNodeKnowledgeStageIndex({
+    backendStatus: node.backendStatus ?? node.status ?? null,
+    understandingLevel: node.understandingLevel ?? node.understanding_level ?? null,
+    understandingScore: node.understandingScore ?? node.understanding_score ?? null,
+    diagnosisCount: node.diagnosisCount ?? node.diagnosis_count ?? 1,
+  });
+}
+
+function getMiniQuizResultNodeName(entry) {
+  const backendResult = entry?.backendResult || entry?.result || {};
+  const updatedNode = backendResult.updated_node || backendResult.group_result?.updated_node || null;
+  return (
+    backendResult.group_result?.node_name ||
+    updatedNode?.display_name ||
+    updatedNode?.korean_name ||
+    updatedNode?.name ||
+    entry?.currentTarget?.name ||
+    entry?.conceptName ||
+    updatedNode?.concept_id ||
+    updatedNode?.node_id ||
+    "이 개념"
+  );
+}
+
+function getMiniQuizResultStageLabel(entry) {
+  const backendResult = entry?.backendResult || entry?.result || {};
+  const updatedNode = backendResult.updated_node || backendResult.group_result?.updated_node || null;
+  const stageIndex = getBackendLikeNodeKnowledgeStageIndex(updatedNode);
+  return knowledgeStageLabels[stageIndex] || knowledgeStageLabels[0];
+}
+
+function extractMiniQuizResultFeedback(text) {
+  if (typeof text !== "string") {
+    return "";
+  }
+
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const feedback = paragraphs
+    .slice()
+    .reverse()
+    .find((part) => !/^개념\s*:/.test(part) && !/그룹\s*점수/.test(part));
+
+  return feedback || "";
+}
+
+function buildMiniQuizResultDisplayText(entry) {
+  const backendResult = entry?.backendResult || entry?.result || {};
+  const updatedNode = backendResult.updated_node || backendResult.group_result?.updated_node || null;
+  const rawText =
+    typeof backendResult?.result_message?.ai_response === "string"
+      ? backendResult.result_message.ai_response.trim()
+      : "";
+  if (!rawText && !updatedNode) {
+    return "";
+  }
+
+  const nodeName = getMiniQuizResultNodeName(entry);
+  const stageLabel = getMiniQuizResultStageLabel(entry);
+  const feedback = extractMiniQuizResultFeedback(rawText);
+
+  return [
+    "방금 푼 미니퀴즈 결과를 반영했어요.",
+    `현재 개념: **${nodeName}**의 이해 상태가 업데이트 되었습니다.\n현재 이해 단계는 **${stageLabel}** 단계입니다.`,
+    feedback,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function applyKnowledgeStagesToGraph(graph, projectData, workspaceState, options = {}) {
   let conceptNodeIndex = 0;
 
@@ -3373,7 +3450,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     results.forEach((entry, index) => {
       const backendResult = entry?.backendResult || entry?.result || {};
       const resultMessage = backendResult?.result_message || null;
-      const text = typeof resultMessage?.ai_response === "string" ? resultMessage.ai_response.trim() : "";
+      const text = buildMiniQuizResultDisplayText(entry);
 
       if (!text) {
         return;
