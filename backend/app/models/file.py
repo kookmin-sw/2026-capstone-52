@@ -21,3 +21,5 @@ class File(Base):
     # 분석 상태: UPLOADED → PROCESSING → DONE / FAILED / REJECTED
     relevance_status: Mapped[str] = mapped_column(String, default="UNCHECKED")
     # 관련성 상태: UNCHECKED → RELEVANT / REJECTED
+    diagnosis_status: Mapped[str] = mapped_column(String, default="NOT_DIAGNOSED")
+    # 진단 상태: NOT_DIAGNOSED → DIAGNOSED

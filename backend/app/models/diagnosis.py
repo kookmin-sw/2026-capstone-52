@@ -8,7 +8,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, Boolean, Float, DateTime, ForeignKey
+from sqlalchemy import String, Text, Boolean, Float, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -40,6 +40,16 @@ class DiagnosisQuestion(Base):
     diagnosis_purpose: Mapped[str] = mapped_column(String, nullable=True, default="concept_check")
     explanation: Mapped[str] = mapped_column(Text, nullable=True)  # 문제 단위 해설 — 정답 이유 설명
 
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DiagnosisSession(Base):
+    """진단 세션 — session_id와 file_id를 연결해 파일 단위 진단 관리"""
+    __tablename__ = "diagnosis_sessions"
+
+    session_id: Mapped[str] = mapped_column(String, primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.project_id"), nullable=False)
+    file_id: Mapped[str] = mapped_column(String, ForeignKey("files.file_id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

@@ -4,9 +4,15 @@ from typing import Optional
 
 # ── 세션 ──────────────────────────────────────────────────────────────────────
 
+class DiagnosisSessionCreateRequest(BaseModel):
+    """진단 세션 생성 요청 — 어떤 파일에 대한 진단인지 file_id로 연결"""
+    file_id: Optional[str] = None
+
+
 class DiagnosisSessionCreateResponse(BaseModel):
     """PDF 업로드 후 새 진단 세션 생성 시 반환 — 이후 모든 질문/답변에 session_id 첨부"""
     session_id: str
+    file_id: Optional[str] = None
 
 
 # ── 질문 ──────────────────────────────────────────────────────────────────────
