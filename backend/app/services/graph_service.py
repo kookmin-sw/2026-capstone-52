@@ -158,7 +158,7 @@ def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Sessi
                 description=concept.get("description"),
                 group=concept.get("group"),
                 status=NODE_STATUS_UNSEEN,
-                understanding_score=concept.get("score", 0.5),
+                understanding_score=concept.get("score", 0.0),
                 understanding_level=concept.get("understanding_level", 3),
                 confidence=concept.get("confidence", 0.0),
                 diagnosis_count=concept.get("diagnosis_count", 0),

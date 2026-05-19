@@ -264,7 +264,7 @@ def apply_evaluation_to_nodes(
         if not node:
             continue
 
-        previous_score = node.understanding_score if node.understanding_score is not None else 0.5
+        previous_score = node.understanding_score if node.understanding_score is not None else 0.0
         new_score = _clamp(0.7 * previous_score + 0.3 * answer_score, 0.0, 1.0)
 
         node.understanding_score = new_score
@@ -586,7 +586,7 @@ def _get_core_candidate_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
             -(1 if node.is_core else 0),
             -(node.core_score if node.core_score is not None else 0.0),
             node.diagnosis_count if node.diagnosis_count is not None else 0,
-            node.understanding_score if node.understanding_score is not None else 0.5,
+            node.understanding_score if node.understanding_score is not None else 0.0,
         ),
     )[:6]
 
@@ -1052,7 +1052,7 @@ def _build_candidate_nodes(
             unique_prerequisites,
             key=lambda node: (
                 node.diagnosis_count if node.diagnosis_count is not None else 0,
-                node.understanding_score if node.understanding_score is not None else 0.5,
+                node.understanding_score if node.understanding_score is not None else 0.0,
                 -(node.core_score if node.core_score is not None else 0.0),
             ),
         )
@@ -1063,7 +1063,7 @@ def _build_candidate_nodes(
             -(1 if node.is_core else 0),
             -(node.core_score if node.core_score is not None else 0.0),
             node.diagnosis_count if node.diagnosis_count is not None else 0,
-            node.understanding_score if node.understanding_score is not None else 0.5,
+            node.understanding_score if node.understanding_score is not None else 0.0,
         ),
     )
 
