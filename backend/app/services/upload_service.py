@@ -9,6 +9,7 @@ from app.models.project import Project
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.services.graph_service import save_graph_from_ai
+from app.services.diagnosis_service import pregenerate_core_questions
 from app.ai.graph_extractor import extract_graph
 from app.ai.concept_normalizer import SUPPORTED_SUBJECT_IDS
 
@@ -68,6 +69,7 @@ def run_analysis(file_id: str, project_id: int, s3_key: str):
         _update_relevance_status(file_id, "RELEVANT", db)
         save_graph_from_ai(project_id, file_id, ai_result, db)
         update_analysis_status(file_id, "DONE", db)
+        pregenerate_core_questions(project_id, file_id, db)
     except Exception as error:
         logger.exception(
             "upload_analysis_failed file_id=%s project_id=%s error=%s",

@@ -386,7 +386,15 @@ function uniqueStrings(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
-function getConceptLabel(value) {
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return value ? [value] : [];
+}
+
+export function getDiagnosisConceptLabel(value) {
   if (!value) {
     return "";
   }
@@ -395,7 +403,28 @@ function getConceptLabel(value) {
     return value;
   }
 
-  return value.label || value.name || value.node_name || value.concept_name || value.title || "";
+  return (
+    value.display_name ||
+    value.displayName ||
+    value.korean_name ||
+    value.koreanName ||
+    value.concept_name ||
+    value.conceptName ||
+    value.name ||
+    value.canonical_name ||
+    value.canonicalName ||
+    value.concept_id ||
+    value.conceptId ||
+    value.node_id ||
+    value.nodeId ||
+    value.label ||
+    value.title ||
+    ""
+  );
+}
+
+function getConceptLabel(value) {
+  return getDiagnosisConceptLabel(value);
 }
 
 export function normalizeDiagnosisConceptId(value) {
@@ -473,7 +502,12 @@ function getQuestionCoreConceptReferences(question) {
     (question.node_id
       ? {
           node_id: question.node_id,
-          name: question.node_name || question.concept_name || question.name,
+          display_name: question.display_name,
+          korean_name: question.korean_name,
+          concept_name: question.concept_name,
+          name: question.node_name || question.name,
+          canonical_name: question.canonical_name,
+          concept_id: question.concept_id,
         }
       : null) ||
     []
@@ -527,35 +561,79 @@ function buildDiagnosisConcepts(projectData, template) {
 export function buildApiDiagnosisConcepts(graphNodes = [], question = null) {
   const conceptMap = new Map();
 
-  (graphNodes || []).forEach((conceptLike) => {
+  function addConcept(conceptLike) {
     const concept = createDiagnosisConcept(conceptLike);
 
     if (concept && !conceptMap.has(concept.id)) {
       conceptMap.set(concept.id, concept);
     }
+  }
+
+  (graphNodes || []).forEach((conceptLike) => {
+    addConcept(conceptLike);
   });
 
   if (question) {
+    const generatedQuestionQueue = [
+      ...toArray(question.generated_question_queue),
+      ...toArray(question.generatedQuestionQueue),
+      ...toArray(question.question_queue),
+      ...toArray(question.questionQueue),
+      ...toArray(question.generated_questions),
+      ...toArray(question.generatedQuestions),
+    ];
     const questionConcepts = [
       {
         node_id: question.node_id,
-        name: question.node_name || question.concept_name || question.name,
+        display_name: question.display_name,
+        korean_name: question.korean_name,
+        concept_name: question.concept_name,
+        name: question.node_name || question.name,
+        canonical_name: question.canonical_name,
+        concept_id: question.concept_id,
       },
-      ...(question.concepts || []),
-      ...(question.nodes || []),
+      ...toArray(question.concepts),
+      ...toArray(question.nodes),
       ...((question.choices || []).flatMap((choice) => getChoiceConceptReferences(choice))),
+      ...generatedQuestionQueue.flatMap((queuedQuestion) => [
+        queuedQuestion,
+        queuedQuestion?.concept,
+        queuedQuestion?.node,
+        ...toArray(queuedQuestion?.concepts),
+        ...toArray(queuedQuestion?.nodes),
+        ...((queuedQuestion?.choices || []).flatMap((choice) => getChoiceConceptReferences(choice))),
+      ]),
     ];
 
     questionConcepts.forEach((conceptLike) => {
-      const concept = createDiagnosisConcept(conceptLike);
-
-      if (concept && !conceptMap.has(concept.id)) {
-        conceptMap.set(concept.id, concept);
-      }
+      addConcept(conceptLike);
     });
   }
 
   return [...conceptMap.values()];
+}
+
+function getQuestionConceptFallbacks(question) {
+  if (!question) {
+    return [];
+  }
+
+  return [
+    {
+      node_id: question.node_id,
+      display_name: question.display_name,
+      korean_name: question.korean_name,
+      concept_name: question.concept_name,
+      name: question.node_name || question.name,
+      canonical_name: question.canonical_name,
+      concept_id: question.concept_id,
+    },
+    ...toArray(question.concepts),
+    ...toArray(question.nodes),
+    ...(question.conceptIds || []),
+    ...(question.coreConceptIds || []),
+    ...((question.choices || []).flatMap((choice) => getChoiceConceptReferences(choice))),
+  ];
 }
 
 function getDiagnosisStatusFromLabel(label) {
@@ -730,8 +808,18 @@ export function evaluateQuestion(question, answer) {
 }
 
 export function buildConceptStatuses(session, answers, currentQuestionIndex = 0, isComplete = false) {
+  const conceptMap = new Map();
+
+  [...(session.concepts || []), ...(session.questions || []).flatMap(getQuestionConceptFallbacks)].forEach((conceptLike) => {
+    const concept = createDiagnosisConcept(conceptLike);
+
+    if (concept && !conceptMap.has(concept.id)) {
+      conceptMap.set(concept.id, concept);
+    }
+  });
+
   const statuses = new Map(
-    session.concepts.map((concept) => {
+    [...conceptMap.values()].map((concept) => {
       const initialStatus = getDiagnosisStatusFromLabel(concept.sourceStatus);
 
       return [

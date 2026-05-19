@@ -5,6 +5,7 @@
 
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sqlalchemy.orm import Session
 from app.models.file import File
 from app.models.graph import ConceptNode, ConceptEdge
@@ -118,6 +119,18 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
     )
     if next_followup_question:
         return _question_to_response(next_followup_question[0], next_followup_question[1])
+
+    # 백그라운드 followup 생성이 아직 완료되지 않았거나 전혀 생성되지 않은 경우 동기 fallback
+    if session_id:
+        _ensure_followup_questions_for_session(project_id, session_id, nodes, db)
+        next_followup_question = _get_next_unanswered_question_for_nodes(
+            nodes=_dedupe_nodes(nodes),
+            session_id=session_id,
+            db=db,
+            diagnosis_purpose="prerequisite_check",
+        )
+        if next_followup_question:
+            return _question_to_response(next_followup_question[0], next_followup_question[1])
 
     return None
 
@@ -313,6 +326,73 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
     return result
 
 
+def pregenerate_core_questions(project_id: int, file_id: str, db: Session) -> None:
+    """PDF 분석 완료 시점에 핵심 개념 문제 병렬 생성 — 진단 시작 시 즉시 제공하기 위함"""
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
+    nodes = [
+        n for n in db.query(ConceptNode).filter(
+            ConceptNode.project_id == project_id,
+            ConceptNode.file_id == file_id,
+        ).all()
+        if n.node_source != "root" and n.file_id not in diagnosed_file_ids
+    ]
+    if not nodes:
+        return
+
+    core_nodes = _get_core_candidate_nodes(nodes)
+    if not core_nodes:
+        return
+
+    all_nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
+    graph_context = _build_graph_context(project_id, all_nodes)
+
+    target_node_ids = [
+        node.node_id for node in core_nodes
+        if not _has_question_for_node(node.node_id, db, diagnosis_purpose="concept_check")
+    ]
+    if not target_node_ids:
+        return
+
+    with ThreadPoolExecutor(max_workers=len(target_node_ids)) as executor:
+        futures = [
+            executor.submit(_pregenerate_single_node, project_id, node_id, graph_context)
+            for node_id in target_node_ids
+        ]
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception:
+                pass
+
+
+def _pregenerate_single_node(project_id: int, node_id: str, graph_context: dict) -> None:
+    """단일 노드 문제 생성 — 독립 DB 세션 사용 (ThreadPoolExecutor 병렬 처리용)"""
+    from app.db.session import SessionLocal
+    db = SessionLocal()
+    try:
+        node = db.query(ConceptNode).filter(ConceptNode.node_id == node_id).first()
+        if not node:
+            return
+        if _has_question_for_node(node_id, db, diagnosis_purpose="concept_check"):
+            return
+        _generate_and_store_question(
+            target_node=node,
+            graph_context=graph_context,
+            db=db,
+            diagnosis_purpose="concept_check",
+        )
+    except Exception:
+        pass
+    finally:
+        db.close()
+
+
 def generate_followup_question_background(
     project_id: int,
     node_id: str,
@@ -346,18 +426,31 @@ def mark_file_diagnosed(session_id: str, db: Session) -> None:
 
 
 def get_diagnosis_status(session_id: str, db: Session) -> dict:
-    """session_id 기준 진단 진행률 반환 — 문제 12개 고정"""
+    """session_id 기준 진단 진행률 반환 — 실제 생성/답변/대기 question 수 기반"""
     answered = (
         db.query(DiagnosisAnswer)
         .filter(DiagnosisAnswer.session_id == session_id)
         .count()
     )
+
+    session = db.query(DiagnosisSession).filter(DiagnosisSession.session_id == session_id).first()
+    if session:
+        total_generated = _get_total_session_question_count(session.project_id, session_id, db)
+    else:
+        total_generated = answered
+
+    remaining = max(total_generated - answered, 0)
+    is_complete = answered > 0 and remaining == 0
     progress = round(answered / TOTAL_QUESTIONS * 100, 1)
+
     return {
         "session_id": session_id,
         "answered": answered,
         "total_questions": TOTAL_QUESTIONS,
         "progress_percent": progress,
+        "remaining_questions": remaining,
+        "is_complete": is_complete,
+        "has_next_question": remaining > 0,
     }
 
 
@@ -372,7 +465,7 @@ def _json_loads_list(value: str | None) -> list:
 
 
 def _build_question_explanation(teacher_question: dict) -> str:
-    explanations = []
+    blocks = []
     for choice in teacher_question.get("choices", []):
         if not isinstance(choice, dict):
             continue
@@ -380,11 +473,18 @@ def _build_question_explanation(teacher_question: dict) -> str:
         option_id = choice.get("option_id")
         text = choice.get("text")
         explanation = choice.get("explanation")
-        if option_id and explanation:
-            explanations.append(f"{option_id}. {text}: {explanation}" if text else f"{option_id}. {explanation}")
+        if not (option_id and explanation):
+            continue
 
-    if explanations:
-        return "\n".join(explanations)
+        stripped = explanation.strip()
+        if stripped.startswith("#"):
+            blocks.append(stripped)
+        else:
+            prefix = f"{option_id}. {text}" if text else option_id
+            blocks.append(f"### {prefix}\n\n{stripped}")
+
+    if blocks:
+        return "\n\n---\n\n".join(blocks)
     return str(teacher_question.get("llm_reason") or "").strip()
 
 
@@ -474,6 +574,54 @@ def _ensure_core_questions_generated(
 
     if last_error is not None and not _has_any_unanswered_question(core_nodes, session_id, db, "concept_check"):
         raise ValueError(f"질문 중복으로 핵심 개념 진단 문항을 생성할 수 없습니다: {last_error}")
+
+
+def _ensure_followup_questions_for_session(
+    project_id: int,
+    session_id: str,
+    nodes: list[ConceptNode],
+    db: Session,
+) -> None:
+    """세션 내 오답 노드에 대해 followup 질문이 없으면 동기적으로 생성 — 백그라운드 미완료 대비 fallback"""
+    if _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
+        return
+
+    answered_question_ids = {
+        answer.question_id
+        for answer in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .all()
+    }
+    if not answered_question_ids:
+        return
+
+    weak_answers = (
+        db.query(DiagnosisAnswer)
+        .filter(
+            DiagnosisAnswer.session_id == session_id,
+            DiagnosisAnswer.answer_score < LOW_SCORE_THRESHOLD,
+            DiagnosisAnswer.is_skipped.is_(False),
+        )
+        .all()
+    )
+
+    node_map = {node.node_id: node for node in nodes}
+
+    for answer in weak_answers:
+        q = db.query(DiagnosisQuestion).filter(DiagnosisQuestion.question_id == answer.question_id).first()
+        if not q:
+            continue
+        weak_node = node_map.get(q.concept_id)
+        if not weak_node:
+            continue
+        _ensure_prerequisite_followup_question_generated(
+            project_id=project_id,
+            weak_node=weak_node,
+            session_id=session_id,
+            db=db,
+        )
+        if _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
+            return
 
 
 def _ensure_prerequisite_followup_question_generated(

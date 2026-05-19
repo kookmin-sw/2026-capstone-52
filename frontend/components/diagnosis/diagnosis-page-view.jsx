@@ -14,6 +14,7 @@ import {
   createDiagnosisSession,
   createEmptyAnswers,
   diagnosisStatusMap,
+  getDiagnosisConceptLabel,
   isAnswerReady,
   normalizeDiagnosisQuestion,
 } from "../../features/diagnosis/model";
@@ -197,6 +198,31 @@ function normalizeApiChoice(choice, index) {
   };
 }
 
+function getDiagnosisApiErrorMessage(error) {
+  if (!error) {
+    return "";
+  }
+
+  const payload = error.payload;
+  const payloadMessage =
+    payload && typeof payload === "object"
+      ? payload.detail || payload.message || payload.error
+      : typeof payload === "string"
+        ? payload
+        : "";
+
+  return payloadMessage || error.message || "";
+}
+
+function isNoDiagnosableConceptsError(error) {
+  const message = getDiagnosisApiErrorMessage(error);
+  return error?.status === 404 && message.includes("진단 가능한 개념이 없습니다");
+}
+
+function getApiQuestionConceptLabel(question) {
+  return getDiagnosisConceptLabel(question) || "진단 대상 개념";
+}
+
 function buildDashboardChatId(projectId, chatSessionId) {
   if (!projectId || chatSessionId === null || chatSessionId === undefined) {
     return null;
@@ -277,6 +303,8 @@ export default function DiagnosisPageView({ projectId }) {
   const [diagnosisReviewIndex, setDiagnosisReviewIndex] = useState(0);
   const [isDiagnosisReviewLoading, setIsDiagnosisReviewLoading] = useState(false);
   const [diagnosisReviewError, setDiagnosisReviewError] = useState(null);
+  const [diagnosisReport, setDiagnosisReport] = useState(null);
+  const [diagnosisReportError, setDiagnosisReportError] = useState(null);
   const initializedDiagnosisSessionRef = useRef(null);
   const initialQuestionRequestRef = useRef(null);
   const questionTransitionTimeoutRef = useRef(null);
@@ -441,6 +469,7 @@ export default function DiagnosisPageView({ projectId }) {
           : [];
         const concepts = buildApiDiagnosisConcepts(diagnosisNodes, apiQuestion);
         const fallbackConceptId = question.concept_id || question.node_id || "api-concept";
+        const fallbackConceptLabel = getApiQuestionConceptLabel(question);
         const normalizedQuestion = normalizeDiagnosisQuestion({
           id: question.question_id,
           diagnosisId: question.question_id,
@@ -448,13 +477,23 @@ export default function DiagnosisPageView({ projectId }) {
           questionType: question.question_type || null,
           isMultiSelect: question.question_type === "multi_select",
           node_id: question.concept_id || question.node_id,
-          node_name: question.node_name || question.concept_name || "진단 대상 개념",
+          display_name: question.display_name,
+          korean_name: question.korean_name,
+          concept_name: question.concept_name,
+          canonical_name: question.canonical_name,
+          concept_id: question.concept_id,
+          node_name: fallbackConceptLabel,
           conceptIds: question.conceptIds ||
             question.concept_ids ||
             [
               {
                 node_id: fallbackConceptId,
-                name: question.node_name || question.concept_name || "진단 대상 개념",
+                display_name: question.display_name,
+                korean_name: question.korean_name,
+                concept_name: question.concept_name,
+                name: fallbackConceptLabel,
+                canonical_name: question.canonical_name,
+                concept_id: question.concept_id,
               },
             ],
           prompt: question.question,
@@ -481,7 +520,7 @@ export default function DiagnosisPageView({ projectId }) {
             : [
                 {
                   id: fallbackConceptId,
-                  label: question.node_name || question.concept_name || "진단 대상 개념",
+                  label: fallbackConceptLabel,
                 },
               ],
           questions: [normalizedQuestion],
@@ -645,7 +684,7 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       if (isDiagnosisBackendApiEnabled && session?.id) {
-        const reportResponse = await createApiDiagnosisReport(targetProjectId, session.id);
+        const reportResponse = diagnosisReport || await createApiDiagnosisReport(targetProjectId, session.id);
         const chatId = buildDashboardChatId(targetProjectId, reportResponse?.chat_session?.id);
         const params = new URLSearchParams({ projectId: String(targetProjectId) });
 
@@ -712,6 +751,74 @@ export default function DiagnosisPageView({ projectId }) {
     } finally {
       setIsDiagnosisReviewLoading(false);
     }
+  }
+
+  async function completeApiDiagnosisFlow(sessionAfterCheck, nextAnswers, answeredCount) {
+    const conceptStatuses = buildConceptStatuses(
+      sessionAfterCheck,
+      nextAnswers,
+      sessionAfterCheck.questions.length,
+      true
+    );
+    const correctAnswerCount = sessionAfterCheck.questions.filter((question) => {
+      const userChoiceIds = getSelectedChoiceIds(nextAnswers[question.id]);
+      const correctIds = question.correctChoiceIds || [];
+      return (
+        correctIds.length > 0 &&
+        userChoiceIds.length === correctIds.length &&
+        userChoiceIds.every((choiceId) => correctIds.includes(choiceId))
+      );
+    }).length;
+    const passedDiagnosis = correctAnswerCount > sessionAfterCheck.questions.length / 2;
+    const nextAssessment = {
+      levelTitle: passedDiagnosis ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
+      measuredLevel: passedDiagnosis ? "상급" : "초급",
+      summary: passedDiagnosis
+        ? `${session.projectTitle} 기준 진단 질문에 정답 처리되었습니다.`
+        : `${session.projectTitle} 기준 추가 학습이 필요한 개념이 확인되었습니다.`,
+      missingConcepts: conceptStatuses
+        .filter((concept) => concept.tone === diagnosisStatusMap.needsReview.tone)
+        .map((concept) => concept.label),
+      roadmap: passedDiagnosis
+        ? ["응용 질문으로 개념 연결 확장"]
+        : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
+      conceptStatuses,
+    };
+    const workspaceState = loadWorkspaceState();
+    const nextWorkspaceState = saveProjectDiagnosis(workspaceState, projectId, {
+      savedAt: Date.now(),
+      sessionId: session.id,
+      totalQuestionCount: sessionAfterCheck.totalQuestions,
+      completedQuestionCount: answeredCount,
+      answers: nextAnswers,
+      questions: sessionAfterCheck.questions,
+      conceptStatuses,
+      assessment: nextAssessment,
+    });
+
+    saveWorkspaceState(nextWorkspaceState);
+    setApiSession(sessionAfterCheck);
+    if (isDiagnosisBackendApiEnabled && session.id) {
+      try {
+        const reportResponse = await createApiDiagnosisReport(projectId, session.id);
+        setDiagnosisReport(reportResponse);
+        setDiagnosisReportError(null);
+      } catch (reportError) {
+        setDiagnosisReport(null);
+        setDiagnosisReportError(
+          reportError instanceof Error ? reportError.message : "수준진단 리포트를 생성하지 못했습니다."
+        );
+      }
+    }
+    setDiagnosisError(null);
+    setStep("ready");
+    setIsFollowUpQuestion(false);
+    setIsQuestionTransitionLoading(false);
+    createLearningLog({
+      projectId,
+      activityType: "diagnosis_completed",
+      activitySummary: `${session.projectTitle} 수준 진단을 완료했습니다.`,
+    }).catch(console.error);
   }
 
   async function handleAdvance(nextAnswer = null) {
@@ -807,6 +914,13 @@ export default function DiagnosisPageView({ projectId }) {
           try {
             nextQuestion = await createApiDiagnosisQuestion(projectId, session.id);
           } catch (fetchError) {
+            const hasDiagnosisProgress =
+              Object.keys(nextAnswers).length > 0 || Boolean(currentQuestion) || Boolean(session.id);
+            if (isNoDiagnosableConceptsError(fetchError) && hasDiagnosisProgress) {
+              await completeApiDiagnosisFlow(sessionAfterCheck, nextAnswers, answeredCount);
+              return;
+            }
+
             setDiagnosisError(
               fetchError instanceof Error ? fetchError.message : "다음 진단 질문을 불러오지 못했습니다."
             );
@@ -822,6 +936,7 @@ export default function DiagnosisPageView({ projectId }) {
             const choices = Array.isArray(nextQuestion.choices) ? nextQuestion.choices : [];
             const fallbackConceptId =
               nextQuestion.concept_id || nextQuestion.node_id || `api-concept-${answeredCount + 1}`;
+            const fallbackConceptLabel = getApiQuestionConceptLabel(nextQuestion);
             const apiQuestion = {
               ...nextQuestion,
               node_id: nextQuestion.concept_id || nextQuestion.node_id,
@@ -838,13 +953,23 @@ export default function DiagnosisPageView({ projectId }) {
               questionType: nextQuestion.question_type || null,
               isMultiSelect: nextQuestion.question_type === "multi_select",
               node_id: nextQuestion.concept_id || nextQuestion.node_id,
-              node_name: nextQuestion.node_name || nextQuestion.concept_name || "진단 대상 개념",
+              display_name: nextQuestion.display_name,
+              korean_name: nextQuestion.korean_name,
+              concept_name: nextQuestion.concept_name,
+              canonical_name: nextQuestion.canonical_name,
+              concept_id: nextQuestion.concept_id,
+              node_name: fallbackConceptLabel,
               conceptIds: nextQuestion.conceptIds ||
                 nextQuestion.concept_ids ||
                 [
                   {
                     node_id: fallbackConceptId,
-                    name: nextQuestion.node_name || nextQuestion.concept_name || "진단 대상 개념",
+                    display_name: nextQuestion.display_name,
+                    korean_name: nextQuestion.korean_name,
+                    concept_name: nextQuestion.concept_name,
+                    name: fallbackConceptLabel,
+                    canonical_name: nextQuestion.canonical_name,
+                    concept_id: nextQuestion.concept_id,
                   },
                 ],
               prompt: nextQuestion.question,
@@ -867,70 +992,7 @@ export default function DiagnosisPageView({ projectId }) {
           }
         }
 
-        const conceptStatuses = buildConceptStatuses(
-          sessionAfterCheck,
-          nextAnswers,
-          sessionAfterCheck.questions.length,
-          true
-        );
-        const correctAnswerCount = sessionAfterCheck.questions.filter((question) => {
-          const userChoiceIds = getSelectedChoiceIds(nextAnswers[question.id]);
-          const correctIds = question.correctChoiceIds || [];
-          return (
-            correctIds.length > 0 &&
-            userChoiceIds.length === correctIds.length &&
-            userChoiceIds.every((choiceId) => correctIds.includes(choiceId))
-          );
-        }).length;
-        const passedDiagnosis = correctAnswerCount > sessionAfterCheck.questions.length / 2;
-        const nextAssessment = {
-          levelTitle: passedDiagnosis ? "현재 수준: 핵심 개념 이해" : "현재 수준: 개념 기초부터 보강 필요",
-          measuredLevel: passedDiagnosis ? "상급" : "초급",
-          summary: passedDiagnosis
-            ? `${session.projectTitle} 기준 진단 질문에 정답 처리되었습니다.`
-            : `${session.projectTitle} 기준 추가 학습이 필요한 개념이 확인되었습니다.`,
-          missingConcepts: conceptStatuses
-            .filter((concept) => concept.tone === diagnosisStatusMap.needsReview.tone)
-            .map((concept) => concept.label),
-          roadmap: passedDiagnosis
-            ? ["응용 질문으로 개념 연결 확장"]
-            : ["오답 개념 다시 정리", "예시 기반 설명으로 보강"],
-          conceptStatuses,
-        };
-        const workspaceState = loadWorkspaceState();
-        const nextWorkspaceState = saveProjectDiagnosis(workspaceState, projectId, {
-          savedAt: Date.now(),
-          sessionId: session.id,
-          totalQuestionCount: sessionAfterCheck.totalQuestions,
-          completedQuestionCount: answeredCount,
-          answers: nextAnswers,
-          questions: sessionAfterCheck.questions,
-          conceptStatuses,
-          assessment: nextAssessment,
-        });
-
-        saveWorkspaceState(nextWorkspaceState);
-        setApiSession(sessionAfterCheck);
-        if (isDiagnosisBackendApiEnabled && session.id) {
-          try {
-            const reportResponse = await createApiDiagnosisReport(projectId, session.id);
-            setDiagnosisReport(reportResponse);
-            setDiagnosisReportError(null);
-          } catch (reportError) {
-            setDiagnosisReport(null);
-            setDiagnosisReportError(
-              reportError instanceof Error ? reportError.message : "수준진단 리포트를 생성하지 못했습니다."
-            );
-          }
-        }
-        setStep("ready");
-        setIsFollowUpQuestion(false);
-        setIsQuestionTransitionLoading(false);
-        createLearningLog({
-          projectId,
-          activityType: "diagnosis_completed",
-          activitySummary: `${session.projectTitle} 수준 진단을 완료했습니다.`,
-        }).catch(console.error);
+        await completeApiDiagnosisFlow(sessionAfterCheck, nextAnswers, answeredCount);
       } catch (error) {
         setDiagnosisError(error instanceof Error ? error.message : "진단 답변을 제출하지 못했습니다.");
         setDraftAnswer(resolvedAnswer);

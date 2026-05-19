@@ -3594,11 +3594,11 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                   {message.role === "assistant" ? (
                     message.isPending ? (
                       <div className="workspace-message-pending-indicator" role="status" aria-label="AI 응답 생성 중">
-                        <EeumIcon
-                          className="workspace-message-pending-icon"
-                          isLoading
-                          variant="sparkle"
-                        />
+                        <div className="workspace-message-loading-dots" aria-hidden="true">
+                          <span />
+                          <span />
+                          <span />
+                        </div>
                       </div>
                     ) : (
                       <>
