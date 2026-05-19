@@ -43,6 +43,7 @@ class DiagnosisAnswerRequest(BaseModel):
 class DiagnosisReportRequest(BaseModel):
     """수준진단 완료 후 채팅 리포트 생성 요청"""
     session_id: str
+    chat_session_id: Optional[int] = None
 
 
 class DiagnosisAnswerResponse(BaseModel):

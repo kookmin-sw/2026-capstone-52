@@ -40,6 +40,7 @@ def create_diagnosis_report_chats(
     project_id: int,
     session_id: str,
     user_id: int,
+    chat_session_id: int | None = None,
 ) -> list[Chat]:
     project = db.query(Project).filter(Project.project_id == project_id).first()
     if not project:
@@ -76,6 +77,7 @@ def create_diagnosis_report_chats(
         Chat(
             user_id=user_id,
             project_id=project_id,
+            session_id=chat_session_id,
             user_message=REPORT_USER_MESSAGE,
             ai_response=structure_message,
             response_type=REPORT_STRUCTURE_RESPONSE_TYPE,
@@ -83,6 +85,7 @@ def create_diagnosis_report_chats(
         Chat(
             user_id=user_id,
             project_id=project_id,
+            session_id=chat_session_id,
             user_message=REPORT_USER_MESSAGE,
             ai_response=summary_message,
             response_type=REPORT_SUMMARY_RESPONSE_TYPE,

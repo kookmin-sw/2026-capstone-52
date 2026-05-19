@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import EeumIcon from "@/components/common/EeumIcon";
 import { LandingBackgroundLayer } from "@/components/landing/landing-background-layer";
@@ -35,7 +37,9 @@ import {
 
 const ANALYZING_DELAY_MS = 2200;
 const FINAL_PROGRESS_DELAY_MS = 420;
+const MOCK_QUESTION_TRANSITION_DELAY_MS = 640;
 const DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS = 12;
+const FOLLOW_UP_SCORE_THRESHOLD = 0.4;
 const EEUM_SPARKLE_PATH =
   "M 0 -38 C 3 -12 12 -3 38 0 C 12 3 3 12 0 38 C -3 12 -12 3 -38 0 C -12 -3 -3 -12 0 -38 Z";
 
@@ -46,6 +50,47 @@ function SparkDots() {
       <span />
       <span />
     </div>
+  );
+}
+
+const loadingDotVariants = {
+  jump: {
+    y: -30,
+    transition: {
+      duration: 0.8,
+      repeat: Infinity,
+      repeatType: "mirror",
+      ease: "easeInOut",
+    },
+  },
+};
+
+function LoadingThreeDotsJumping() {
+  return (
+    <motion.div
+      animate="jump"
+      transition={{ staggerChildren: -0.2, staggerDirection: -1 }}
+      className="diagnosis-flow-next-loader"
+      role="status"
+      aria-label="다음 질문을 불러오는 중"
+    >
+      <motion.div className="diagnosis-flow-next-loader-dot" variants={loadingDotVariants} />
+      <motion.div className="diagnosis-flow-next-loader-dot" variants={loadingDotVariants} />
+      <motion.div className="diagnosis-flow-next-loader-dot" variants={loadingDotVariants} />
+    </motion.div>
+  );
+}
+
+function LoadingThreeDotsOverlay() {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="diagnosis-flow-next-loading">
+      <LoadingThreeDotsJumping />
+    </div>,
+    document.body
   );
 }
 
@@ -150,6 +195,14 @@ function normalizeApiChoice(choice, index) {
   };
 }
 
+function buildDashboardChatId(projectId, chatSessionId) {
+  if (!projectId || chatSessionId === null || chatSessionId === undefined) {
+    return null;
+  }
+
+  return `${projectId}-session-${chatSessionId}`;
+}
+
 export default function DiagnosisPageView({ projectId }) {
   const router = useRouter();
   const [projectData, setProjectData] = useState(() => {
@@ -164,12 +217,23 @@ export default function DiagnosisPageView({ projectId }) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [apiSession, setApiSession] = useState(null);
   const [isInitialQuestionLoading, setIsInitialQuestionLoading] = useState(false);
+  const [isQuestionTransitionLoading, setIsQuestionTransitionLoading] = useState(false);
+  const [isFollowUpQuestion, setIsFollowUpQuestion] = useState(false);
   const [diagnosisError, setDiagnosisError] = useState(null);
   const [diagnosisReport, setDiagnosisReport] = useState(null);
   const [diagnosisReportError, setDiagnosisReportError] = useState(null);
   const [diagnosisUpdatedNodes, setDiagnosisUpdatedNodes] = useState([]);
   const initializedDiagnosisSessionRef = useRef(null);
   const initialQuestionRequestRef = useRef(null);
+  const questionTransitionTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (questionTransitionTimeoutRef.current) {
+        window.clearTimeout(questionTransitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,6 +302,7 @@ export default function DiagnosisPageView({ projectId }) {
       projectId,
       projectTitle: projectData.title,
       totalQuestions: DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS,
+      completedQuestionCount: 0,
       estimatedMinutes: 6,
       concepts: [],
       questions: [],
@@ -247,10 +312,17 @@ export default function DiagnosisPageView({ projectId }) {
   const session = isDiagnosisBackendApiEnabled ? apiSession || emptyApiSession : fallbackSession;
 
   useEffect(() => {
+    if (questionTransitionTimeoutRef.current) {
+      window.clearTimeout(questionTransitionTimeoutRef.current);
+      questionTransitionTimeoutRef.current = null;
+    }
+
     if (!isDiagnosisBackendApiEnabled) {
       setApiSession(null);
       setDiagnosisError(null);
       setIsInitialQuestionLoading(false);
+      setIsQuestionTransitionLoading(false);
+      setIsFollowUpQuestion(false);
       return;
     }
 
@@ -263,6 +335,8 @@ export default function DiagnosisPageView({ projectId }) {
     setStep("intro");
     setDiagnosisError(null);
     setIsInitialQuestionLoading(false);
+    setIsQuestionTransitionLoading(false);
+    setIsFollowUpQuestion(false);
   }, [projectId]);
 
   async function loadInitialApiSession() {
@@ -331,12 +405,14 @@ export default function DiagnosisPageView({ projectId }) {
           typeof status?.total_questions === "number" && status.total_questions > 0
             ? status.total_questions
             : DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
+        const answeredFromStatus = typeof status?.answered === "number" ? status.answered : 0;
 
         const nextSession = {
           id: sessionId,
           projectId,
           projectTitle: projectData.title,
           totalQuestions: totalFromStatus,
+          completedQuestionCount: Math.min(answeredFromStatus, totalFromStatus),
           estimatedMinutes: 6,
           concepts: concepts.length
             ? concepts
@@ -353,6 +429,7 @@ export default function DiagnosisPageView({ projectId }) {
         setAnswers(createEmptyAnswers(nextSession));
         setDraftAnswer(createEmptyDraftAnswer(normalizedQuestion));
         setQuestionIndex(0);
+        setIsFollowUpQuestion(false);
         setApiSession(nextSession);
         return nextSession;
       } catch (error) {
@@ -370,6 +447,8 @@ export default function DiagnosisPageView({ projectId }) {
   }
 
   async function handleStartDiagnosis() {
+    setIsFollowUpQuestion(false);
+
     if (!isDiagnosisBackendApiEnabled) {
       setStep("quiz");
       return;
@@ -400,6 +479,7 @@ export default function DiagnosisPageView({ projectId }) {
     setAnswers(createEmptyAnswers(session));
     setDraftAnswer(createEmptyDraftAnswer(session.questions[0]));
     setQuestionIndex(0);
+    setIsFollowUpQuestion(false);
     setStep("intro");
   }, [projectId, session.id, session.projectId, session.questions.length]);
 
@@ -447,12 +527,22 @@ export default function DiagnosisPageView({ projectId }) {
     () => buildConceptStatuses(session, answers, questionIndex, step === "ready"),
     [answers, questionIndex, session, step]
   );
-  const questionProgressRatio = session.totalQuestions
-    ? Math.min(Math.max((questionIndex + 1) / session.totalQuestions, 0), 1)
+  const totalQuestionCount = session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
+  const completedQuestionCount =
+    typeof session.completedQuestionCount === "number"
+      ? session.completedQuestionCount
+      : isDiagnosisBackendApiEnabled
+        ? 0
+        : questionIndex;
+  const boundedCompletedQuestionCount = Math.min(Math.max(completedQuestionCount, 0), totalQuestionCount);
+  const progressPercent = totalQuestionCount
+    ? Math.min(Math.max(Math.round((boundedCompletedQuestionCount / totalQuestionCount) * 100), 0), 100)
     : 0;
+  const currentQuestionNumber = Math.min(boundedCompletedQuestionCount + 1, totalQuestionCount);
+  const progressContextText = isFollowUpQuestion ? "보충 확인 중" : "나를 파악하는 중이에요";
 
   function updateCurrentAnswer(value) {
-    if (!currentQuestion) {
+    if (!currentQuestion || isQuestionTransitionLoading) {
       return;
     }
 
@@ -492,12 +582,15 @@ export default function DiagnosisPageView({ projectId }) {
 
     try {
       if (isDiagnosisBackendApiEnabled && session?.id) {
-        if (diagnosisReport) {
-          router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
-          return;
+        const reportResponse = diagnosisReport || await createApiDiagnosisReport(targetProjectId, session.id);
+        const chatId = buildDashboardChatId(targetProjectId, reportResponse?.chat_session?.id);
+        const params = new URLSearchParams({ projectId: String(targetProjectId) });
+
+        if (chatId) {
+          params.set("chatId", chatId);
         }
-        await createApiDiagnosisReport(targetProjectId, session.id);
-        router.push(`/dashboard?projectId=${encodeURIComponent(targetProjectId)}`);
+
+        router.push(`/dashboard?${params.toString()}`);
         return;
       }
 
@@ -521,7 +614,7 @@ export default function DiagnosisPageView({ projectId }) {
   }
 
   async function handleAdvance(nextAnswer = null) {
-    if (!currentQuestion) {
+    if (!currentQuestion || isQuestionTransitionLoading) {
       return;
     }
 
@@ -538,10 +631,11 @@ export default function DiagnosisPageView({ projectId }) {
       [currentQuestion.id]: resolvedAnswer,
     };
 
-    setAnswers(nextAnswers);
-    setDraftAnswer(createEmptyDraftAnswer(currentQuestion));
+    const isBackendDiagnosisQuestion = isDiagnosisBackendApiEnabled && currentQuestion.diagnosisId;
 
-    if (isDiagnosisBackendApiEnabled && currentQuestion.diagnosisId) {
+    setAnswers(nextAnswers);
+
+    if (isBackendDiagnosisQuestion) {
       const selectedChoiceIds = getSelectedChoiceIds(resolvedAnswer);
       const selectedChoices = currentQuestion.choices.filter((choice) => selectedChoiceIds.includes(choice.id));
       const selectedOptionIds = selectedChoices.map((choice) => choice.optionId).filter(Boolean);
@@ -551,7 +645,7 @@ export default function DiagnosisPageView({ projectId }) {
           ? currentQuestion.choices.findIndex((choice) => choice.id === selectedChoiceIds[0])
           : 0;
 
-      setStep("analyzing");
+      setIsQuestionTransitionLoading(true);
 
       try {
         const result = await submitApiDiagnosisAnswer(
@@ -598,11 +692,21 @@ export default function DiagnosisPageView({ projectId }) {
             : session.totalQuestions || DIAGNOSIS_DEFAULT_TOTAL_QUESTIONS;
         const answeredCount =
           typeof status?.answered === "number" ? status.answered : Object.keys(nextAnswers).length;
+        const answerScore = typeof result.answer_score === "number" ? result.answer_score : null;
+        const shouldPauseForFollowUp = answerScore !== null && answerScore < FOLLOW_UP_SCORE_THRESHOLD;
+        const currentCompletedQuestionCount =
+          typeof session.completedQuestionCount === "number"
+            ? session.completedQuestionCount
+            : Math.max(answeredCount - 1, 0);
+        const nextCompletedQuestionCount = shouldPauseForFollowUp
+          ? currentCompletedQuestionCount
+          : Math.min(currentCompletedQuestionCount + 1, totalFromStatus);
         const isCompleted = answeredCount >= totalFromStatus;
 
         const sessionAfterCheck = {
           ...session,
           totalQuestions: totalFromStatus,
+          completedQuestionCount: nextCompletedQuestionCount,
           questions: session.questions.map((question) =>
             question.id === currentQuestion.id ? checkedQuestion : question
           ),
@@ -619,6 +723,8 @@ export default function DiagnosisPageView({ projectId }) {
             setDraftAnswer(resolvedAnswer);
             setApiSession(sessionAfterCheck);
             setStep("quiz");
+            setIsFollowUpQuestion(false);
+            setIsQuestionTransitionLoading(false);
             return;
           }
 
@@ -665,6 +771,8 @@ export default function DiagnosisPageView({ projectId }) {
             setDraftAnswer(createEmptyDraftAnswer(normalizedNext));
             setQuestionIndex((current) => current + 1);
             setStep("quiz");
+            setIsFollowUpQuestion(shouldPauseForFollowUp);
+            setIsQuestionTransitionLoading(false);
             return;
           }
         }
@@ -726,6 +834,8 @@ export default function DiagnosisPageView({ projectId }) {
           }
         }
         setStep("ready");
+        setIsFollowUpQuestion(false);
+        setIsQuestionTransitionLoading(false);
         createLearningLog({
           projectId,
           activityType: "diagnosis_completed",
@@ -735,20 +845,30 @@ export default function DiagnosisPageView({ projectId }) {
         setDiagnosisError(error instanceof Error ? error.message : "진단 답변을 제출하지 못했습니다.");
         setDraftAnswer(resolvedAnswer);
         setStep("quiz");
+        setIsQuestionTransitionLoading(false);
       }
 
       return;
     }
 
     if (questionIndex >= session.totalQuestions - 1) {
-      window.setTimeout(() => {
+      setIsQuestionTransitionLoading(true);
+      questionTransitionTimeoutRef.current = window.setTimeout(() => {
+        setDraftAnswer(createEmptyDraftAnswer(currentQuestion));
         setStep("analyzing");
+        setIsQuestionTransitionLoading(false);
+        questionTransitionTimeoutRef.current = null;
       }, FINAL_PROGRESS_DELAY_MS);
       return;
     }
 
-    setDraftAnswer(createEmptyDraftAnswer(session.questions[questionIndex + 1]));
-    setQuestionIndex((current) => current + 1);
+    setIsQuestionTransitionLoading(true);
+    questionTransitionTimeoutRef.current = window.setTimeout(() => {
+      setDraftAnswer(createEmptyDraftAnswer(session.questions[questionIndex + 1]));
+      setQuestionIndex((current) => current + 1);
+      setIsQuestionTransitionLoading(false);
+      questionTransitionTimeoutRef.current = null;
+    }, MOCK_QUESTION_TRANSITION_DELAY_MS);
   }
 
   const reportData = diagnosisReport?.report || null;
@@ -814,11 +934,9 @@ export default function DiagnosisPageView({ projectId }) {
             <div className="diagnosis-flow-summary-progress">
               <span>진행률</span>
               <div className="diagnosis-flow-progress-bar">
-                <div style={{ width: `${questionProgressRatio * 100}%` }} />
+                <div style={{ width: `${progressPercent}%` }} />
               </div>
-              <strong>
-                {questionIndex + 1} / {session.totalQuestions}
-              </strong>
+              <strong>{progressPercent}%</strong>
             </div>
           </section>
 
@@ -827,7 +945,7 @@ export default function DiagnosisPageView({ projectId }) {
               <div className="diagnosis-flow-question-subject">
                 <span>🎯 {projectData.title}</span>
                 <b>
-                  나를 파악하는 중이에요 · {questionIndex + 1} / {session.totalQuestions}
+                  {progressContextText} · {currentQuestionNumber} / {totalQuestionCount}
                 </b>
               </div>
 
@@ -844,6 +962,7 @@ export default function DiagnosisPageView({ projectId }) {
                         selectedChoiceIds.includes(choice.id) ? "diagnosis-flow-choice-active" : ""
                       }`}
                       onClick={() => updateCurrentAnswer(choice.id)}
+                      disabled={isQuestionTransitionLoading}
                     >
                       <span className="diagnosis-flow-choice-index">{String.fromCharCode(65 + index)}</span>
                       <span>{choice.label}</span>
@@ -858,15 +977,18 @@ export default function DiagnosisPageView({ projectId }) {
                     value={draftAnswer}
                     onChange={(event) => updateCurrentAnswer(event.target.value)}
                     placeholder={currentQuestion.placeholder}
+                    disabled={isQuestionTransitionLoading}
                   />
                 </div>
               )}
 
+              {isQuestionTransitionLoading ? <LoadingThreeDotsOverlay /> : null}
               <div className="diagnosis-flow-actions">
                 <button
                   type="button"
                   className="diagnosis-flow-action diagnosis-flow-action-secondary"
                   onClick={() => handleAdvance(currentQuestion.type === "short-answer" ? "잘 모르겠어요." : unknownChoiceId)}
+                  disabled={isQuestionTransitionLoading}
                 >
                   잘 모르겠어요
                 </button>
@@ -874,7 +996,7 @@ export default function DiagnosisPageView({ projectId }) {
                   type="button"
                   className="diagnosis-flow-action diagnosis-flow-action-primary"
                   onClick={() => handleAdvance()}
-                  disabled={!isCurrentAnswerReady}
+                  disabled={!isCurrentAnswerReady || isQuestionTransitionLoading}
                 >
                   {questionIndex >= session.totalQuestions - 1 ? "분석 시작하기" : "다음 질문"} <span>→</span>
                 </button>

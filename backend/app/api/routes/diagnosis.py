@@ -7,8 +7,10 @@ from app.db.session import get_db
 from app.services import diagnosis_service
 from app.services.diagnosis_service import get_session_review
 from app.services.diagnosis_report_service import create_diagnosis_report_chats
+from app.services.chat_service import create_chat_session, get_chat_session
 from app.services.quiz_report_service import build_quiz_report
 from app.schemas.quiz_review import QuizQuestionReview
+from app.schemas.chat import ChatSessionResponse
 from app.schemas.diagnosis import (
     DiagnosisSessionCreateResponse,
     DiagnosisQuestionResponse,
@@ -136,16 +138,25 @@ def create_diagnosis_report(
     _get_project_or_403(project_id, current_user, db)
 
     try:
+        report = build_quiz_report(
+            db=db,
+            project_id=project_id,
+            session_id=body.session_id,
+        )
+
+        if body.chat_session_id is not None:
+            chat_session = get_chat_session(db, project_id, body.chat_session_id)
+            if not chat_session:
+                raise HTTPException(status_code=404, detail="채팅방을 찾을 수 없습니다.")
+        else:
+            chat_session = create_chat_session(db, project_id, title="수준진단 리포트")
+
         chats = create_diagnosis_report_chats(
             db=db,
             project_id=project_id,
             session_id=body.session_id,
             user_id=current_user.user_id,
-        )
-        report = build_quiz_report(
-            db=db,
-            project_id=project_id,
-            session_id=body.session_id,
+            chat_session_id=chat_session.id,
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -156,6 +167,7 @@ def create_diagnosis_report(
             "messages": [
                 {
                     "chat_id": chat.chat_id,
+                    "session_id": chat.session_id,
                     "project_id": chat.project_id,
                     "user_message": chat.user_message,
                     "ai_response": chat.ai_response,
@@ -165,6 +177,7 @@ def create_diagnosis_report(
                 for chat in chats
             ],
             "report": report.model_dump(),
+            "chat_session": ChatSessionResponse.model_validate(chat_session).model_dump(),
         },
         "message": "수준진단 리포트 생성 성공",
     }
