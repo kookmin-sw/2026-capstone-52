@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
@@ -90,9 +91,11 @@ def generate_question(
         "At least 1 choice must be correct. Not all choices can be correct. "
         "Prefer 2 or 3 correct choices unless pedagogically inappropriate. "
         "Include explanation for every choice. "
-        "Each choice explanation must be a concise Korean Markdown string with real newline characters. "
+        "Each choice explanation must be a standalone concise Korean Markdown block with real newline characters. "
         "Do not write explanations as one long paragraph. "
-        "Use this Markdown shape for each explanation: **해설:** followed by bullet lines such as '- **정답 판단:** ...' and '- **핵심 이유:** ...'. "
+        "Start each choices[].explanation with a heading exactly like '### A. 선택지 해설' using that choice's option_id. "
+        "After the heading, add one blank line, include '**선택지:** ...', then bullet lines for '**정답 판단:**', '**핵심 이유:**', and '**복습 포인트:**'. "
+        "Do not include duplicate '해설:' labels inside the same block. "
         "Include diagnostic_tag for every choice. "
         "Include target_concept_id and misconception_type for every choice. "
         "Include diagnostic_tags, tag_group, and llm_reason. "
@@ -149,8 +152,10 @@ def generate_question(
                 "language": "Korean",
                 "must_include_real_newline_characters": True,
                 "avoid": "single long paragraph",
+                "standalone_block_per_choice": True,
                 "max_bullets_per_choice": 3,
-                "recommended_shape": "**해설:**\n\n- **정답 판단:** ...\n- **핵심 이유:** ...\n- **복습 포인트:** ...",
+                "required_shape": "### {option_id}. 선택지 해설\n\n**선택지:** {choice_text}\n\n- **정답 판단:** ...\n- **핵심 이유:** ...\n- **복습 포인트:** ...",
+                "when_combined_by_backend": "Backend may join A-E explanations with blank lines; each explanation must already be visually separable.",
             },
             "required_output": {
                 "question_text": "string",
@@ -162,7 +167,7 @@ def generate_question(
                         "diagnostic_tag": "string",
                         "target_concept_id": concept_id,
                         "misconception_type": None,
-                        "explanation": "**해설:**\n\n- **정답 판단:** ...\n- **핵심 이유:** ...",
+                        "explanation": "### A. 선택지 해설\n\n**선택지:** string\n\n- **정답 판단:** ...\n- **핵심 이유:** ...\n- **복습 포인트:** ...",
                     }
                 ],
                 "diagnostic_tags": ["string"],
@@ -421,7 +426,12 @@ def validate_question_payload(
         is_correct = choice.get("is_correct")
         if not isinstance(is_correct, bool):
             raise QuestionValidationError("choice.is_correct must be a boolean.")
-        explanation = _ensure_markdown_explanation(explanation, is_correct=is_correct)
+        explanation = _ensure_markdown_explanation(
+            explanation,
+            option_label=option_id,
+            option_text=text,
+            is_correct=is_correct,
+        )
 
         target_concept_id = choice.get("target_concept_id") or concept_id
         misconception_type = choice.get("misconception_type")
@@ -522,24 +532,74 @@ def sanitize_selected_option_ids(
     return valid_selected_option_ids, invalid_selected_option_ids
 
 
-def _ensure_markdown_explanation(explanation: str, *, is_correct: bool) -> str:
+def _ensure_markdown_explanation(
+    explanation: str,
+    *,
+    option_label: str | None = None,
+    option_text: str | None = None,
+    is_correct: bool,
+) -> str:
     cleaned = str(explanation or "").strip()
-    if not cleaned:
-        return ""
+    label = str(option_label or "").strip()
+    option_line = str(option_text or "").strip()
+    heading = f"### {label}. 선택지 해설" if label else "### 선택지 해설"
 
-    if _looks_like_markdown_explanation(cleaned):
-        return cleaned
+    if not cleaned:
+        cleaned = "이 선택지를 판단할 때 핵심 개념 정의와 조건을 함께 확인하세요."
+
+    cleaned = _strip_duplicate_explanation_labels(cleaned)
+    if _looks_like_choice_markdown_block(cleaned, label):
+        return _normalize_markdown_block_spacing(cleaned)
 
     verdict = "정답 선택지입니다." if is_correct else "오답 선택지입니다."
+    reason = _extract_core_reason(cleaned)
+    review_point = _build_review_point(option_line)
+
+    option_section = f"\n\n**선택지:** {option_line}" if option_line else ""
     return (
-        "**해설:**\n\n"
+        f"{heading}"
+        f"{option_section}\n\n"
         f"- **정답 판단:** {verdict}\n"
-        f"- **핵심 이유:** {cleaned}"
+        f"- **핵심 이유:** {reason}\n"
+        f"- **복습 포인트:** {review_point}"
     )
 
 
-def _looks_like_markdown_explanation(value: str) -> bool:
-    return "\n" in value and any(marker in value for marker in ("- ", "* ", "**", "###"))
+def _strip_duplicate_explanation_labels(value: str) -> str:
+    cleaned = value.strip()
+    cleaned = re.sub(r"^\s*(\*\*)?\s*해설\s*:?\s*(\*\*)?\s*", "", cleaned)
+    cleaned = re.sub(r"\n\s*(\*\*)?\s*해설\s*:?\s*(\*\*)?\s*\n", "\n", cleaned)
+    return cleaned.strip()
+
+
+def _looks_like_choice_markdown_block(value: str, option_label: str | None) -> bool:
+    if "\n" not in value:
+        return False
+    expected_heading = f"### {option_label}. 선택지 해설" if option_label else "### 선택지 해설"
+    return value.startswith(expected_heading) and "**정답 판단:**" in value and "**핵심 이유:**" in value
+
+
+def _normalize_markdown_block_spacing(value: str) -> str:
+    cleaned = value.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"^(### .+?)\n(?!\n)", r"\1\n\n", cleaned)
+    cleaned = re.sub(r"(\*\*선택지:\*\* .+?)\n(?!\n)", r"\1\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _extract_core_reason(value: str) -> str:
+    lines = [line.strip("-* \t") for line in value.splitlines() if line.strip()]
+    for line in lines:
+        line = re.sub(r"^\*\*(정답 판단|핵심 이유|복습 포인트):\*\*\s*", "", line).strip()
+        if line:
+            return line
+    return value.strip()
+
+
+def _build_review_point(option_text: str) -> str:
+    if option_text:
+        return "이 선택지가 묻는 개념 정의와 조건을 다시 연결해 보세요."
+    return "정답 판단 기준이 되는 핵심 개념을 다시 확인하세요."
 
 
 # 정답 option_id 추출 함수
