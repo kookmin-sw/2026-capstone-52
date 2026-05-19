@@ -307,8 +307,14 @@ def _normalize_and_merge_concepts(
                 "concept_id": concept_id,
                 "concept_name": normalization_result["canonical_name"] or alias_concept.get("canonical_name"),
                 "korean_name": normalization_result["korean_name"] or alias_concept.get("korean_name"),
-                "description": _shorten_description(
-                    normalization_result["description"] or alias_concept.get("description") or raw_description
+                "description": _select_concept_description(
+                    raw_description=raw_description,
+                    normalized_description=normalization_result.get("description"),
+                    alias_description=alias_concept.get("description"),
+                    display_name=normalization_result.get("korean_name")
+                    or alias_concept.get("korean_name")
+                    or normalization_result.get("canonical_name")
+                    or alias_concept.get("canonical_name"),
                 ),
                 "group": normalization_result["group"] or alias_concept.get("group") or _clean_text(raw_concept.get("group")),
                 "role_hint": role_hint,
@@ -331,9 +337,7 @@ def _normalize_and_merge_concepts(
         merged["match_confidences"].append(normalization_result["confidence"])
         merged["role_hint"] = _merge_role_hint(merged["role_hint"], role_hint)
 
-        if raw_description and (
-            not merged["description"] or len(raw_description) > len(merged["description"])
-        ):
+        if _contains_korean(raw_description) and not _contains_korean(merged.get("description")):
             merged["description"] = _shorten_description(raw_description)
 
         if raw_concept.get("group") and not merged["group"]:
@@ -771,6 +775,35 @@ def _shorten_description(
 
     cleaned = value.replace("\r", " ").replace("\n", " ").strip()
     return " ".join(cleaned.split())
+
+
+def _contains_korean(value: Any) -> bool:
+    return isinstance(value, str) and any("가" <= char <= "힣" for char in value)
+
+
+def _select_concept_description(
+    *,
+    raw_description: str,
+    normalized_description: Any,
+    alias_description: Any,
+    display_name: Any,
+) -> str:
+    candidates = [
+        raw_description,
+        _shorten_description(normalized_description),
+        _shorten_description(alias_description),
+    ]
+
+    for candidate in candidates:
+        if _contains_korean(candidate):
+            return candidate
+
+    for candidate in candidates:
+        if candidate:
+            return candidate
+
+    name = _clean_text(display_name) or "이 개념"
+    return f"{name}을 이해하기 위한 핵심 학습 항목입니다."
 
 
 # 범위 제한 함수
