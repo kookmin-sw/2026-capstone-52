@@ -45,7 +45,7 @@ export async function generateApiMiniQuizQuestion(projectId, nodeId) {
 export async function submitApiMiniQuizAnswer(
   projectId,
   questionId,
-  { selectedOptionIds = null, isSkipped = false } = {}
+  { selectedOptionIds = null, isSkipped = false, sessionId = null } = {}
 ) {
   const body = {
     question_id: questionId,
@@ -56,13 +56,15 @@ export async function submitApiMiniQuizAnswer(
     body.selected_option_ids = selectedOptionIds;
   }
 
-  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/submit`, {
+  const query = sessionId !== null && sessionId !== undefined ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+
+  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/submit${query}`, {
     method: "POST",
     body,
   });
 }
 
-export async function submitApiMiniQuizAnswers(projectId, answers) {
+export async function submitApiMiniQuizAnswers(projectId, answers, { sessionId = null } = {}) {
   const body = {
     answers: (Array.isArray(answers) ? answers : []).map((answer) => {
       const item = {
@@ -79,7 +81,9 @@ export async function submitApiMiniQuizAnswers(projectId, answers) {
     }),
   };
 
-  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/submit`, {
+  const query = sessionId !== null && sessionId !== undefined ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+
+  return apiRequest(`/mini-quiz/${encodeURIComponent(projectId)}/submit${query}`, {
     method: "POST",
     body,
   });

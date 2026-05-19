@@ -67,6 +67,16 @@ const MINI_QUIZ_READY_STORAGE_KEY = "eeum-mini-quiz-ready-v1";
 const MINI_QUIZ_COMPLETED_STORAGE_KEY = "eeum-mini-quiz-completed-v1";
 const MINI_QUIZ_DEFERRED_STORAGE_KEY = "eeum-mini-quiz-deferred-v1";
 
+function getChatSessionIdFromDashboardChatId(projectId, chatId) {
+  const prefix = `${projectId}-session-`;
+  if (!projectId || !chatId || !chatId.startsWith(prefix)) {
+    return null;
+  }
+
+  const sessionId = Number(chatId.slice(prefix.length));
+  return Number.isFinite(sessionId) ? sessionId : null;
+}
+
 const miniQuizOpeningDotVariants = {
   jump: {
     y: -30,
@@ -4411,6 +4421,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       {activeMiniQuiz ? (
         <MiniQuizPopup
           projectId={activeMiniQuiz.projectId}
+          chatSessionId={getChatSessionIdFromDashboardChatId(activeMiniQuiz.projectId, selectedChatId)}
           conceptNodeId={activeMiniQuiz.nodeId}
           conceptName={activeMiniQuiz.name}
           conceptQueue={activeMiniQuiz.queue}
