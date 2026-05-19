@@ -277,6 +277,8 @@ export default function DiagnosisPageView({ projectId }) {
   const [diagnosisReviewIndex, setDiagnosisReviewIndex] = useState(0);
   const [isDiagnosisReviewLoading, setIsDiagnosisReviewLoading] = useState(false);
   const [diagnosisReviewError, setDiagnosisReviewError] = useState(null);
+  const [diagnosisReport, setDiagnosisReport] = useState(null);
+  const [diagnosisReportError, setDiagnosisReportError] = useState(null);
   const initializedDiagnosisSessionRef = useRef(null);
   const initialQuestionRequestRef = useRef(null);
   const questionTransitionTimeoutRef = useRef(null);
