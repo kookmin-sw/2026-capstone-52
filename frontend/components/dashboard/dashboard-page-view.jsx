@@ -4298,7 +4298,51 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
           }}
           onComplete={(completeInfo = {}) => {
             const completedNodeIds = Array.isArray(completeInfo.completedNodeIds) ? completeInfo.completedNodeIds : [];
+            const updatedNodes = Array.isArray(completeInfo.results)
+              ? completeInfo.results
+                  .map((entry) => entry.backendResult?.updated_node || entry.backendResult?.group_result?.updated_node)
+                  .filter((node) => node?.node_id)
+              : [];
             if (selectedProjectId && completedNodeIds.length) {
+              if (updatedNodes.length) {
+                const updatedNodeById = new Map(updatedNodes.map((node) => [node.node_id, node]));
+                setBackendGraph((current) => {
+                  if (!current?.nodes?.length) {
+                    return current;
+                  }
+                  return {
+                    ...current,
+                    nodes: current.nodes.map((node) => {
+                      const updatedNode = updatedNodeById.get(node.node_id);
+                      if (!updatedNode) {
+                        return node;
+                      }
+                      return {
+                        ...node,
+                        status: updatedNode.status ?? node.status,
+                        understanding_score: updatedNode.understanding_score ?? node.understanding_score,
+                        diagnosis_count: updatedNode.diagnosis_count ?? (Number(node.diagnosis_count || 0) + 1),
+                      };
+                    }),
+                  };
+                });
+                setRecentGraphNodes((current) =>
+                  Array.isArray(current)
+                    ? current.map((node) => {
+                        const updatedNode = updatedNodeById.get(node.node_id);
+                        if (!updatedNode) {
+                          return node;
+                        }
+                        return {
+                          ...node,
+                          status: updatedNode.status ?? node.status,
+                          understanding_score: updatedNode.understanding_score ?? node.understanding_score,
+                          diagnosis_count: updatedNode.diagnosis_count ?? (Number(node.diagnosis_count || 0) + 1),
+                        };
+                      })
+                    : current
+                );
+              }
               getProjectGraphData(selectedProjectId)
                 .then((nextGraph) => setBackendGraph(nextGraph))
                 .catch(() => null);
