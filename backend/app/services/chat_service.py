@@ -1,5 +1,4 @@
 import json
-import re
 
 from sqlalchemy.orm import Session
 
@@ -12,17 +11,6 @@ from app.models.project import Project
 from app.models.user import UserProfile
 from app.schemas.chat import ChatRequest
 from app.services.backbone_service import get_backbone_context
-
-
-DEFAULT_CHAT_SESSION_TITLES = {
-    "",
-    "새 채팅",
-    "새 채팅방",
-    "기본 채팅방",
-    "new chat",
-    "untitled",
-}
-CHAT_SESSION_TITLE_MAX_LENGTH = 25
 
 
 def save_chat(
@@ -99,14 +87,6 @@ def get_chats_by_session(db: Session, project_id: int, session_id: int) -> list[
     )
 
 
-def get_chat_count_by_session(db: Session, project_id: int, session_id: int) -> int:
-    return (
-        db.query(Chat)
-        .filter(Chat.project_id == project_id, Chat.session_id == session_id)
-        .count()
-    )
-
-
 def get_or_create_default_session(db: Session, project_id: int) -> ChatSession:
     """기존 POST /api/chat/{project_id} 호환용 — default session이 없으면 생성"""
     existing = (
@@ -127,6 +107,13 @@ def get_chat_session(db: Session, project_id: int, session_id: int) -> ChatSessi
     )
 
 
+def update_chat_session_title(db: Session, session: ChatSession, title: str) -> ChatSession:
+    session.title = title
+    db.commit()
+    db.refresh(session)
+    return session
+
+
 def delete_chat_session(db: Session, session: ChatSession) -> None:
     db.query(Chat).filter(Chat.session_id == session.id).delete(synchronize_session=False)
     db.query(File).filter(File.chat_session_id == session.id).update(
@@ -135,68 +122,6 @@ def delete_chat_session(db: Session, session: ChatSession) -> None:
     )
     db.delete(session)
     db.commit()
-
-
-def maybe_update_chat_session_title_from_message(
-    db: Session,
-    session: ChatSession,
-    message: str,
-    *,
-    existing_chat_count: int | None = None,
-) -> bool:
-    """첫 사용자 메시지로 기본 채팅방 제목을 짧게 갱신한다."""
-    if not session:
-        return False
-    if existing_chat_count is None:
-        existing_chat_count = get_chat_count_by_session(db, session.project_id, session.id)
-    if existing_chat_count > 0:
-        return False
-    if not _is_default_chat_session_title(session.title):
-        return False
-
-    title = generate_chat_session_title(message)
-    if not title or title == session.title:
-        return False
-
-    session.title = title
-    db.commit()
-    db.refresh(session)
-    return True
-
-
-def generate_chat_session_title(message: str) -> str:
-    """외부 LLM 호출 없이 첫 메시지에서 채팅방 제목을 만든다."""
-    if not isinstance(message, str):
-        return "새 채팅"
-
-    title = message.replace("\r", " ").replace("\n", " ")
-    title = re.sub(r"[\"'`“”‘’]", "", title)
-    title = re.sub(r"https?://\S+", "", title)
-    title = re.sub(r"[!?.,;:，。？！…~]+", " ", title)
-    title = re.sub(r"\s+", " ", title).strip()
-    title = title.strip("-_()[]{}<>")
-
-    if not title:
-        return "새 채팅"
-    if len(title) <= CHAT_SESSION_TITLE_MAX_LENGTH:
-        return title
-
-    words = title.split()
-    shortened = ""
-    for word in words:
-        candidate = f"{shortened} {word}".strip()
-        if len(candidate) > CHAT_SESSION_TITLE_MAX_LENGTH:
-            break
-        shortened = candidate
-
-    if len(shortened) >= 8:
-        return shortened
-    return title[:CHAT_SESSION_TITLE_MAX_LENGTH].rstrip()
-
-
-def _is_default_chat_session_title(title: str | None) -> bool:
-    normalized = (title or "").strip()
-    return normalized in DEFAULT_CHAT_SESSION_TITLES or normalized.casefold() in DEFAULT_CHAT_SESSION_TITLES
 
 
 def build_chat_context(

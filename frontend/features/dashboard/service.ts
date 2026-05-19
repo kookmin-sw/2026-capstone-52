@@ -126,7 +126,9 @@ export type ApiGraphNode = {
   node_id: string;
   project_id: number | string;
   file_id?: string | null;
+  concept_id?: string | null;
   name: string;
+  display_name?: string | null;
   description?: string | null;
   group?: string | null;
   status?: string | null;

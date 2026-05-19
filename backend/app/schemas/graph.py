@@ -12,6 +12,7 @@ class NodeResponse(BaseModel):
     concept_id: Optional[str] = None
     subject_id: Optional[str] = None
     name: str
+    display_name: Optional[str] = None
     description: Optional[str]
     group: Optional[str]
     status: str

@@ -55,10 +55,7 @@ def process_chat(
     if chat_mode not in SUPPORTED_CHAT_MODES:
         raise ChatValidationError(f"Unsupported chat_mode: {chat_mode}")
 
-    response_language = detect_user_response_language(
-        validated_message,
-        honor_explicit_request=False,
-    )
+    response_language = detect_user_response_language(validated_message)
     compact_context = _compact_chat_context(
         message=validated_message,
         target_concept=target_concept,

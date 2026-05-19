@@ -53,6 +53,7 @@ function buildReviewEntry({ question, choices, result, selectedOptionIds, curren
     is_fully_correct: result.is_fully_correct ?? null,
     partial_score: result.partial_score ?? null,
     answer_score: result.answer_score ?? null,
+    explanation: result.explanation || question.explanation || "",
     // 백엔드 QuizQuestionReview.source 와 동일 값 — 추후 백엔드 응답으로 대체될 수 있음.
     source: "mini_quiz",
   };
@@ -76,6 +77,7 @@ export default function MiniQuizPopup({
   conceptName,
   conceptQueue,
   onClose,
+  onComplete,
   onResult,
 }) {
   // 단일 노드 mode와 큐 mode 둘 다 지원.
@@ -147,6 +149,10 @@ export default function MiniQuizPopup({
         completedNodeIdsRef.current.add(entry.currentTarget.nodeId);
       }
     });
+    onComplete?.({
+      completedNodeIds: Array.from(completedNodeIdsRef.current),
+      results: nextSubmittedResults,
+    });
     setStep("complete");
   }
 
@@ -201,6 +207,7 @@ export default function MiniQuizPopup({
           completedEntries.push({
             ...entry,
             result: questionResult,
+            backendResult: result,
             selectedOptionIds: reviewEntry.selected_option_ids,
             reviewEntry,
           });
@@ -223,6 +230,7 @@ export default function MiniQuizPopup({
       completedEntries.push({
         ...entry,
         result,
+        backendResult: result,
         selectedOptionIds: reviewEntry.selected_option_ids,
         reviewEntry,
       });
@@ -389,6 +397,29 @@ export default function MiniQuizPopup({
         ? submittedResults.length || totalCount
         : Math.min(visibleQuestionIndex + 1, totalCount || 1);
   const displayTotalNumber = step === "answers" || step === "complete" ? submittedResults.length || totalCount : totalCount;
+  const resultSummaries = useMemo(() => {
+    const summaryByNode = new Map();
+
+    submittedResults.forEach((entry) => {
+      const backendResult = entry.backendResult || entry.result || {};
+      const updatedNode = backendResult.updated_node || backendResult.group_result?.updated_node || null;
+      const nodeId = updatedNode?.node_id || entry.currentTarget?.nodeId || entry.reviewEntry?.concept_id;
+      if (!nodeId || summaryByNode.has(nodeId)) {
+        return;
+      }
+
+      summaryByNode.set(nodeId, {
+        nodeId,
+        name: backendResult.group_result?.node_name || entry.currentTarget?.name || entry.conceptName || "이 개념",
+        groupScore: backendResult.group_score ?? backendResult.group_result?.group_score ?? null,
+        answerScore: backendResult.answer_score ?? null,
+        updatedNode,
+        resultMessage: backendResult.result_message?.ai_response || null,
+      });
+    });
+
+    return Array.from(summaryByNode.values());
+  }, [submittedResults]);
 
   return (
     <div className="mini-quiz-popup-backdrop" role="dialog" aria-modal="true" aria-label="미니 퀴즈">
@@ -474,6 +505,28 @@ export default function MiniQuizPopup({
             <p className="mini-quiz-popup-summary-copy">
               답안을 확인하거나 채팅으로 돌아갈 수 있습니다.
             </p>
+            {resultSummaries.length ? (
+              <div className="mini-quiz-popup-choices">
+                {resultSummaries.map((summary) => (
+                  <div key={summary.nodeId} className="mini-quiz-popup-choice mini-quiz-popup-choice-static">
+                    <span>
+                      {summary.name}
+                      {summary.groupScore !== null
+                        ? ` · 그룹 점수 ${Number(summary.groupScore).toFixed(2)}`
+                        : summary.answerScore !== null
+                          ? ` · 점수 ${Number(summary.answerScore).toFixed(2)}`
+                          : ""}
+                      {summary.updatedNode?.understanding_score !== undefined &&
+                      summary.updatedNode?.understanding_score !== null
+                        ? ` · 이해도 ${Number(summary.updatedNode.understanding_score).toFixed(2)}`
+                        : ""}
+                      {summary.updatedNode?.status ? ` · ${summary.updatedNode.status}` : ""}
+                    </span>
+                    {summary.resultMessage ? <small>{summary.resultMessage}</small> : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div className="mini-quiz-popup-actions">
               <button
                 type="button"
@@ -524,6 +577,9 @@ export default function MiniQuizPopup({
                   );
                 })}
               </div>
+              {currentAnswer.reviewEntry?.explanation ? (
+                <p className="mini-quiz-popup-summary-copy">{currentAnswer.reviewEntry.explanation}</p>
+              ) : null}
             </section>
             <div className="mini-quiz-popup-actions">
               {answerIndex > 0 ? (

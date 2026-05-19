@@ -58,6 +58,7 @@ const DARK_BACKGROUND = "#080910";
 const TRANSPARENT_BACKGROUND = "rgba(0,0,0,0)";
 const MAX_AUTO_ZOOM = 1.18;
 const MAX_FOCUS_ZOOM = 1.42;
+const CORE_RING_COLOR = "#f5d38a";
 
 function getEndpointId(endpoint: string | number | NodeObject<ForceNode> | undefined) {
   if (endpoint && typeof endpoint === "object") {
@@ -339,7 +340,9 @@ export default function KnowledgeGraphScene({
           ? isLight
             ? "rgba(129,124,242,0.18)"
             : "rgba(245,211,138,0.16)"
-          : `${forceNode.color}22`;
+          : forceNode.isCore
+            ? `${CORE_RING_COLOR}34`
+            : `${forceNode.color}22`;
         ctx.fill();
       }
 
@@ -364,8 +367,8 @@ export default function KnowledgeGraphScene({
       ctx.shadowBlur = 0;
 
       if (forceNode.isCore) {
-        ctx.strokeStyle = isLight ? "rgba(255,255,255,0.92)" : "rgba(251,250,255,0.78)";
-        ctx.lineWidth = 1.15 / globalScale;
+        ctx.strokeStyle = CORE_RING_COLOR;
+        ctx.lineWidth = 1.35 / globalScale;
         ctx.stroke();
       }
 

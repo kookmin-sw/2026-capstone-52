@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from app.ai.llm_client import LLMClientError, call_llm_json
+from app.ai.language import korean_default_instruction
 
 
 # 진단 AI / 헬퍼 모듈
@@ -81,10 +82,9 @@ def generate_question(
     system_prompt = (
         "You are an expert CS diagnosis question generator. "
         "Create exactly one teacher-side multi-select question. "
-        "Write all user-facing text in Korean by default, including question_text, choice text, explanations, diagnostic_tags, tag_group, and llm_reason. "
+        f"{korean_default_instruction()} "
         "Even if the source material, concept name, or PDF context is English, generate Korean learner-facing text. "
-        "English CS terms may be included in parentheses when helpful, for example 큐(queue) or 스택(stack). "
-        "Do not translate or alter concept_id, target_concept_id, option_id, reuse_key, JSON keys, or internal identifiers. "
+        "Apply Korean output to question_text, choice text, explanations, diagnostic_tags, tag_group, and llm_reason. "
         "Return JSON only. "
         "Create exactly 5 choices with option_id values A, B, C, D, E. "
         "At least 1 choice must be correct. Not all choices can be correct. "
@@ -93,7 +93,14 @@ def generate_question(
         "Include diagnostic_tag for every choice. "
         "Include target_concept_id and misconception_type for every choice. "
         "Include diagnostic_tags, tag_group, and llm_reason. "
-        "Do not build reuse_key."
+        "Do not build reuse_key. "
+        "Generate the question only for the provided target_concept. "
+        "If the target_concept is a prerequisite follow-up concept, test that prerequisite concept directly as the knowledge needed to understand the weak concept. "
+        "Do not switch to arbitrary related concepts, sub-concepts, or broader concepts. "
+        "Use only the uploaded-material graph context that is provided in the request. "
+        "Do not introduce concepts that are absent from target_concept and graph_context. "
+        "Do not expand diagnosis scope with global backbone-only knowledge. "
+        "Use previous_reuse_keys to avoid creating a question that is equivalent to a previously asked question."
     )
     user_prompt = json.dumps(
         {
@@ -104,6 +111,18 @@ def generate_question(
             "question_difficulty": question_difficulty,
             "preferred_correct_count": preferred_correct_count,
             "previous_reuse_keys": previous_reuse_keys or [],
+            "selection_policy": {
+                "target_scope": "provided_target_concept_only",
+                "follow_up_policy": "When this is a follow-up, the selected target is already the prerequisite concept from uploaded material. Ask about that prerequisite concept directly.",
+                "allowed_concept_source": "uploaded_material_graph_context_only",
+                "disallowed": [
+                    "inventing new concept_id values",
+                    "asking about arbitrary related concepts",
+                    "descending into sub-concepts not present in graph_context",
+                    "using global backbone-only concepts for diagnosis scope",
+                    "creating a near-duplicate of a previous_reuse_key question",
+                ],
+            },
             "language_policy": {
                 "default_response_language": "Korean",
                 "apply_to": [

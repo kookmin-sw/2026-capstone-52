@@ -5,21 +5,20 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, get_optional_current_user
 from app.db.session import get_db
-from app.schemas.chat import ChatRequest, ChatSessionCreate, ChatSessionResponse
+from app.schemas.chat import ChatRequest
+from app.models.chat import Chat
 from app.models.project import Project
 from app.models.user import User
 from app.ai.chat_ai import process_chat
+from app.ai.title_ai import generate_chat_title
 from app.services.chat_service import (
     build_chat_context,
     save_chat,
     get_chats_by_project,
-    create_chat_session,
-    get_chat_sessions_by_project,
     get_chats_by_session,
     get_chat_session,
     get_or_create_default_session,
-    get_chat_count_by_session,
-    maybe_update_chat_session_title_from_message,
+    update_chat_session_title,
 )
 from app.services.concept_quiz_counter_service import (
     TURN_CHECK_INTERVAL,
@@ -67,7 +66,10 @@ def chat(
         # 기존 API 호환: session_id 없이 호출하면 기본 채팅방 기준으로 처리
         chat_session = get_or_create_default_session(db, project_id)
     resolved_session_id = chat_session.id
-    existing_chat_count = get_chat_count_by_session(db, project_id, resolved_session_id)
+
+    is_first_message = (
+        db.query(Chat).filter(Chat.session_id == resolved_session_id).count() == 0
+    )
 
     chat_context = build_chat_context(
         db=db,
@@ -108,12 +110,11 @@ def chat(
         user_id=user_id,
         session_id=resolved_session_id,
     )
-    title_updated = maybe_update_chat_session_title_from_message(
-        db=db,
-        session=chat_session,
-        message=body.message,
-        existing_chat_count=existing_chat_count,
-    )
+
+    if is_first_message:
+        new_title = generate_chat_title(body.message)
+        chat_session = update_chat_session_title(db, chat_session, new_title)
+
     turn_count = get_project_turn_count(db, project_id)
     recent_assistant_messages = get_recent_assistant_messages(
         db=db,
@@ -141,7 +142,6 @@ def chat(
         "chat_id": chat_log.chat_id,
         "session_id": resolved_session_id,
         "session_title": chat_session.title,
-        "title_updated": title_updated,
         "user_id": chat_log.user_id,
         "project_id": chat_log.project_id,
         "user_message": chat_log.user_message,

@@ -44,7 +44,10 @@ export type ProjectKnowledgeGraphData = {
 
 type BackendGraphNode = {
   node_id: string;
+  concept_id?: string | null;
   name: string;
+  display_name?: string | null;
+  korean_name?: string | null;
   description?: string | null;
   group?: string | null;
   status?: string | null;
@@ -2257,6 +2260,7 @@ export function buildBackendKnowledgeGraph(
   });
 
   const uiNodes = backendGraph.nodes.map((node, index) => {
+    const displayLabel = node.display_name || node.korean_name || node.name || node.concept_id || node.node_id;
     const slot =
       getGraphLayoutSlot(index === 0 ? dashboardGraphSlotIds.core : dashboardGraphSlotIds.concept[(index - 1) % dashboardGraphSlotIds.concept.length]);
     const fallbackAngle = (Math.PI * 2 * index) / Math.max(backendGraph.nodes!.length, 1);
@@ -2264,9 +2268,9 @@ export function buildBackendKnowledgeGraph(
     const x = slot?.x ?? 0.5 + Math.cos(fallbackAngle) * fallbackRadius;
     const y = slot?.y ?? 0.5 + Math.sin(fallbackAngle) * fallbackRadius;
     const chatEvents = chats.flatMap((chat) => {
-      const matched = `${chat.title} ${chat.messages.map((message) => message.text).join(" ")}`
-        .toLowerCase()
-        .includes(node.name.toLowerCase());
+      const searchableNodeNames = uniqueStrings([node.name, node.display_name, node.korean_name, node.concept_id].filter(Boolean) as string[]);
+      const searchableChatText = `${chat.title} ${chat.messages.map((message) => message.text).join(" ")}`.toLowerCase();
+      const matched = searchableNodeNames.some((name) => searchableChatText.includes(name.toLowerCase()));
 
       if (!matched) {
         return [];
@@ -2287,7 +2291,7 @@ export function buildBackendKnowledgeGraph(
 
     return {
       id: node.node_id,
-      label: node.name,
+      label: displayLabel,
       x,
       y,
       size: (slot?.size || 1) + (index === 0 ? 0.55 : 0.18),
@@ -2298,7 +2302,7 @@ export function buildBackendKnowledgeGraph(
       description: node.description || "아직 개념 설명이 없습니다.",
       relatedConceptIds: uniqueStrings(relatedIdsByNode.get(node.node_id) || []),
       relatedLearningEvents: uniqueById(chatEvents),
-      keywords: [node.name],
+      keywords: uniqueStrings([displayLabel, node.name, node.concept_id].filter(Boolean) as string[]),
       backendStatus: node.status || null,
       understandingScore: node.understanding_score ?? null,
       understandingLevel: node.understanding_level ?? null,
