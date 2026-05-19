@@ -184,7 +184,7 @@ def generate_question(
             user_prompt=user_prompt,
             task_name="diagnosis_ai_generate_question",
             temperature=0.2,
-            max_tokens=2500,
+            max_tokens=4096,
         )
     except LLMClientError as error:
         raise QuestionGenerationError(f"Diagnosis question generation failed: {error}") from error
