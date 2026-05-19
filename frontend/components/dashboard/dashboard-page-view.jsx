@@ -901,7 +901,7 @@ function applyKnowledgeStagesToGraph(graph, projectData, workspaceState, options
 
         return {
           ...node,
-          color: node.isCore ? rootKnowledgeColor : getKnowledgeStageColor(knowledgeStageIndex),
+          color: getKnowledgeStageColor(knowledgeStageIndex),
           knowledgeStageIndex,
           knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
         };
@@ -912,7 +912,7 @@ function applyKnowledgeStagesToGraph(graph, projectData, workspaceState, options
 
         return {
           ...node,
-          color: rootKnowledgeColor,
+          color: getKnowledgeStageColor(knowledgeStageIndex),
           knowledgeStageIndex,
           knowledgeStageLabel: knowledgeStageLabels[knowledgeStageIndex],
         };
