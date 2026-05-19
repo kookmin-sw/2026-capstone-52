@@ -14,10 +14,10 @@ def get_graph_by_project(project_id: int, db: Session):
 
 
 def get_recent_nodes(project_id: int, db: Session, limit: int = 10):
-    """최근 갱신된 노드 반환 (updated_at 기준 내림차순)"""
+    """최근 갱신된 노드 반환 (updated_at 기준 내림차순) — 루트 노드 제외"""
     return (
         db.query(ConceptNode)
-        .filter(ConceptNode.project_id == project_id)
+        .filter(ConceptNode.project_id == project_id, ConceptNode.node_source != "root")
         .order_by(ConceptNode.updated_at.desc())
         .limit(limit)
         .all()
