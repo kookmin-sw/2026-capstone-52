@@ -83,8 +83,11 @@ class DiagnosisNodeItem(BaseModel):
 # ── 진행 상태 ─────────────────────────────────────────────────────────────────
 
 class DiagnosisStatusResponse(BaseModel):
-    """진단 진행률 — session_id 기준 답변 수 / 12문제 고정"""
+    """진단 진행률 — 실제 생성/답변/대기 question 수 기반"""
     session_id: str
     answered: int
     total_questions: int
     progress_percent: float
+    remaining_questions: int = 0
+    is_complete: bool = False
+    has_next_question: bool = False
