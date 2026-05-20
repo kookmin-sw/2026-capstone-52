@@ -202,91 +202,103 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ## 폴더 구조
 
 ```text
-2026-capstone-52/
-  ├── app/                          # FastAPI 백엔드 및 AI 로직
-  │   ├── main.py                   # FastAPI 앱 진입점, 라우터 등록
-  │   ├── core/                     # 환경변수 및 공통 설정
-  │   │   └── config.py             # DB, AWS S3, Bedrock 모델 설정
-  │   ├── db/                       # 데이터베이스 연결 설정
-  │   │   ├── base.py               # SQLAlchemy Base
-  │   │   └── session.py            # DB 엔진 및 세션 관리
-  │   ├── api/                      # API 라우터 계층
-  │   │   └── routes/
-  │   │       ├── users.py          # 사용자/Google 로그인 API
-  │   │       ├── projects.py       # 프로젝트 API
-  │   │       ├── project_memos.py  # 프로젝트 메모 API
-  │   │       ├── learning_logs.py  # 학습 로그 API
-  │   │       ├── mypage.py         # 마이페이지 API
-  │   │       ├── upload.py         # PDF 업로드 및 분석 API
-  │   │       ├── graph.py          # 지식 그래프 API
-  │   │       ├── chat.py           # AI 채팅 API
-  │   │       ├── diagnosis.py      # 진단 문항 API
-  │   │       └── explanation.py    # 맞춤 설명 API
-  │   ├── models/                   # SQLAlchemy ORM 모델
-  │   ├── schemas/                  # Pydantic 요청/응답 스키마
-  │   ├── services/                 # 비즈니스 로직 계층
-  │   ├── ai/                       # AI 기능 모듈
-  │   │   ├── llm_client.py         # Amazon Bedrock Claude 호출 공통 클라이언트
-  │   │   ├── graph_extractor.py    # PDF 기반 개념/관계 추출
-  │   │   ├── concept_normalizer.py # 개념 alias/fuzzy/LLM 정규화
-  │   │   ├── chat_ai.py            # 학습 채팅 AI
-  │   │   ├── diagnosis_ai.py       # 진단 문항 생성 및 채점
-  │   │   └── explanation_ai.py     # 개인화 설명 생성
-  │   ├── data/                     # AI 분석용 로컬 데이터
-  │   │   ├── aliases/              # 과목별 개념 alias JSON
-  │   │   └── backbone/             # 과목별 backbone chunk JSON
-  │   └── utils/                    # 공통 유틸리티
-  │
-  ├── frontend/                     # Next.js 프론트엔드 애플리케이션
-  │   ├── app/                      # Next.js App Router 페이지
-  │   │   ├── layout.jsx            # 전체 레이아웃
-  │   │   ├── page.tsx              # 랜딩 페이지
-  │   │   ├── dashboard/            # 대시보드 페이지
-  │   │   ├── diagnosis/            # 진단 페이지
-  │   │   ├── login/                # 로그인 페이지
-  │   │   ├── mypage/               # 마이페이지
-  │   │   ├── project/[projectId]/  # 프로젝트 상세 페이지
-  │   │   └── upload/               # PDF 업로드 페이지
-  │   ├── components/               # React UI 컴포넌트
-  │   │   ├── common/               # 공통 컴포넌트
-  │   │   ├── dashboard/            # 대시보드 컴포넌트
-  │   │   ├── diagnosis/            # 진단 컴포넌트
-  │   │   ├── graph/                # 지식 그래프 시각화 컴포넌트
-  │   │   ├── landing/              # 랜딩 페이지 컴포넌트
-  │   │   ├── mypage/               # 마이페이지 컴포넌트
-  │   │   ├── profile/              # 프로필 컴포넌트
-  │   │   ├── project/              # 프로젝트 컴포넌트
-  │   │   └── upload/               # 업로드 컴포넌트
-  │   ├── features/                 # 도메인별 프론트 로직/API 클라이언트
-  │   │   ├── api/                  # 공통 API client/session
-  │   │   ├── dashboard/
-  │   │   ├── diagnosis/
-  │   │   ├── graph/
-  │   │   ├── learning-log/
-  │   │   ├── mypage/
-  │   │   ├── project/
-  │   │   ├── upload/
-  │   │   └── workspace/
-  │   ├── data/                     # Mock 데이터 및 샘플 데이터
-  │   ├── public/                   # 정적 에셋
-  │   │   ├── icons/                # SVG 아이콘
-  │   │   └── images/               # 이미지 에셋
-  │   ├── store/                    # Zustand 상태 관리
-  │   ├── test/                     # Playwright 테스트
-  │   ├── types/                    # TypeScript 타입 정의
-  │   ├── font/                     # Pretendard 폰트 파일
-  │   ├── next.config.mjs           # Next.js 설정
-  │   ├── tailwind.config.js        # Tailwind CSS 설정
-  │   ├── package.json              # 프론트엔드 의존성 및 스크립트
-  │   └── tsconfig.json             # TypeScript 설정
-  │
-  ├── scripts/                      # 개발/전처리 스크립트
-  │   └── preprocess_backbone_pdf.py # PDF를 backbone chunk JSON으로 변환
-  ├── .env.example                  # 환경변수 예시 파일
-  ├── .gitignore                    # Git 무시 파일 설정
-  ├── requirements.txt              # 백엔드 Python 의존성
-  ├── package-lock.json             # 루트 npm lock 파일
-  └── README.md                     # 프로젝트 README
+  2026-capstone-52/
+    ├── backend/                         # FastAPI 백엔드 및 AI 로직
+    │   ├── app/
+    │   │   ├── main.py                  # FastAPI 앱 진입점, 라우터 등록
+    │   │   ├── core/                    # 환경변수, 보안, 공통 설정
+    │   │   │   ├── config.py            # DB, AWS S3, Bedrock 모델 설정
+    │   │   │   └── security.py          # 인증/보안 관련 유틸리티
+    │   │   ├── db/                      # 데이터베이스 연결 설정
+    │   │   │   ├── base.py              # SQLAlchemy Base 및 모델 import
+    │   │   │   └── session.py           # DB 엔진 및 세션 관리
+    │   │   ├── api/                     # API 라우터 계층
+    │   │   │   └── routes/
+    │   │   │       ├── users.py         # 사용자/Google 로그인 API
+    │   │   │       ├── projects.py      # 프로젝트 API
+    │   │   │       ├── project_memos.py # 프로젝트 메모 API
+    │   │   │       ├── learning_logs.py # 학습 로그 API
+    │   │   │       ├── mypage.py        # 마이페이지 API
+    │   │   │       ├── upload.py        # PDF 업로드 및 분석 API
+    │   │   │       ├── graph.py         # 지식 그래프 API
+    │   │   │       ├── chat.py          # AI 채팅 API
+    │   │   │       ├── diagnosis.py     # 진단 API
+    │   │   │       ├── explanation.py   # 맞춤 설명 API
+    │   │   │       └── mini_quiz.py     # 미니 퀴즈 API
+    │   │   ├── models/                  # SQLAlchemy ORM 모델
+    │   │   ├── schemas/                 # Pydantic 요청/응답 스키마
+    │   │   ├── services/                # 비즈니스 로직 계층
+    │   │   ├── ai/                      # AI 기능 모듈
+    │   │   │   ├── llm_client.py        # Amazon Bedrock Claude 호출 공통 클라이언트
+    │   │   │   ├── graph_extractor.py   # PDF 기반 개념/관계 추출
+    │   │   │   ├── concept_normalizer.py# 개념 alias/fuzzy/LLM 정규화
+    │   │   │   ├── chat_ai.py           # 학습 채팅 AI
+    │   │   │   ├── diagnosis_ai.py      # 진단 문항 생성 및 채점
+    │   │   │   ├── explanation_ai.py    # 개인화 설명 생성
+    │   │   │   ├── title_ai.py          # 제목 생성 AI
+    │   │   │   └── language.py          # 언어 처리 유틸리티
+    │   │   ├── data/                    # AI 분석용 로컬 데이터
+    │   │   │   ├── aliases/             # 과목별 개념 alias JSON
+    │   │   │   └── backbone/            # 과목별 backbone chunk JSON
+    │   │   └── utils/                   # 공통 유틸리티
+    │   ├── migrations/                  # DB 마이그레이션 SQL
+    │   ├── scripts/                     # 백엔드 개발/전처리 스크립트
+    │   │   └── preprocess_backbone_pdf.py # PDF를 backbone chunk JSON으로 변환
+    │   ├── .env.example                 # 백엔드 환경변수 예시
+    │   └── requirements.txt             # 백엔드 Python 의존성
+    │
+    ├── frontend/                        # Next.js 프론트엔드 애플리케이션
+    │   ├── app/                         # Next.js App Router 페이지
+    │   │   ├── layout.jsx               # 전체 레이아웃
+    │   │   ├── page.tsx                 # 랜딩 페이지
+    │   │   ├── dashboard/               # 대시보드 페이지
+    │   │   ├── diagnosis/               # 진단 페이지
+    │   │   ├── login/                   # 로그인 페이지
+    │   │   ├── mypage/                  # 마이페이지
+    │   │   ├── project/[projectId]/     # 프로젝트 상세 페이지
+    │   │   └── upload/                  # PDF 업로드 페이지
+    │   ├── components/                  # React UI 컴포넌트
+    │   │   ├── common/                  # 공통 컴포넌트
+    │   │   ├── dashboard/               # 대시보드 컴포넌트
+    │   │   ├── diagnosis/               # 진단 컴포넌트
+    │   │   ├── graph/                   # 지식 그래프 시각화 컴포넌트
+    │   │   ├── landing/                 # 랜딩 페이지 컴포넌트
+    │   │   ├── mini-quiz/               # 미니 퀴즈 컴포넌트
+    │   │   ├── mypage/                  # 마이페이지 컴포넌트
+    │   │   ├── profile/                 # 프로필 컴포넌트
+    │   │   ├── project/                 # 프로젝트 컴포넌트
+    │   │   └── upload/                  # 업로드 컴포넌트
+    │   ├── features/                    # 도메인별 프론트 로직/API 클라이언트
+    │   │   ├── api/                     # 공통 API client/session
+    │   │   ├── dashboard/
+    │   │   ├── diagnosis/
+    │   │   ├── graph/
+    │   │   ├── learning-log/
+    │   │   ├── mini-quiz/
+    │   │   ├── mypage/
+    │   │   ├── project/
+    │   │   ├── upload/
+    │   │   └── workspace/
+    │   ├── data/                        # Mock 데이터 및 샘플 데이터
+    │   ├── public/                      # 정적 에셋
+    │   │   ├── icons/                   # SVG 아이콘
+    │   │   └── images/                  # 이미지 에셋
+    │   ├── store/                       # Zustand 상태 관리
+    │   ├── test/                        # Playwright 테스트
+    │   ├── types/                       # TypeScript 타입 정의
+    │   ├── font/                        # Pretendard 폰트 파일
+    │   ├── .env.example                 # 프론트엔드 환경변수 예시
+    │   ├── front_back_api.md            # 프론트-백엔드 API 연동 문서
+    │   ├── next.config.mjs              # Next.js 설정
+    │   ├── tailwind.config.js           # Tailwind CSS 설정
+    │   ├── package.json                 # 프론트엔드 의존성 및 스크립트
+    │   ├── package-lock.json            # 프론트엔드 npm lock 파일
+    │   ├── tsconfig.json                # TypeScript 설정
+    │   └── TODO.md                      # 프론트엔드 작업 메모
+    │
+    ├── DEPLOY.md                        # 배포 가이드
+    ├── .gitignore                       # Git 무시 파일 설정
+    └── package-lock.json                # 루트 npm lock 파일
 ```
 
 
