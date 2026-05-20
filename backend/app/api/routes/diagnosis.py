@@ -171,7 +171,7 @@ def create_diagnosis_report(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="채팅방을 찾을 수 없습니다.")
         else:
-            chat_session = create_chat_session(db, project_id, title="수준진단 리포트")
+            chat_session = create_chat_session(db, project_id)
 
         chats = create_diagnosis_report_chats(
             db=db,

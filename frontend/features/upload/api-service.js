@@ -48,7 +48,10 @@ function formatUploadedAt(value) {
 }
 
 function normalizeApiFile(file, projectTitle = "") {
-  const statusInfo = STATUS_LABELS[file.analysis_status] || STATUS_LABELS.UPLOADED;
+  const isDiagnosed = file.diagnosis_status === "DIAGNOSED";
+  const statusInfo = isDiagnosed
+    ? { status: "진단 완료", statusTone: "diagnosed" }
+    : (STATUS_LABELS[file.analysis_status] || STATUS_LABELS.UPLOADED);
 
   return {
     id: file.file_id,
@@ -58,6 +61,7 @@ function normalizeApiFile(file, projectTitle = "") {
     status: statusInfo.status,
     statusTone: statusInfo.statusTone,
     rawStatus: file.analysis_status,
+    isDiagnosed,
   };
 }
 
@@ -79,6 +83,9 @@ function sortApiFilesByRecentUpload(files) {
 }
 
 function applyStatus(file, rawStatus) {
+  if (file.isDiagnosed) {
+    return { ...file, rawStatus };
+  }
   const statusInfo = STATUS_LABELS[rawStatus] || STATUS_LABELS.UPLOADED;
 
   return {

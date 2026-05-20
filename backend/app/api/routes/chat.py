@@ -67,9 +67,7 @@ def chat(
         chat_session = get_or_create_default_session(db, project_id)
     resolved_session_id = chat_session.id
 
-    is_first_message = (
-        db.query(Chat).filter(Chat.session_id == resolved_session_id).count() == 0
-    )
+    is_first_message = chat_session.title in {"새 채팅방", "기본 채팅방"}
 
     chat_context = build_chat_context(
         db=db,
