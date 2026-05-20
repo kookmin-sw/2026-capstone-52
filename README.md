@@ -11,23 +11,28 @@
   </p>
 </div>
 
-
-
-## 목차
-
-1. 📌 [프로젝트 소개](#프로젝트-소개)
-2. ✨ [주요 기능](#주요-기능)
-3. 🎬 [소개 영상](#소개-영상)
-4. 🏗️ [시스템 구조](#시스템-구조)
-5. 👥 [팀원 소개](#팀원-소개)
-6. 🛠️ [기술 스택](#기술-스택)
-7. 📁 [폴더 구조](#폴더-구조)
-8. 🚀 [실행 방법](#실행-방법)
-9. 📚 [참고 자료](#참고-자료)
+<p align="center">
+  <a href="http://eeum-study.kr/"><img src="./docs/assets/images/eeum_badge_service.svg" alt="서비스 바로가기" /></a>
+  <a href="https://kookmin-sw.github.io/2026-capstone-52/"><img src="./docs/assets/images/eeum_badge_intro.svg" alt="소개 페이지" /></a>
+</p>
 
 ---
 
-## 프로젝트 소개
+## 목차
+
+:one: 📌 [프로젝트 소개](#프로젝트-소개)
+:two: ✨ [주요 기능](#주요-기능)
+:three: 🎬 [소개 영상](#소개-영상)
+:four: 🏗️ [시스템 구조](#시스템-구조)
+:five: 👥 [팀원 소개](#팀원-소개)
+:six: 🛠️ [기술 스택](#기술-스택)
+:seven: 📁 [폴더 구조](#폴더-구조)
+:eight: 🚀 [실행 방법](#실행-방법)
+:nine: 📚 [참고 자료](#참고-자료)
+
+---
+
+## :one:프로젝트 소개
 <p align="center">
   <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
 </p>
@@ -49,7 +54,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 
-## 주요 기능
+## :two:주요 기능
 
 ### 1. PDF 업로드 및 분석
 
@@ -94,16 +99,16 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 
 ---
-## 소개 영상
+## :three:소개 영상
 >시연 영상 추가예정
 ---
 
-## 시스템 구조
+## :four:시스템 구조
 
 <img width="1536" alt="서비스 시스템 아키텍처" src="./docs/assets/images/eeum_service_architecture.png" />
 
 ---
-## 팀원 소개
+## :five:팀원 소개
 
 <table>
   <tr>
@@ -158,7 +163,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 
-## 기술 스택
+## :six:기술 스택
 
 ### 🖥️ Frontend
 
@@ -199,7 +204,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 | Diagnosis | <img src="https://img.shields.io/badge/LLM%20Question%20Generation-8A2BE2.svg?style=for-the-badge&logo=openai&logoColor=white"/> <img src="https://img.shields.io/badge/Deterministic%20Scoring-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> |
 | Retrieval | <img src="https://img.shields.io/badge/Keyword%20/%20Phrase%20Retrieval-FFB000.svg?style=for-the-badge&logo=json&logoColor=000000"/> |
 
-## 폴더 구조
+## :seven:폴더 구조
 
 ```text
   2026-capstone-52/
@@ -302,7 +307,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ```
 
 
-## 실행 방법
+## :eight:실행 방법
 
 ### 📖 사용법 (개발 환경 설정)
 
@@ -478,7 +483,7 @@ http://localhost:3000
 
 
 
-## 참고 자료
+## :nine:참고 자료
 
 | 번호 | 종류 | 제목 | 출처 | 발행년도 | 저자 | 기타 |
 | --- | --- | --- | --- | --- | --- | --- |

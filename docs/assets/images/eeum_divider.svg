@@ -1,0 +1,12 @@
+<svg width="1200" height="28" viewBox="0 0 1200 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="eeum-divider-gradient" x1="160" y1="14" x2="1040" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5EEAD4" stop-opacity="0"/>
+      <stop offset="0.18" stop-color="#5EEAD4"/>
+      <stop offset="0.5" stop-color="#38BDF8"/>
+      <stop offset="0.82" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#6366F1" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="160" y="13" width="880" height="2" rx="1" fill="url(#eeum-divider-gradient)"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg width="224" height="44" viewBox="0 0 224 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>소개 페이지</title>
+  <defs>
+    <linearGradient id="intro-icon" x1="16" y1="12" x2="40" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="222" height="42" rx="12" fill="#0F172A"/>
+  <rect x="17" y="12" width="22" height="20" rx="6" fill="url(#intro-icon)" fill-opacity="0.16"/>
+  <path d="M23 18h10M23 22h10M23 26h6" stroke="#7DD3FC" stroke-width="1.7" stroke-linecap="round"/>
+  <text x="52" y="19" fill="#F8FAFC" font-family="Pretendard, Inter, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="13" font-weight="700">소개 페이지</text>
+  <text x="52" y="32" fill="#94A3B8" font-family="Inter, Pretendard, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="10" font-weight="500">GitHub Pages</text>
+</svg>
