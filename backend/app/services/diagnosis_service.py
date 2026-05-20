@@ -17,6 +17,7 @@ from app.ai.diagnosis_ai import (
     generate_question,
     score_to_level,
 )
+from app.services.graph_service import build_alias_cache, build_display_name
 
 
 # ── 세션 ──────────────────────────────────────────────────────────────────────
@@ -322,6 +323,7 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
         ).all()
         if n.file_id not in diagnosed_file_ids
     ]
+    alias_cache = build_alias_cache(nodes)
     result = []
     for node in nodes:
         if node.node_id == current_concept_id:
@@ -332,7 +334,9 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
             label = "이해"
         else:
             label = "추가 학습"
-        result.append({"node_id": node.node_id, "name": node.name, "diagnosis_label": label})
+        alias_concept = alias_cache.get(f"{node.subject_id}:{node.concept_id}") if node.subject_id and node.concept_id else None
+        display = build_display_name(node, alias_concept)
+        result.append({"node_id": node.node_id, "name": display, "diagnosis_label": label})
     return result
 
 
@@ -538,7 +542,7 @@ def _json_dumps(value: list) -> str:
 
 
 def _legacy_status_from_score(score: float) -> str:
-    if score < 0.4:
+    if score < 0.45:
         return "WEAK"
     if score < 0.6:
         return "PARTIAL"
