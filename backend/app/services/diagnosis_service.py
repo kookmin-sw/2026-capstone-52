@@ -542,7 +542,7 @@ def _json_dumps(value: list) -> str:
 
 
 def _legacy_status_from_score(score: float) -> str:
-    if score < 0.4:
+    if score < 0.45:
         return "WEAK"
     if score < 0.6:
         return "PARTIAL"
