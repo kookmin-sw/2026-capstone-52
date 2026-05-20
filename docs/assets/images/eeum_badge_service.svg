@@ -1,14 +1,8 @@
 <svg width="224" height="44" viewBox="0 0 224 44" fill="none" xmlns="http://www.w3.org/2000/svg">
   <title>서비스 바로가기</title>
-  <defs>
-    <linearGradient id="service-icon" x1="16" y1="12" x2="40" y2="36" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#5EEAD4"/>
-      <stop offset="1" stop-color="#38BDF8"/>
-    </linearGradient>
-  </defs>
-  <rect x="1" y="1" width="222" height="42" rx="12" fill="#0F172A"/>
-  <circle cx="28" cy="22" r="12" fill="url(#service-icon)" fill-opacity="0.16"/>
-  <path d="M24 22h8m0 0-3.4-3.4M32 22l-3.4 3.4" stroke="#5EEAD4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="52" y="19" fill="#F8FAFC" font-family="Pretendard, Inter, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="13" font-weight="700">서비스 바로가기</text>
-  <text x="52" y="32" fill="#94A3B8" font-family="Inter, Pretendard, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="10" font-weight="500">eeum-study.kr</text>
+  <rect x="1" y="1" width="222" height="42" rx="12" fill="#E7E2F6"/>
+  <circle cx="28" cy="22" r="12" fill="#FFFFFF" fill-opacity="0.18"/>
+  <path d="M24 22h8m0 0-3.4-3.4M32 22l-3.4 3.4" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="52" y="19" fill="#FFFFFF" font-family="Pretendard, Inter, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="13" font-weight="700">서비스 바로가기</text>
+  <text x="52" y="32" fill="#FFFFFF" fill-opacity="0.82" font-family="Inter, Pretendard, Apple SD Gothic Neo, Noto Sans KR, Segoe UI, sans-serif" font-size="10" font-weight="500">eeum-study.kr</text>
 </svg>
