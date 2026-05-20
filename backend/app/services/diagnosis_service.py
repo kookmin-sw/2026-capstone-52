@@ -816,21 +816,44 @@ def _get_next_unanswered_question_for_nodes(
         query = query.filter(DiagnosisQuestion.diagnosis_purpose == diagnosis_purpose)
 
     questions = query.all()
-    questions = sorted(
-        questions,
-        key=lambda question: (
-            node_order.get(question.concept_id, len(node_order)),
-            question.created_at,
-        ),
-    )
+    if not questions:
+        return None
+
+    all_question_ids = [q.question_id for q in questions]
 
     # 어떤 세션에서도 이미 답변된 문제는 재사용하지 않음
     answered_anywhere = {
         row.question_id
         for row in db.query(DiagnosisAnswer.question_id)
-        .filter(DiagnosisAnswer.question_id.in_([q.question_id for q in questions]))
+        .filter(DiagnosisAnswer.question_id.in_(all_question_ids))
         .all()
     }
+
+    # 현재 세션에서 각 노드별 답변 횟수 — 라운드로빈 정렬에 사용
+    node_session_count: dict[str, int] = {}
+    if session_id:
+        session_answered = {
+            row.question_id
+            for row in db.query(DiagnosisAnswer.question_id)
+            .filter(
+                DiagnosisAnswer.session_id == session_id,
+                DiagnosisAnswer.question_id.in_(all_question_ids),
+            )
+            .all()
+        }
+        for q in questions:
+            if q.question_id in session_answered:
+                node_session_count[q.concept_id] = node_session_count.get(q.concept_id, 0) + 1
+
+    questions = sorted(
+        questions,
+        key=lambda question: (
+            node_session_count.get(question.concept_id, 0),  # 적게 물어본 노드 우선
+            node_order.get(question.concept_id, len(node_order)),
+            question.created_at,
+        ),
+    )
+
     for question in questions:
         if question.question_id not in answered_anywhere:
             return question, node_by_id[question.concept_id]
