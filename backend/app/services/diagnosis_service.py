@@ -316,13 +316,14 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
         .all()
         if row.file_id
     }
-    nodes = [
+    all_nodes = [
         n for n in db.query(ConceptNode).filter(
             ConceptNode.project_id == project_id,
             ConceptNode.node_source != "root",
         ).all()
         if n.file_id not in diagnosed_file_ids
     ]
+    nodes = _get_core_candidate_nodes(all_nodes)
     alias_cache = build_alias_cache(nodes)
     result = []
     for node in nodes:
