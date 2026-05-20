@@ -1036,7 +1036,7 @@ function getBackendNodeKnowledgeStageIndex(node) {
     const understandingLevel = Number(node?.understandingLevel);
 
     if (Number.isFinite(understandingLevel)) {
-      knowledgeStageIndex = understandingLevel - 1;
+      knowledgeStageIndex = understandingLevel;
     }
   }
 
@@ -1044,7 +1044,7 @@ function getBackendNodeKnowledgeStageIndex(node) {
     const understandingScore = Number(node?.understandingScore);
 
     if (Number.isFinite(understandingScore)) {
-      if (understandingScore <= 0) {
+      if (understandingScore < 0.2) {
         knowledgeStageIndex = 1;
       } else if (understandingScore < 0.4) {
         knowledgeStageIndex = 2;

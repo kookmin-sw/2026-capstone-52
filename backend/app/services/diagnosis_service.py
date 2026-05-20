@@ -538,7 +538,7 @@ def _json_dumps(value: list) -> str:
 
 
 def _legacy_status_from_score(score: float) -> str:
-    if score <= 0.0:
+    if score < 0.2:
         return "WEAK"
     if score < 0.4:
         return "PARTIAL"
@@ -599,10 +599,19 @@ def _ensure_core_questions_generated(
     session_id: str | None,
     db: Session,
 ) -> None:
+    # 현재 세션에서 이미 concept_check 문제를 답변한 노드 — 재출제 금지
+    session_answered_node_ids: set[str] = (
+        _get_session_answered_node_ids(session_id, db, diagnosis_purpose="concept_check")
+        if session_id
+        else set()
+    )
+
     last_error: Exception | None = None
     for target_node in core_nodes:
         if session_id and _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
             break
+        if target_node.node_id in session_answered_node_ids:
+            continue  # 이미 이 세션에서 답변된 개념은 concept_check 재출제 안 함
         if _has_unanswered_question_for_node(target_node.node_id, db, diagnosis_purpose="concept_check"):
             continue
 
@@ -816,21 +825,44 @@ def _get_next_unanswered_question_for_nodes(
         query = query.filter(DiagnosisQuestion.diagnosis_purpose == diagnosis_purpose)
 
     questions = query.all()
-    questions = sorted(
-        questions,
-        key=lambda question: (
-            node_order.get(question.concept_id, len(node_order)),
-            question.created_at,
-        ),
-    )
+    if not questions:
+        return None
+
+    all_question_ids = [q.question_id for q in questions]
 
     # 어떤 세션에서도 이미 답변된 문제는 재사용하지 않음
     answered_anywhere = {
         row.question_id
         for row in db.query(DiagnosisAnswer.question_id)
-        .filter(DiagnosisAnswer.question_id.in_([q.question_id for q in questions]))
+        .filter(DiagnosisAnswer.question_id.in_(all_question_ids))
         .all()
     }
+
+    # 현재 세션에서 각 노드별 답변 횟수 — 라운드로빈 정렬에 사용
+    node_session_count: dict[str, int] = {}
+    if session_id:
+        session_answered = {
+            row.question_id
+            for row in db.query(DiagnosisAnswer.question_id)
+            .filter(
+                DiagnosisAnswer.session_id == session_id,
+                DiagnosisAnswer.question_id.in_(all_question_ids),
+            )
+            .all()
+        }
+        for q in questions:
+            if q.question_id in session_answered:
+                node_session_count[q.concept_id] = node_session_count.get(q.concept_id, 0) + 1
+
+    questions = sorted(
+        questions,
+        key=lambda question: (
+            node_session_count.get(question.concept_id, 0),  # 적게 물어본 노드 우선
+            node_order.get(question.concept_id, len(node_order)),
+            question.created_at,
+        ),
+    )
+
     for question in questions:
         if question.question_id not in answered_anywhere:
             return question, node_by_id[question.concept_id]
@@ -849,6 +881,28 @@ def _has_any_unanswered_question(
         db=db,
         diagnosis_purpose=diagnosis_purpose,
     ) is not None
+
+
+def _get_session_answered_node_ids(session_id: str, db: Session, *, diagnosis_purpose: str) -> set[str]:
+    """현재 세션에서 이미 답변된 concept_id(node_id) 집합 반환"""
+    answered_question_ids = [
+        row.question_id
+        for row in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .all()
+    ]
+    if not answered_question_ids:
+        return set()
+    questions = (
+        db.query(DiagnosisQuestion.concept_id)
+        .filter(
+            DiagnosisQuestion.question_id.in_(answered_question_ids),
+            (DiagnosisQuestion.diagnosis_purpose == diagnosis_purpose)
+            | DiagnosisQuestion.diagnosis_purpose.is_(None),
+        )
+        .all()
+    )
+    return {row.concept_id for row in questions}
 
 
 def _has_unanswered_question_for_node(node_id: str, db: Session, *, diagnosis_purpose: str) -> bool:
