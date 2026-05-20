@@ -136,8 +136,9 @@ def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Sessi
 
         cid = concept.get("concept_id")
         if cid and cid in existing_nodes:
-            # 기존 노드 merge — is_core가 올라가거나 description이 보강되는 경우만 덮어씀
+            # 기존 노드 merge — 최신 파일로 file_id 갱신 (새 PDF에도 등장하면 재진단 대상이 됨)
             node = existing_nodes[cid]
+            node.file_id = file_id
             node.name = node_name
             if concept.get("description"):
                 node.description = concept["description"]
@@ -157,7 +158,7 @@ def save_graph_from_ai(project_id: int, file_id: str, ai_result: dict, db: Sessi
                 description=concept.get("description"),
                 group=concept.get("group"),
                 status=NODE_STATUS_UNSEEN,
-                understanding_score=concept.get("score", 0.5),
+                understanding_score=concept.get("score", 0.0),
                 understanding_level=concept.get("understanding_level", 3),
                 confidence=concept.get("confidence", 0.0),
                 diagnosis_count=concept.get("diagnosis_count", 0),
