@@ -1036,7 +1036,7 @@ function getBackendNodeKnowledgeStageIndex(node) {
     const understandingLevel = Number(node?.understandingLevel);
 
     if (Number.isFinite(understandingLevel)) {
-      knowledgeStageIndex = understandingLevel - 1;
+      knowledgeStageIndex = understandingLevel;
     }
   }
 
@@ -1044,9 +1044,9 @@ function getBackendNodeKnowledgeStageIndex(node) {
     const understandingScore = Number(node?.understandingScore);
 
     if (Number.isFinite(understandingScore)) {
-      if (understandingScore <= 0) {
+      if (understandingScore < 0.45) {
         knowledgeStageIndex = 1;
-      } else if (understandingScore < 0.4) {
+      } else if (understandingScore < 0.6) {
         knowledgeStageIndex = 2;
       } else if (understandingScore < 0.8) {
         knowledgeStageIndex = 3;
@@ -1826,7 +1826,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const hasAppliedInitialChatRef = useRef(false);
   const newlyCreatedChatIdRef = useRef(null);
   const latestProjectMemoDraftRef = useRef({ memoId: null, title: "", content: "" });
-  const lastGraphAutoFitProjectIdRef = useRef(null);
   const router = useRouter();
   const pathname = usePathname();
   const [workspaceState, setWorkspaceState] = useState(() => getDefaultWorkspaceState());
@@ -1834,7 +1833,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [recentChats, setRecentChats] = useState([]);
   const [backendGraph, setBackendGraph] = useState(null);
   const [recentGraphNodes, setRecentGraphNodes] = useState([]);
-  const [loadedGraphProjectId, setLoadedGraphProjectId] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState(() => initialProjectId || null);
   const [selectedChatId, setSelectedChatId] = useState(() => initialChatId || null);
   const [isProjectListExpanded, setIsProjectListExpanded] = useState(false);
@@ -2151,7 +2149,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats([]);
       setBackendGraph(null);
       setRecentGraphNodes([]);
-      setLoadedGraphProjectId(null);
       setSelectedChatId(null);
       setIsChatsLoading(false);
       setChatError(null);
@@ -2159,7 +2156,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
 
     let isMounted = true;
-    const projectId = selectedProjectId;
 
     async function hydrateChats() {
       setIsChatsLoading(true);
@@ -2167,13 +2163,12 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats([]);
       setBackendGraph(null);
       setRecentGraphNodes([]);
-      setLoadedGraphProjectId(null);
 
       try {
         const [nextChats, nextGraph, nextRecentGraphNodes] = await Promise.all([
-          getProjectChats(projectId),
-          getProjectGraphData(projectId).catch(() => null),
-          getRecentGraphNodes(projectId).catch(() => []),
+          getProjectChats(selectedProjectId),
+          getProjectGraphData(selectedProjectId).catch(() => null),
+          getRecentGraphNodes(selectedProjectId).catch(() => []),
         ]);
 
         if (!isMounted) {
@@ -2183,7 +2178,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
         setRecentChats(nextChats);
         setBackendGraph(nextGraph);
         setRecentGraphNodes(nextRecentGraphNodes);
-        setLoadedGraphProjectId(projectId);
         setSelectedChatId((current) => {
           const canUseInitialChat =
             !hasAppliedInitialChatRef.current &&
@@ -2209,9 +2203,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
         setChatError(error instanceof Error ? error.message : "채팅 목록을 불러오지 못했습니다.");
         setRecentChats([]);
-        setBackendGraph(null);
         setRecentGraphNodes([]);
-        setLoadedGraphProjectId(null);
         setSelectedChatId(null);
       } finally {
         if (isMounted) {
@@ -2390,28 +2382,24 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             title: activeProjectData.title,
           }
         : null;
-      const hasLoadedCurrentGraph =
-        Boolean(projectInput?.projectId) && loadedGraphProjectId === projectInput.projectId;
-      const currentBackendGraph = hasLoadedCurrentGraph ? backendGraph : null;
-      const currentRecentChats = hasLoadedCurrentGraph ? recentChats : [];
 
       let baseGraph;
       if (isDashboardBackendApiEnabled) {
         // 백엔드 모드에서는 mock/preset 그래프로 fallback하지 않음 — 진단 전 노드 없으면 빈 그래프 유지.
-        baseGraph = buildBackendKnowledgeGraph(projectInput, currentBackendGraph, currentRecentChats, {
+        baseGraph = buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats, {
           strictBackend: true,
         });
-      } else if (currentBackendGraph) {
-        baseGraph = buildBackendKnowledgeGraph(projectInput, currentBackendGraph, currentRecentChats);
+      } else if (backendGraph) {
+        baseGraph = buildBackendKnowledgeGraph(projectInput, backendGraph, recentChats);
       } else {
-        baseGraph = buildProjectKnowledgeGraph(projectInput, currentRecentChats);
+        baseGraph = buildProjectKnowledgeGraph(projectInput, recentChats);
       }
 
       return applyKnowledgeStagesToGraph(baseGraph, activeProjectData, workspaceState, {
         useBackendNodeState: isDashboardBackendApiEnabled,
       });
     },
-    [activeProjectData, backendGraph, loadedGraphProjectId, recentChats, workspaceState]
+    [activeProjectData, backendGraph, recentChats, workspaceState]
   );
   const updatedConcepts = useMemo(
     () =>
@@ -2666,10 +2654,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   }, [updatedConcepts]);
 
   useEffect(() => {
-    lastGraphAutoFitProjectIdRef.current = null;
-
     if (activeProjectData?.projectId) {
-      setSelectedGraphNodeId(null);
+      setSelectedGraphNodeId(projectGraph.defaultSelectedNodeId);
       setGraphFocusNodeId(null);
       setGraphDetailNodeId(null);
       setVisibleGraphDetailNodeId(null);
@@ -2690,23 +2676,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     setIsGraphSearchOpen(false);
     setGraphSearchQuery("");
-  }, [activeProjectData?.projectId]);
-
-  useEffect(() => {
-    const projectId = activeProjectData?.projectId;
-
-    if (!projectId || !projectGraph.nodes.length) {
-      return;
-    }
-
-    if (lastGraphAutoFitProjectIdRef.current === projectId) {
-      return;
-    }
-
-    lastGraphAutoFitProjectIdRef.current = projectId;
-    setSelectedGraphNodeId(projectGraph.defaultSelectedNodeId);
-    setGraphResetKey((current) => current + 1);
-  }, [activeProjectData?.projectId, projectGraph.defaultSelectedNodeId, projectGraph.nodes.length]);
+  }, [activeProjectData?.projectId, projectGraph.defaultSelectedNodeId]);
 
   useEffect(() => {
     if (!selectedGraphNodeId) {
@@ -2829,7 +2799,10 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats([]);
       setBackendGraph(null);
       setRecentGraphNodes([]);
-      setLoadedGraphProjectId(null);
+      setSelectedGraphNodeId(null);
+      setGraphFocusNodeId(null);
+      setGraphDetailNodeId(null);
+      setVisibleGraphDetailNodeId(null);
     }
 
     setSelectedProjectId(projectId);
@@ -2856,7 +2829,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats([]);
       setBackendGraph(null);
       setRecentGraphNodes([]);
-      setLoadedGraphProjectId(null);
       setSelectedProjectId(nextProject.id);
       setSelectedChatId(null);
       setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null);
@@ -2899,7 +2871,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats([]);
       setBackendGraph(null);
       setRecentGraphNodes([]);
-      setLoadedGraphProjectId(null);
       setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null);
       setIsProjectListExpanded(false);
       setWorkspaceState(loadWorkspaceState());
@@ -3112,7 +3083,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setRecentChats(nextChats);
       setBackendGraph(nextGraph);
       setRecentGraphNodes(nextRecentGraphNodes);
-      setLoadedGraphProjectId(selectedProjectId);
       setSelectedChatId(nextChats.some((chat) => chat.id === pendingChatId) ? pendingChatId : nextChats[0]?.id || null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "채팅 메시지를 전송하지 못했습니다.";
@@ -4101,6 +4071,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         onNodeSelect={handleGraphNodeSelect}
                         focusNodeId={graphFocusNodeId}
                         resetViewKey={graphResetKey}
+                        autoFitDuration={0}
                       />
 
                       <div className="workspace-graph-stage-legend" aria-label="이해도 단계 색상">
@@ -4663,10 +4634,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                 );
               }
               getProjectGraphData(selectedProjectId)
-                .then((nextGraph) => {
-                  setBackendGraph(nextGraph);
-                  setLoadedGraphProjectId(selectedProjectId);
-                })
+                .then((nextGraph) => setBackendGraph(nextGraph))
                 .catch(() => null);
               getRecentGraphNodes(selectedProjectId)
                 .then((nextNodes) => setRecentGraphNodes(nextNodes))
@@ -4735,10 +4703,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
             if (selectedProjectId) {
               if (completedNodeIds.size) {
                 getProjectGraphData(selectedProjectId)
-                  .then((nextGraph) => {
-                    setBackendGraph(nextGraph);
-                    setLoadedGraphProjectId(selectedProjectId);
-                  })
+                  .then((nextGraph) => setBackendGraph(nextGraph))
                   .catch(() => null);
                 getRecentGraphNodes(selectedProjectId)
                   .then((nextNodes) => setRecentGraphNodes(nextNodes))

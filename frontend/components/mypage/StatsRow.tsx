@@ -115,3 +115,19 @@ export default function StatsRow({ stats }: StatsRowProps) {
     </div>
   );
 }
+
+export function StatsRowSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-hidden="true">
+      {statConfig.map((item) => (
+        <div
+          key={item.key}
+          className={`flex h-[104px] min-w-[136px] flex-col items-center justify-center rounded-[1.25rem] px-6 ${item.className}`}
+        >
+          <span className="h-8 w-14 rounded-full bg-white/55" />
+          <span className="mt-4 h-3 w-20 rounded-full bg-white/55" />
+        </div>
+      ))}
+    </div>
+  );
+}

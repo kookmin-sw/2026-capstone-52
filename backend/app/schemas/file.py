@@ -12,3 +12,4 @@ class FileResponse(BaseModel):
     file_type: str
     uploaded_at: datetime
     analysis_status: str
+    diagnosis_status: str = "NOT_DIAGNOSED"

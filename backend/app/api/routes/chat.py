@@ -67,8 +67,14 @@ def chat(
         chat_session = get_or_create_default_session(db, project_id)
     resolved_session_id = chat_session.id
 
+    _REPORT_RESPONSE_TYPES = ("diagnosis_report_structure", "diagnosis_report_summary")
     is_first_message = (
-        db.query(Chat).filter(Chat.session_id == resolved_session_id).count() == 0
+        db.query(Chat)
+        .filter(
+            Chat.session_id == resolved_session_id,
+            Chat.response_type.notin_(_REPORT_RESPONSE_TYPES),
+        )
+        .count() == 0
     )
 
     chat_context = build_chat_context(

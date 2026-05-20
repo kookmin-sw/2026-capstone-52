@@ -215,6 +215,7 @@ export default function AllKnowledgeGraphModal({ open, onClose }: AllKnowledgeGr
             nodeSizeScale={0.7}
             dimmedNodeIds={dimmedNodeIds}
             autoFitDuration={0}
+            stableLayout
           />
         ) : (
           <div className="grid h-full place-items-center text-[1rem] font-black text-[#aaa6c0]">

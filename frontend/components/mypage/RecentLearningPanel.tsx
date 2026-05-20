@@ -14,9 +14,11 @@ function formatDate(dateString: string) {
 
 interface RecentLearningPanelProps {
   records: RecentLearningRecord[];
+  loading?: boolean;
+  error?: string | null;
 }
 
-export default function RecentLearningPanel({ records }: RecentLearningPanelProps) {
+export default function RecentLearningPanel({ records, loading = false, error = null }: RecentLearningPanelProps) {
   const router = useRouter();
   const visibleRecords = records.slice(0, 5);
 
@@ -39,7 +41,32 @@ export default function RecentLearningPanel({ records }: RecentLearningPanelProp
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-0">
-        {visibleRecords.map((record) => (
+        {loading
+          ? Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="rounded-[0.95rem] bg-[#f0eefb] px-6 py-5" aria-hidden="true">
+                <div className="flex items-center gap-4">
+                  <span className="h-10 w-1.5 shrink-0 rounded-full bg-white/70" />
+                  <div className="min-w-0 flex-1">
+                    <span className="block h-3 w-24 rounded-full bg-white/70" />
+                    <span className="mt-3 block h-5 w-64 max-w-full rounded-full bg-white/70" />
+                  </div>
+                  <span className="h-4 w-20 shrink-0 rounded-full bg-white/70" />
+                </div>
+              </div>
+            ))
+          : null}
+
+        {!loading && error ? (
+          <div className="flex h-full min-h-[220px] items-center justify-center rounded-[0.95rem] bg-[#f0eefb] px-6 text-center text-[0.95rem] font-bold text-[#74708b]">
+            {error}
+          </div>
+        ) : null}
+
+        {!loading && !error && visibleRecords.length === 0 ? (
+          <div className="h-full min-h-[220px] rounded-[0.95rem] bg-[#f8f7fd]" aria-hidden="true" />
+        ) : null}
+
+        {!loading && !error ? visibleRecords.map((record) => (
           <button
             key={record.id}
             type="button"
@@ -67,7 +94,7 @@ export default function RecentLearningPanel({ records }: RecentLearningPanelProp
               </span>
             </div>
           </button>
-        ))}
+        )) : null}
       </div>
     </section>
   );

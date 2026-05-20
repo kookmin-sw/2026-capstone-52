@@ -68,8 +68,8 @@ def run_analysis(file_id: str, project_id: int, s3_key: str):
 
         _update_relevance_status(file_id, "RELEVANT", db)
         save_graph_from_ai(project_id, file_id, ai_result, db)
-        update_analysis_status(file_id, "DONE", db)
         pregenerate_core_questions(project_id, file_id, db)
+        update_analysis_status(file_id, "DONE", db)
     except Exception as error:
         logger.exception(
             "upload_analysis_failed file_id=%s project_id=%s error=%s",
@@ -87,7 +87,7 @@ def _validate_material_relevance(ai_result: dict, subject_id: str) -> bool:
 
     통과 조건 (AND):
     - normalized_concept_count >= 3  : 정규화된 개념이 3개 이상
-    - normalization_ratio >= 0.35    : 전체 개념 중 35% 이상이 정규화됨
+    - normalization_ratio >= 0.20    : 전체 개념 중 20% 이상이 정규화됨
 
     참고: extract_graph는 해당 subject의 alias dictionary로만 정규화하므로
     matched된 모든 concept은 이미 해당 subject 소속이다.
@@ -107,7 +107,7 @@ def _validate_material_relevance(ai_result: dict, subject_id: str) -> bool:
         subject_id, total, normalized_count, ratio,
     )
 
-    return normalized_count >= 3 and ratio >= 0.35
+    return normalized_count >= 3 and ratio >= 0.20
 
 
 def _update_relevance_status(file_id: str, status: str, db: Session) -> None:

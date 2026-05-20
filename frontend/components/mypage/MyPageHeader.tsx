@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 
 interface MyPageHeaderProps {
   onOpenEdit: () => void;
+  profileEditDisabled?: boolean;
 }
 
-export default function MyPageHeader({ onOpenEdit }: MyPageHeaderProps) {
+export default function MyPageHeader({ onOpenEdit, profileEditDisabled = false }: MyPageHeaderProps) {
   const router = useRouter();
 
   return (
@@ -28,7 +29,8 @@ export default function MyPageHeader({ onOpenEdit }: MyPageHeaderProps) {
           <button
             type="button"
             onClick={onOpenEdit}
-            className="inline-flex h-10 items-center justify-center rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
+            disabled={profileEditDisabled}
+            className="inline-flex h-10 items-center justify-center rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#ebe9f5] disabled:hover:text-[#24213d]"
           >
             <span className="translate-y-[1px]">프로필 수정</span>
           </button>

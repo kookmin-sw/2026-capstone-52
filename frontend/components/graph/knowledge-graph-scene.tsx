@@ -40,6 +40,7 @@ type KnowledgeGraphSceneProps = {
   nodeSizeScale?: number;
   autoFitDuration?: number;
   autoFitOnMount?: boolean;
+  stableLayout?: boolean;
 };
 
 type ForceNode = KnowledgeGraphNode & {
@@ -47,6 +48,8 @@ type ForceNode = KnowledgeGraphNode & {
   searchText: string;
   __seedX: number;
   __seedY: number;
+  fx?: number;
+  fy?: number;
 };
 
 type ForceLink = KnowledgeGraphEdge & {
@@ -103,6 +106,7 @@ export default function KnowledgeGraphScene({
   nodeSizeScale = 1,
   autoFitDuration = 420,
   autoFitOnMount = false,
+  stableLayout = !animated,
 }: KnowledgeGraphSceneProps) {
   const graphRef = useRef<ForceGraphMethods<ForceNode, ForceLink> | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -131,6 +135,7 @@ export default function KnowledgeGraphScene({
           ...node,
           x: seedX,
           y: seedY,
+          ...(stableLayout ? { fx: seedX, fy: seedY } : {}),
           __seedX: seedX,
           __seedY: seedY,
           val: Math.max(1.2, Math.min(7.5, (node.isProjectRoot ? 1.25 : 1) * node.size)),
@@ -142,7 +147,7 @@ export default function KnowledgeGraphScene({
         id: `${edge.source}-${edge.target}-${index}`,
       })),
     };
-  }, [compact, edges, nodes]);
+  }, [compact, edges, nodes, stableLayout]);
 
   const connectedNodeIds = useMemo(() => {
     if (!activeSelectedNodeId) {
@@ -211,8 +216,10 @@ export default function KnowledgeGraphScene({
 
       return compact ? 28 : 58;
     });
-    graph.d3ReheatSimulation();
-  }, [compact, graphData]);
+    if (!stableLayout) {
+      graph.d3ReheatSimulation();
+    }
+  }, [compact, graphData, stableLayout]);
 
   const fitGraphToView = useCallback((duration = autoFitDuration) => {
     const graph = graphRef.current;
@@ -250,10 +257,10 @@ export default function KnowledgeGraphScene({
 
     const timer = window.setTimeout(() => {
       fitGraphToView();
-    }, 220);
+    }, autoFitDuration === 0 ? 0 : 220);
 
     return () => window.clearTimeout(timer);
-  }, [autoFitOnMount, dimensions.height, dimensions.width, fitGraphToView, graphData.nodes.length, resetViewKey]);
+  }, [autoFitDuration, autoFitOnMount, dimensions.height, dimensions.width, fitGraphToView, graphData.nodes.length, resetViewKey]);
 
   useEffect(() => {
     if (!focusNodeId || !graphRef.current) {
@@ -484,7 +491,7 @@ export default function KnowledgeGraphScene({
           }}
           linkCanvasObjectMode={() => "replace"}
           linkCanvasObject={drawLink}
-          cooldownTicks={animated ? Infinity : compact ? 90 : 150}
+          cooldownTicks={stableLayout ? 0 : animated ? Infinity : compact ? 90 : 150}
           d3AlphaDecay={animated ? 0.006 : 0.018}
           d3VelocityDecay={0.28}
           enableNodeDrag={interactive}
