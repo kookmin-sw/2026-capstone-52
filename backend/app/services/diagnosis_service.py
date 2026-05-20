@@ -90,7 +90,7 @@ def generate_next_question(project_id: int, db: Session, session_id: str | None 
     if not nodes:
         return None
 
-    core_nodes = _get_core_candidate_nodes(nodes)
+    core_nodes = _get_core_candidate_nodes_per_file(nodes)
     if not core_nodes:
         return None
 
@@ -323,7 +323,7 @@ def get_diagnosis_node_list(project_id: int, question_id: str | None, db: Sessio
         ).all()
         if n.file_id not in diagnosed_file_ids
     ]
-    nodes = _get_core_candidate_nodes(all_nodes)
+    nodes = _get_core_candidate_nodes_per_file(all_nodes)
     alias_cache = build_alias_cache(nodes)
     result = []
     for node in nodes:
@@ -594,6 +594,19 @@ def _get_core_candidate_nodes(nodes: list[ConceptNode]) -> list[ConceptNode]:
             node.understanding_score if node.understanding_score is not None else 0.0,
         ),
     )[:6]
+
+
+def _get_core_candidate_nodes_per_file(nodes: list[ConceptNode]) -> list[ConceptNode]:
+    """PDF 파일별로 핵심 개념 최대 6개씩 선출 — 여러 PDF 업로드 시 파일당 진단 범위 보장"""
+    from collections import defaultdict
+    nodes_by_file: dict[str, list[ConceptNode]] = defaultdict(list)
+    for node in nodes:
+        nodes_by_file[node.file_id or ""].append(node)
+
+    result = []
+    for file_nodes in nodes_by_file.values():
+        result.extend(_get_core_candidate_nodes(file_nodes))
+    return result
 
 
 def _ensure_core_questions_generated(
