@@ -186,6 +186,8 @@ export default function GalaxyGraphPanel() {
                   showLabels
                   resetViewKey={resetViewKey}
                   dimmedNodeIds={dimmedNodeIds}
+                  autoFitDuration={0}
+                  stableLayout
                   className="absolute inset-0"
                 />
               ) : null}

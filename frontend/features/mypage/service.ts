@@ -4,7 +4,7 @@ import { ensureCurrentUser, mapApiUserToProfile, updateCurrentUserProfile } from
 import { getProjectChats } from "@/features/dashboard/service";
 import type { Chat } from "@/features/dashboard/types";
 
-const isBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
+export const isMyPageBackendApiEnabled = process.env.NEXT_PUBLIC_USE_BACKEND_API === "true";
 const activityColors = ["#4ade80", "#60a5fa", "#fb923c", "#8b5cf6", "#f472b6", "#fb7185"];
 const MY_PAGE_DETAIL_FETCH_LIMIT = 5;
 const RECENT_RECORD_LIMIT = 5;
@@ -101,7 +101,7 @@ export async function getApiMyPageViewData(): Promise<{
   stats: MyPageStats;
   recentRecords: RecentLearningRecord[];
 } | null> {
-  if (!isBackendApiEnabled) {
+  if (!isMyPageBackendApiEnabled) {
     return null;
   }
 
@@ -160,7 +160,7 @@ export async function saveApiProfile(
   profileImage: string | null,
   options: { includeProfileImage?: boolean } = {}
 ) {
-  if (!isBackendApiEnabled) {
+  if (!isMyPageBackendApiEnabled) {
     return profile;
   }
 

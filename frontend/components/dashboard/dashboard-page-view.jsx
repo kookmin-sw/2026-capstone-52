@@ -2160,6 +2160,9 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     async function hydrateChats() {
       setIsChatsLoading(true);
       setChatError(null);
+      setRecentChats([]);
+      setBackendGraph(null);
+      setRecentGraphNodes([]);
 
       try {
         const [nextChats, nextGraph, nextRecentGraphNodes] = await Promise.all([
@@ -2660,7 +2663,6 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setExplanationError(null);
       setIsReportGraphOpen(false);
       setSelectedReportGraphNodeId(null);
-      setGraphResetKey((current) => current + 1);
     } else {
       setSelectedGraphNodeId(null);
       setGraphDetailNodeId(null);
@@ -2793,6 +2795,16 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   }
 
   function handleSelectProject(projectId) {
+    if (projectId !== selectedProjectId) {
+      setRecentChats([]);
+      setBackendGraph(null);
+      setRecentGraphNodes([]);
+      setSelectedGraphNodeId(null);
+      setGraphFocusNodeId(null);
+      setGraphDetailNodeId(null);
+      setVisibleGraphDetailNodeId(null);
+    }
+
     setSelectedProjectId(projectId);
     setSelectedChatId(null);
     setIsProjectListExpanded(false);
@@ -2814,6 +2826,9 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
       setWorkspaceState(loadWorkspaceState());
       setProjects(nextProjects);
       setCatalogOptions(nextCatalogOptions);
+      setRecentChats([]);
+      setBackendGraph(null);
+      setRecentGraphNodes([]);
       setSelectedProjectId(nextProject.id);
       setSelectedChatId(null);
       setSelectedCatalogOptionId(nextCatalogOptions.find((option) => !selectedCatalogOptionIds.has(option.id))?.id || null);
@@ -4056,6 +4071,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                         onNodeSelect={handleGraphNodeSelect}
                         focusNodeId={graphFocusNodeId}
                         resetViewKey={graphResetKey}
+                        autoFitDuration={0}
                       />
 
                       <div className="workspace-graph-stage-legend" aria-label="이해도 단계 색상">

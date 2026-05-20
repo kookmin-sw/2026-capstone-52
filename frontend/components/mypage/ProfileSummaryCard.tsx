@@ -1,14 +1,15 @@
 "use client";
 
 import { ChangeEvent, useRef } from "react";
-import StatsRow from "@/components/mypage/StatsRow";
+import StatsRow, { StatsRowSkeleton } from "@/components/mypage/StatsRow";
 import type { MyPageStats, ProfileBadge, ProfileInfo } from "@/types/profile";
 
 interface ProfileSummaryCardProps {
   profile: ProfileInfo;
   profileImage: string | null;
   badges: ProfileBadge[];
-  stats: MyPageStats;
+  stats: MyPageStats | null;
+  loading?: boolean;
   hasUnsavedProfileImage?: boolean;
   onImageChange: (file: File) => void;
   onOpenProfileEdit?: () => void;
@@ -20,12 +21,15 @@ export default function ProfileSummaryCard({
   profileImage,
   badges,
   stats,
+  loading = false,
   hasUnsavedProfileImage = false,
   onImageChange,
   onOpenProfileEdit,
   onOpenGraph,
 }: ProfileSummaryCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const hasProfileContent = Boolean(profile.name || profile.major || profile.job || badges.length);
+  const profileSubtitle = [profile.major, profile.job].filter(Boolean).join(" · ");
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -46,10 +50,13 @@ export default function ProfileSummaryCard({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="group relative w-fit shrink-0 rounded-[1.65rem] p-0 transition hover:scale-[1.01]"
+              disabled={loading || !hasProfileContent}
+              className="group relative w-fit shrink-0 rounded-[1.65rem] p-0 transition hover:scale-[1.01] disabled:cursor-default disabled:hover:scale-100"
               aria-label="프로필 이미지 변경"
             >
-              {profileImage ? (
+              {loading || !hasProfileContent ? (
+                <span className="block h-[7rem] w-[7rem] rounded-[1.8rem] bg-[#f0eefb]" aria-hidden="true" />
+              ) : profileImage ? (
                 <img
                   src={profileImage}
                   alt={`${profile.name} 프로필 이미지`}
@@ -60,14 +67,20 @@ export default function ProfileSummaryCard({
                   👨‍💻
                 </span>
               )}
-              <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full bg-black/45 px-3 py-1 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100">
-                사진 변경
-              </span>
+              {hasProfileContent ? (
+                <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full bg-black/45 px-3 py-1 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100">
+                  사진 변경
+                </span>
+              ) : null}
             </button>
 
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-[2rem] font-black leading-none text-[#24213d]">{profile.name}</h2>
+                {loading ? (
+                  <span className="h-8 w-36 rounded-full bg-[#f0eefb]" aria-hidden="true" />
+                ) : profile.name ? (
+                  <h2 className="text-[2rem] font-black leading-none text-[#24213d]">{profile.name}</h2>
+                ) : null}
                 <button
                   type="button"
                   onClick={onOpenGraph}
@@ -76,9 +89,13 @@ export default function ProfileSummaryCard({
                   ⌘ 전체 그래프
                 </button>
               </div>
-              <p className="mt-3 text-[0.85rem] font-semibold text-[#74708b]">
-                {profile.major} · {profile.job}
-              </p>
+              {loading ? (
+                <span className="mt-4 block h-4 w-52 rounded-full bg-[#f0eefb]" aria-hidden="true" />
+              ) : profileSubtitle ? (
+                <p className="mt-3 text-[0.85rem] font-semibold text-[#74708b]">
+                  {profileSubtitle}
+                </p>
+              ) : null}
 
               <div className="mt-4 flex flex-wrap gap-2.5">
                 {badges.map((badge, index) => (
@@ -104,6 +121,13 @@ export default function ProfileSummaryCard({
                     이미지 변경사항 저장 필요
                   </button>
                 ) : null}
+                {loading ? (
+                  <>
+                    <span className="h-8 w-20 rounded-full bg-[#f0eefb]" aria-hidden="true" />
+                    <span className="h-8 w-24 rounded-full bg-[#f0eefb]" aria-hidden="true" />
+                    <span className="h-8 w-28 rounded-full bg-[#f0eefb]" aria-hidden="true" />
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -117,7 +141,7 @@ export default function ProfileSummaryCard({
           />
         </div>
 
-        <StatsRow stats={stats} />
+        {stats ? <StatsRow stats={stats} /> : <StatsRowSkeleton />}
       </div>
     </section>
   );
