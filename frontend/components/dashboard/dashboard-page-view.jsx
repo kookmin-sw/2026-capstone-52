@@ -2236,17 +2236,26 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
 
     const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(nextUrl, { scroll: false });
-
-    if (selectedProjectId) {
-      const nextWorkspaceState = {
-        ...loadWorkspaceState(),
-        lastOpenedProjectId: selectedProjectId
-      };
-
-      saveWorkspaceState(nextWorkspaceState);
-      setWorkspaceState(nextWorkspaceState);
-    }
   }, [hasHydrated, pathname, router, selectedChatId, selectedProjectId]);
+
+  useEffect(() => {
+    if (!hasHydrated || !selectedProjectId) {
+      return;
+    }
+
+    const currentWorkspaceState = loadWorkspaceState();
+    if (currentWorkspaceState.lastOpenedProjectId === selectedProjectId) {
+      return;
+    }
+
+    const nextWorkspaceState = {
+      ...currentWorkspaceState,
+      lastOpenedProjectId: selectedProjectId
+    };
+
+    saveWorkspaceState(nextWorkspaceState);
+    setWorkspaceState(nextWorkspaceState);
+  }, [hasHydrated, selectedProjectId]);
 
   const activeProjectData = useMemo(() => {
     if (!selectedProjectId) {
