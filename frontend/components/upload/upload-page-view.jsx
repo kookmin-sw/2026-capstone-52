@@ -147,7 +147,7 @@ export default function UploadPageView({ initialProjectId = null }) {
           .forEach((file) => loggedGraphUpdateFileIdsRef.current.add(file.id));
         setUploadedFiles(files);
         setRecentChats(chats);
-        setCanStartDiagnosis(files.some((file) => file.rawStatus === "DONE" || file.statusTone === "done"));
+        setCanStartDiagnosis(files.some((file) => file.rawStatus === "DONE" && !file.isDiagnosed));
         setUploadFeedback(null);
       } catch (error) {
         console.error(error);
@@ -200,7 +200,7 @@ export default function UploadPageView({ initialProjectId = null }) {
         }
 
         setUploadedFiles(files);
-        setCanStartDiagnosis(completedFiles.length > 0);
+        setCanStartDiagnosis(files.some((file) => file.rawStatus === "DONE" && !file.isDiagnosed));
       } catch (error) {
         console.error(error);
       }
