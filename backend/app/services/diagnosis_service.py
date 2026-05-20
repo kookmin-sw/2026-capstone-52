@@ -599,10 +599,19 @@ def _ensure_core_questions_generated(
     session_id: str | None,
     db: Session,
 ) -> None:
+    # 현재 세션에서 이미 concept_check 문제를 답변한 노드 — 재출제 금지
+    session_answered_node_ids: set[str] = (
+        _get_session_answered_node_ids(session_id, db, diagnosis_purpose="concept_check")
+        if session_id
+        else set()
+    )
+
     last_error: Exception | None = None
     for target_node in core_nodes:
         if session_id and _get_total_session_question_count(project_id, session_id, db) >= TOTAL_QUESTIONS:
             break
+        if target_node.node_id in session_answered_node_ids:
+            continue  # 이미 이 세션에서 답변된 개념은 concept_check 재출제 안 함
         if _has_unanswered_question_for_node(target_node.node_id, db, diagnosis_purpose="concept_check"):
             continue
 
@@ -872,6 +881,28 @@ def _has_any_unanswered_question(
         db=db,
         diagnosis_purpose=diagnosis_purpose,
     ) is not None
+
+
+def _get_session_answered_node_ids(session_id: str, db: Session, *, diagnosis_purpose: str) -> set[str]:
+    """현재 세션에서 이미 답변된 concept_id(node_id) 집합 반환"""
+    answered_question_ids = [
+        row.question_id
+        for row in db.query(DiagnosisAnswer.question_id)
+        .filter(DiagnosisAnswer.session_id == session_id)
+        .all()
+    ]
+    if not answered_question_ids:
+        return set()
+    questions = (
+        db.query(DiagnosisQuestion.concept_id)
+        .filter(
+            DiagnosisQuestion.question_id.in_(answered_question_ids),
+            (DiagnosisQuestion.diagnosis_purpose == diagnosis_purpose)
+            | DiagnosisQuestion.diagnosis_purpose.is_(None),
+        )
+        .all()
+    )
+    return {row.concept_id for row in questions}
 
 
 def _has_unanswered_question_for_node(node_id: str, db: Session, *, diagnosis_purpose: str) -> bool:
