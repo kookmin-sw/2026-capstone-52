@@ -61,6 +61,11 @@ const TRANSPARENT_BACKGROUND = "rgba(0,0,0,0)";
 const MAX_AUTO_ZOOM = 1.18;
 const MAX_FOCUS_ZOOM = 1.42;
 const CORE_RING_COLOR = "#f5d38a";
+const GRAPH_CHARGE_STRENGTH = -54;
+const COMPACT_GRAPH_CHARGE_STRENGTH = -30;
+const GRAPH_LINK_STRENGTH = 0.22;
+const COMPACT_GRAPH_LINK_STRENGTH = 0.18;
+const GRAPH_VELOCITY_DECAY = 0.42;
 
 function getEndpointId(endpoint: string | number | NodeObject<ForceNode> | undefined) {
   if (endpoint && typeof endpoint === "object") {
@@ -200,7 +205,7 @@ export default function KnowledgeGraphScene({
       return;
     }
 
-    graph.d3Force("charge")?.strength?.(compact ? -42 : -86);
+    graph.d3Force("charge")?.strength?.(compact ? COMPACT_GRAPH_CHARGE_STRENGTH : GRAPH_CHARGE_STRENGTH);
     graph.d3Force("link")?.distance?.((link: LinkObject<ForceNode, ForceLink>) => {
       const source = link.source as ForceNode | undefined;
       const target = link.target as ForceNode | undefined;
@@ -211,6 +216,7 @@ export default function KnowledgeGraphScene({
 
       return compact ? 28 : 58;
     });
+    graph.d3Force("link")?.strength?.(compact ? COMPACT_GRAPH_LINK_STRENGTH : GRAPH_LINK_STRENGTH);
     graph.d3ReheatSimulation();
   }, [compact, graphData]);
 
@@ -486,7 +492,7 @@ export default function KnowledgeGraphScene({
           linkCanvasObject={drawLink}
           cooldownTicks={animated ? Infinity : compact ? 90 : 150}
           d3AlphaDecay={animated ? 0.006 : 0.018}
-          d3VelocityDecay={0.28}
+          d3VelocityDecay={GRAPH_VELOCITY_DECAY}
           enableNodeDrag={interactive}
           enablePanInteraction={interactive}
           enableZoomInteraction={interactive}
