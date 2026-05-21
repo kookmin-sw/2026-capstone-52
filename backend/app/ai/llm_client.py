@@ -48,8 +48,14 @@ def call_llm_json(
     task_name: str = "unknown",
     max_tokens: int | None = None,
     temperature: float = DEFAULT_JSON_TEMPERATURE,
+    history: list[dict] | None = None,
 ) -> dict[str, Any]:
-    """Call the configured LLM and return a parsed JSON object."""
+    """Call the configured LLM and return a parsed JSON object.
+
+    history(선택): {"role": "user"|"assistant", "content": str} 형식의 과거 대화 턴.
+    전달하면 user_prompt 앞에 실제 멀티턴 메시지로 붙는다. None이면 기존과 동일하게
+    user_prompt만 단일 user 메시지로 보낸다.
+    """
     first_text = _call_bedrock_text(
         system_prompt=system_prompt,
         user_prompt=user_prompt,
@@ -57,6 +63,7 @@ def call_llm_json(
         max_tokens=max_tokens or DEFAULT_JSON_MAX_TOKENS,
         temperature=temperature,
         json_only=False,
+        history=history,
     )
 
     try:
@@ -85,6 +92,7 @@ def call_llm_json(
         max_tokens=max_tokens or DEFAULT_JSON_MAX_TOKENS,
         temperature=temperature,
         json_only=True,
+        history=history,
     )
 
     try:
@@ -140,6 +148,46 @@ def call_llm_text(
     return text
 
 
+# 멀티턴 messages 구성 내부 함수
+#
+# 역할:
+# - 과거 대화 history와 현재 user_prompt를 Claude Messages API 규칙에 맞는 messages로 만든다.
+# - Anthropic 규칙: 반드시 user로 시작하고 user/assistant가 번갈아 나와야 한다.
+# - history가 비어있으면 기존과 100% 동일하게 user_prompt 단일 메시지만 반환한다(하위호환).
+def _build_messages(history: list[dict] | None, user_prompt: str) -> list[dict[str, Any]]:
+    turns: list[dict[str, str]] = []
+    for item in history or []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = item.get("content")
+        if role not in ("user", "assistant"):
+            continue
+        if not isinstance(content, str) or not content.strip():
+            continue
+        turns.append({"role": role, "content": content})
+
+    # 현재 사용자 입력(user_prompt)을 마지막 user 턴으로 추가
+    turns.append({"role": "user", "content": user_prompt})
+
+    # user로 시작해야 하므로 앞쪽 assistant 턴 제거
+    while turns and turns[0]["role"] != "user":
+        turns.pop(0)
+
+    # 연속된 같은 role 턴을 하나로 병합해 strict alternation 보장
+    merged: list[dict[str, str]] = []
+    for turn in turns:
+        if merged and merged[-1]["role"] == turn["role"]:
+            merged[-1]["content"] = f"{merged[-1]['content']}\n\n{turn['content']}"
+        else:
+            merged.append({"role": turn["role"], "content": turn["content"]})
+
+    return [
+        {"role": turn["role"], "content": [{"type": "text", "text": turn["content"]}]}
+        for turn in merged
+    ]
+
+
 # Bedrock 호출 내부 함수
 #
 # 역할:
@@ -154,6 +202,7 @@ def _call_bedrock_text(
     max_tokens: int,
     temperature: float,
     json_only: bool,
+    history: list[dict] | None = None,
 ) -> str:
     client = boto3.client("bedrock-runtime", region_name=settings.aws_region)
     system_text = system_prompt.strip()
@@ -168,17 +217,7 @@ def _call_bedrock_text(
         "max_tokens": max_tokens,
         "temperature": temperature,
         "system": system_text,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": user_prompt,
-                    }
-                ],
-            }
-        ],
+        "messages": _build_messages(history, user_prompt),
     }
 
     provider_error: LLMProviderError | None = None
