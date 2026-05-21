@@ -178,38 +178,39 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ## :six:기술 스택
 
-Frontend
+**Frontend**
 
-https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white
-https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black
-https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white
-https://img.shields.io/badge/Tailwind_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white
-https://img.shields.io/badge/Zustand-FF9F1C?style=flat-square
-https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white
-https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white
+  ![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+  ![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
+  ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+  ![Tailwind CSS](https://img.shields.io/badge/Tailwind_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+  ![Zustand](https://img.shields.io/badge/Zustand-FF9F1C?style=flat-square)
+  ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white)
+  ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)
 
-Backend
-https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white
-https://img.shields.io/badge/Uvicorn-499848?style=flat-square&logo=gunicorn&logoColor=white
-https://img.shields.io/badge/SQLAlchemy_2-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white
-https://img.shields.io/badge/Pydantic_v2-E92063?style=flat-square&logo=pydantic&logoColor=white
-https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white
-https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white
-https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white
+  **Backend**
 
-AI / ML
+  ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+  ![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?style=flat-square&logo=gunicorn&logoColor=white)
+  ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy_2-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white)
+  ![Pydantic](https://img.shields.io/badge/Pydantic_v2-E92063?style=flat-square&logo=pydantic&logoColor=white)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+  ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+  ![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 
-https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonaws&logoColor=white
-https://img.shields.io/badge/Claude_3.5_Sonnet-D97757?style=flat-square&logo=anthropic&logoColor=white
-https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square
+  **AI / ML**
 
-Infra (AWS · EC2)
+  ![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonaws&logoColor=white)
+  ![Claude](https://img.shields.io/badge/Claude_3.5_Sonnet-D97757?style=flat-square&logo=anthropic&logoColor=white)
+  ![pdfplumber](https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square)
 
-https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white
-https://img.shields.io/badge/EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white
-https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white
-https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white
-https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white---
+  **Infra (AWS · EC2)**
+
+  ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white)
+  ![EC2](https://img.shields.io/badge/EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white)
+  ![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+  ![S3](https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white)
+  ![RDS](https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white)
 
 ## :seven:폴더 구조
 
