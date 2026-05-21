@@ -16,6 +16,19 @@
   <a href="https://kookmin-sw.github.io/2026-capstone-52/"><img src="https://img.shields.io/badge/TEAM-GITPAGE-000000?style=for-the-badge" /></a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15.2.4-000000?logo=nextdotjs&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000000&style=flat-square" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4.17-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/PostgreSQL-RDS-4169E1?logo=postgresql&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Amazon_S3-569A31?logo=amazons3&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Amazon_Bedrock-FF9900?logo=amazonaws&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Claude_4.5-Sonnet-D97757?logo=anthropic&logoColor=white&style=flat-square" />
+</p>
+
 ---
 
 ## 목차
