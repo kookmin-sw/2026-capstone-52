@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-RDS-4169E1?logo=postgresql&logoColor=white&style=flat-square" />
   <img src="https://img.shields.io/badge/Amazon_S3-569A31?logo=amazons3&logoColor=white&style=flat-square" />
   <img src="https://img.shields.io/badge/Amazon_Bedrock-FF9900?logo=amazonaws&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/Claude_4.5-Sonnet-D97757?logo=anthropic&logoColor=white&style=flat-square" />
+  <img src="https://img.shields.io/badge/Claude_4.5-HAIKU-D97757?logo=anthropic&logoColor=white&style=flat-square" />
 </p>
 
 ---
@@ -209,7 +209,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 | 역할 | 종류 |
 | --- | --- |
 | LLM Platform | <img src="https://img.shields.io/badge/Amazon%20Bedrock-FF9900.svg?style=for-the-badge&logo=amazonaws&logoColor=white"/> |
-| LLM Model | <img src="https://img.shields.io/badge/Claude%203.5%20Sonnet-D97757.svg?style=for-the-badge&logo=anthropic&logoColor=white"/> |
+| LLM Model | <img src="https://img.shields.io/badge/Claude%203.5%20Haiku-D97757.svg?style=for-the-badge&logo=anthropic&logoColor=white"/> |
 | SDK | <img src="https://img.shields.io/badge/boto3-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> |
 | PDF Processing | <img src="https://img.shields.io/badge/pdfplumber-4B8BBE.svg?style=for-the-badge&logo=python&logoColor=white"/> |
 | Graph Extraction | <img src="https://img.shields.io/badge/Concept%20Graph-FF6B6B.svg?style=for-the-badge&logo=neo4j&logoColor=white"/> |
@@ -371,7 +371,7 @@ cp .env.example .env
 DATABASE_URL=sqlite:///./dev.db
 S3_BUCKET_NAME=your-bucket-name
 AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+BEDROCK_MODEL_ID=anthropic.claude-4-5-Haiku-20241022-v2:0
 USE_S3=false
 JWT_SECRET_KEY=replace-with-your-jwt-secret
 JWT_ALGORITHM=HS256
@@ -456,7 +456,7 @@ AI 기능은 Amazon Bedrock의 Claude 모델을 사용합니다.
 - 사용 모델 기본값
 
 ```env
-BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+BEDROCK_MODEL_ID=anthropic.claude-4-5-Haiku-20241022-v2:0
 ```
 
 - PDF 업로드 및 그래프 분석 기능은 다음 흐름으로 동작합니다.
