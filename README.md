@@ -201,7 +201,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   **AI / ML**
 
   ![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonaws&logoColor=white)
-  ![Claude](https://img.shields.io/badge/Claude_3.5_Sonnet-D97757?style=flat-square&logo=anthropic&logoColor=white)
+  ![Claude](https://img.shields.io/badge/Claude_4.5_Haiku-D97757?style=flat-square&logo=anthropic&logoColor=white)
   ![pdfplumber](https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square)
 
   **Infra (AWS · EC2)**
