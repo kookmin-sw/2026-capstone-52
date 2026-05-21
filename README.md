@@ -33,15 +33,15 @@
 
 ## 목차
 
-:one: 📌 [프로젝트 소개](#프로젝트-소개)<br />
-:two: ✨ [주요 기능](#주요-기능)<br />
-:three: 🎬 [소개 영상](#소개-영상)<br />
-:four: 🏗️ [시스템 구조](#시스템-구조)<br />
-:five: 👥 [팀원 소개](#팀원-소개)<br />
-:six: 🛠️ [기술 스택](#기술-스택)<br />
-:seven: 📁 [폴더 구조](#폴더-구조)<br />
-:eight: 🚀 [실행 방법](#실행-방법)<br />
-:nine: 📚 [참고 자료](#참고-자료)
+:one: 📌 [프로젝트 소개](#one프로젝트-소개)<br />
+:two: ✨ [주요 기능](#two주요-기능)<br />
+:three: 🎬 [소개 영상](#three소개-영상)<br />
+:four: 🏗️ [시스템 구조](#four시스템-구조)<br />
+:five: 👥 [팀원 소개](#five팀원-소개)<br />
+:six: 🛠️ [기술 스택](#six기술-스택)<br />
+:seven: 📁 [폴더 구조](#seven폴더-구조)<br />
+:eight: 🚀 [실행 방법](#eight실행-방법)<br />
+:nine: 📚 [참고 자료](#nine참고-자료)
 
 ---
 
@@ -180,37 +180,45 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 **Frontend**
 
-  ![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white)
-  ![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
-  ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-  ![Tailwind CSS](https://img.shields.io/badge/Tailwind_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-  ![Zustand](https://img.shields.io/badge/Zustand-FF9F1C?style=flat-square)
-  ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white)
-  ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)
+<p>
+  <img src="https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 3" />
+  <img src="https://img.shields.io/badge/Zustand-FF9F1C?style=flat-square" alt="Zustand" />
+  <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white" alt="Framer Motion" />
+  <img src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
+</p>
 
-  **Backend**
+**Backend**
 
-  ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
-  ![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?style=flat-square&logo=gunicorn&logoColor=white)
-  ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy_2-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white)
-  ![Pydantic](https://img.shields.io/badge/Pydantic_v2-E92063?style=flat-square&logo=pydantic&logoColor=white)
-  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
-  ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
-  ![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
+<p>
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Uvicorn-499848?style=flat-square" alt="Uvicorn" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-2-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy 2" />
+  <img src="https://img.shields.io/badge/Pydantic-v2-E92063?style=flat-square&logo=pydantic&logoColor=white" alt="Pydantic v2" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+</p>
 
-  **AI / ML**
+**AI / ML**
 
-  ![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonaws&logoColor=white)
-  ![Claude](https://img.shields.io/badge/Claude_4.5_Haiku-D97757?style=flat-square&logo=anthropic&logoColor=white)
-  ![pdfplumber](https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square)
+<p>
+  <img src="https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonwebservices&logoColor=white" alt="AWS Bedrock" />
+  <img src="https://img.shields.io/badge/Claude_Haiku-4.5-D97757?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Haiku 4.5" />
+  <img src="https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square" alt="pdfplumber" />
+</p>
 
-  **Infra (AWS · EC2)**
+**Infra (AWS · EC2)**
 
-  ![AWS](https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white)
-  ![EC2](https://img.shields.io/badge/EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white)
-  ![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
-  ![S3](https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white)
-  ![RDS](https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white)
+<p>
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white" alt="AWS" />
+  <img src="https://img.shields.io/badge/EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="EC2" />
+  <img src="https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx" />
+  <img src="https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white" alt="S3" />
+  <img src="https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="RDS" />
+</p>
 
 ## :seven:폴더 구조
 
@@ -366,7 +374,7 @@ cp .env.example .env
 DATABASE_URL=sqlite:///./dev.db
 S3_BUCKET_NAME=your-bucket-name
 AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-4-5-Haiku-20241022-v2:0
+BEDROCK_MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0
 USE_S3=false
 JWT_SECRET_KEY=replace-with-your-jwt-secret
 JWT_ALGORITHM=HS256
@@ -451,7 +459,7 @@ AI 기능은 Amazon Bedrock의 Claude 모델을 사용합니다.
 - 사용 모델 기본값
 
 ```env
-BEDROCK_MODEL_ID=anthropic.claude-4-5-Haiku-20241022-v2:0
+BEDROCK_MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 - PDF 업로드 및 그래프 분석 기능은 다음 흐름으로 동작합니다.

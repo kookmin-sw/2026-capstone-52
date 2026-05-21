@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     s3_bucket_name: str = "pj-kmucd1-02-s3-documents"
 
     # Amazon Bedrock — 맞춤 설명 생성에 사용할 Claude 모델
-    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    bedrock_model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     # 로컬 테스트용 — False면 S3 업로드 건너뜀
     use_s3: bool = True
