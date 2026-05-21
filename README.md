@@ -12,8 +12,12 @@
 </div>
 
 <p align="center">
-  <a href="http://eeum-study.kr/"><img src="./docs/assets/images/eeum_badge_service.svg" alt="서비스 바로가기" /></a>
-  <a href="https://kookmin-sw.github.io/2026-capstone-52/"><img src="./docs/assets/images/eeum_badge_intro.svg" alt="소개 페이지" /></a>
+  <a href="http://eeum-study.kr/">
+    <img src="https://img.shields.io/badge/Service%20Page-이음%20시작하기-8B7FF0?style=for-the-badge" alt="서비스 바로가기" />
+  </a>
+  <a href="https://kookmin-sw.github.io/2026-capstone-52/">
+    <img src="https://img.shields.io/badge/📄_GitHub_Pages-프로젝트_소개-6366f1?style=for-the-badge" alt="소개 페이지" />
+  </a>
 </p>
 
 ---
