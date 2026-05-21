@@ -178,44 +178,38 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ## :six:기술 스택
 
-### 🖥️ Frontend
+Frontend
 
-| 역할 | 종류 |
-| --- | --- |
-| Framework | <img src="https://img.shields.io/badge/Next.js%2015.2.4-000000.svg?style=for-the-badge&logo=nextdotjs&logoColor=white"/> <img src="https://img.shields.io/badge/React%2019-61DAFB.svg?style=for-the-badge&logo=react&logoColor=000000"/> |
-| Programming Language | <img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white"/> <img src="https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=javascript&logoColor=000000"/> |
-| Styling | <img src="https://img.shields.io/badge/Tailwind%20CSS%203.4.17-06B6D4.svg?style=for-the-badge&logo=tailwindcss&logoColor=white"/> <img src="https://img.shields.io/badge/PostCSS-DD3A0A.svg?style=for-the-badge&logo=postcss&logoColor=white"/> |
-| State Management | <img src="https://img.shields.io/badge/Zustand-443E38.svg?style=for-the-badge&logo=react&logoColor=white"/> |
-| Animation / UI | <img src="https://img.shields.io/badge/Framer%20Motion-0055FF.svg?style=for-the-badge&logo=framer&logoColor=white"/> <img src="https://img.shields.io/badge/FontAwesome-528DD7.svg?style=for-the-badge&logo=fontawesome&logoColor=white"/> |
-| Visualization | <img src="https://img.shields.io/badge/react--force--graph--2d-61DAFB.svg?style=for-the-badge&logo=react&logoColor=000000"/> |
-| Authentication | <img src="https://img.shields.io/badge/Google%20Identity%20Services-4285F4.svg?style=for-the-badge&logo=google&logoColor=white"/> |
-| Test | <img src="https://img.shields.io/badge/Playwright-2EAD33.svg?style=for-the-badge&logo=playwright&logoColor=white"/> |
+https://img.shields.io/badge/Next.js_15-000000?style=flat-square&logo=nextdotjs&logoColor=white
+https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black
+https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white
+https://img.shields.io/badge/Tailwind_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white
+https://img.shields.io/badge/Zustand-FF9F1C?style=flat-square
+https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white
+https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white
 
-### 💾 Backend
+Backend
+https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white
+https://img.shields.io/badge/Uvicorn-499848?style=flat-square&logo=gunicorn&logoColor=white
+https://img.shields.io/badge/SQLAlchemy_2-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white
+https://img.shields.io/badge/Pydantic_v2-E92063?style=flat-square&logo=pydantic&logoColor=white
+https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white
+https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white
+https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white
 
-| 역할 | 종류 |
-| --- | --- |
-| Framework | <img src="https://img.shields.io/badge/FastAPI-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white"/> |
-| Programming Language | <img src="https://img.shields.io/badge/Python-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> |
-| ASGI Server | <img src="https://img.shields.io/badge/Uvicorn-499848.svg?style=for-the-badge&logo=gunicorn&logoColor=white"/> |
-| ORM / Validation | <img src="https://img.shields.io/badge/SQLAlchemy-D71F00.svg?style=for-the-badge&logo=sqlalchemy&logoColor=white"/> <img src="https://img.shields.io/badge/Pydantic-E92063.svg?style=for-the-badge&logo=pydantic&logoColor=white"/> |
-| Database | <img src="https://img.shields.io/badge/SQLite-003B57.svg?style=for-the-badge&logo=sqlite&logoColor=white"/> <img src="https://img.shields.io/badge/PostgreSQL%20/%20RDS-4169E1.svg?style=for-the-badge&logo=postgresql&logoColor=white"/> |
-| Storage | <img src="https://img.shields.io/badge/Amazon%20S3-569A31.svg?style=for-the-badge&logo=amazons3&logoColor=white"/> |
-| File Upload / Env | <img src="https://img.shields.io/badge/python--multipart-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> <img src="https://img.shields.io/badge/python--dotenv-ECD53F.svg?style=for-the-badge&logo=dotenv&logoColor=000000"/> |
-| API | <img src="https://img.shields.io/badge/REST%20API-02569B.svg?style=for-the-badge&logo=fastapi&logoColor=white"/> |
+AI / ML
 
-### 🤖 AI
+https://img.shields.io/badge/AWS_Bedrock-01A88D?style=flat-square&logo=amazonaws&logoColor=white
+https://img.shields.io/badge/Claude_3.5_Sonnet-D97757?style=flat-square&logo=anthropic&logoColor=white
+https://img.shields.io/badge/pdfplumber-FF6F00?style=flat-square
 
-| 역할 | 종류 |
-| --- | --- |
-| LLM Platform | <img src="https://img.shields.io/badge/Amazon%20Bedrock-FF9900.svg?style=for-the-badge&logo=amazonaws&logoColor=white"/> |
-| LLM Model | <img src="https://img.shields.io/badge/Claude%203.5%20Haiku-D97757.svg?style=for-the-badge&logo=anthropic&logoColor=white"/> |
-| SDK | <img src="https://img.shields.io/badge/boto3-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> |
-| PDF Processing | <img src="https://img.shields.io/badge/pdfplumber-4B8BBE.svg?style=for-the-badge&logo=python&logoColor=white"/> |
-| Graph Extraction | <img src="https://img.shields.io/badge/Concept%20Graph-FF6B6B.svg?style=for-the-badge&logo=neo4j&logoColor=white"/> |
-| Concept Normalization | <img src="https://img.shields.io/badge/Alias%20JSON-000000.svg?style=for-the-badge&logo=json&logoColor=white"/> <img src="https://img.shields.io/badge/Fuzzy%20Matching-5C2D91.svg?style=for-the-badge&logo=python&logoColor=white"/> |
-| Diagnosis | <img src="https://img.shields.io/badge/LLM%20Question%20Generation-8A2BE2.svg?style=for-the-badge&logo=openai&logoColor=white"/> <img src="https://img.shields.io/badge/Deterministic%20Scoring-3776AB.svg?style=for-the-badge&logo=python&logoColor=white"/> |
-| Retrieval | <img src="https://img.shields.io/badge/Keyword%20/%20Phrase%20Retrieval-FFB000.svg?style=for-the-badge&logo=json&logoColor=000000"/> |
+Infra (AWS · EC2)
+
+https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white
+https://img.shields.io/badge/EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white
+https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white
+https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white
+https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white---
 
 ## :seven:폴더 구조
 
