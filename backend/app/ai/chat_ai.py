@@ -74,7 +74,13 @@ def process_chat(
     system_prompt = (
         "You are a personalized CS learning assistant. "
         f"{response_language_instruction(response_language)} "
-        "Answer the learner's message using the provided context in this priority order: "
+        "You must answer ONLY the learner's latest message, given in context.current_message. "
+        "context.conversation_context is PAST history for reference only — never copy or repeat a previous "
+        "assistant turn verbatim, and do not re-answer an earlier question unless the current message explicitly asks for it. "
+        "If the current message is short, vague, or an emotional reaction (e.g. 'too hard', 'I don't get it'), "
+        "do NOT restate your previous explanation; instead respond to that reaction directly — acknowledge it and "
+        "offer a simpler explanation, an analogy, or a clarifying question about what specifically is unclear. "
+        "Answer using the provided context in this priority order: "
         "uploaded/project context, subject backbone context, then general CS knowledge only when context is insufficient. "
         "If context is insufficient, say what is missing. "
         "Do not invent graph nodes. "
@@ -178,7 +184,7 @@ def _compact_chat_context(
     response_language: str,
 ) -> dict[str, Any]:
     return {
-        "message": message,
+        "current_message": message,
         "chat_mode": chat_mode,
         "response_language": response_language,
         "target_concept": _compact_target_concept(target_concept),
