@@ -1,0 +1,3376 @@
+{
+  "subject_id": "computer_network",
+  "concepts": [
+    {
+      "concept_id": "cn_computer_network",
+      "canonical_name": "Computer Network",
+      "korean_name": "컴퓨터 네트워크",
+      "aliases": [
+        "computer network",
+        "computer networks",
+        "network",
+        "networks",
+        "컴퓨터 네트워크",
+        "네트워크"
+      ],
+      "group": "Network Foundations",
+      "description": "A collection of autonomous computers interconnected to exchange information.",
+      "importance": 0.98,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_distributed_system",
+      "canonical_name": "Distributed System",
+      "korean_name": "분산 시스템",
+      "aliases": [
+        "distributed system",
+        "distributed systems",
+        "분산 시스템"
+      ],
+      "group": "Network Foundations",
+      "description": "A software system that makes independent networked computers appear as one coherent system.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_client_server_model",
+      "canonical_name": "Client-Server Model",
+      "korean_name": "클라이언트-서버 모델",
+      "aliases": [
+        "client-server model",
+        "client server model",
+        "client/server",
+        "client and server",
+        "request reply model",
+        "클라이언트 서버",
+        "클라이언트-서버 모델"
+      ],
+      "group": "Network Foundations",
+      "description": "A communication model in which clients send requests and servers return replies.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_peer_to_peer",
+      "canonical_name": "Peer-to-Peer Communication",
+      "korean_name": "피어 투 피어 통신",
+      "aliases": [
+        "peer-to-peer",
+        "peer to peer",
+        "P2P",
+        "peer-to-peer communication",
+        "peer-to-peer network",
+        "피어 투 피어",
+        "P2P 네트워크"
+      ],
+      "group": "Network Foundations",
+      "description": "A communication model without fixed clients and servers, where peers exchange data directly.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_protocol",
+      "canonical_name": "Protocol",
+      "korean_name": "프로토콜",
+      "aliases": [
+        "protocol",
+        "protocols",
+        "network protocol",
+        "communication protocol",
+        "프로토콜",
+        "통신 프로토콜"
+      ],
+      "group": "Network Software",
+      "description": "A set of rules governing the format and meaning of messages exchanged by peer entities.",
+      "importance": 0.98,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_service",
+      "canonical_name": "Service",
+      "korean_name": "서비스",
+      "aliases": [
+        "service",
+        "services",
+        "network service",
+        "layer service",
+        "서비스",
+        "계층 서비스"
+      ],
+      "group": "Network Software",
+      "description": "A set of operations that a layer provides to the layer above it.",
+      "importance": 0.8,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_interface",
+      "canonical_name": "Interface",
+      "korean_name": "인터페이스",
+      "aliases": [
+        "interface",
+        "interfaces",
+        "layer interface",
+        "service interface",
+        "인터페이스",
+        "계층 인터페이스"
+      ],
+      "group": "Network Software",
+      "description": "The boundary that defines how one layer accesses services of another layer.",
+      "importance": 0.72,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_protocol_hierarchy",
+      "canonical_name": "Protocol Hierarchy",
+      "korean_name": "프로토콜 계층 구조",
+      "aliases": [
+        "protocol hierarchy",
+        "protocol hierarchies",
+        "layer hierarchy",
+        "layered protocols",
+        "프로토콜 계층",
+        "프로토콜 계층 구조",
+        "계층 구조"
+      ],
+      "group": "Network Software",
+      "description": "The organization of network functions into layers, each using services below and serving layers above.",
+      "importance": 0.9,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_protocol_stack",
+      "canonical_name": "Protocol Stack",
+      "korean_name": "프로토콜 스택",
+      "aliases": [
+        "protocol stack",
+        "protocol stacks",
+        "network stack",
+        "TCP/IP stack",
+        "프로토콜 스택",
+        "네트워크 스택"
+      ],
+      "group": "Network Software",
+      "description": "A set of protocols used by a system, one protocol per layer.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_network_architecture",
+      "canonical_name": "Network Architecture",
+      "korean_name": "네트워크 아키텍처",
+      "aliases": [
+        "network architecture",
+        "network architectures",
+        "네트워크 아키텍처",
+        "네트워크 구조"
+      ],
+      "group": "Network Software",
+      "description": "A specification of layers and protocols sufficient to implement network communication.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_encapsulation",
+      "canonical_name": "Encapsulation",
+      "korean_name": "캡슐화",
+      "aliases": [
+        "encapsulation",
+        "packet encapsulation",
+        "header encapsulation",
+        "캡슐화",
+        "헤더 캡슐화"
+      ],
+      "group": "Network Software",
+      "description": "The process of wrapping data with protocol headers and trailers as it moves down the stack.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_header",
+      "canonical_name": "Header",
+      "korean_name": "헤더",
+      "aliases": [
+        "header",
+        "headers",
+        "protocol header",
+        "packet header",
+        "헤더",
+        "프로토콜 헤더",
+        "패킷 헤더"
+      ],
+      "group": "Network Software",
+      "description": "Control information added to data by a protocol layer.",
+      "importance": 0.65,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_trailer",
+      "canonical_name": "Trailer",
+      "korean_name": "트레일러",
+      "aliases": [
+        "trailer",
+        "trailers",
+        "frame trailer",
+        "트레일러",
+        "프레임 트레일러"
+      ],
+      "group": "Network Software",
+      "description": "Control information appended to the end of a frame or packet.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_packet",
+      "canonical_name": "Packet",
+      "korean_name": "패킷",
+      "aliases": [
+        "packet",
+        "packets",
+        "network packet",
+        "IP packet",
+        "패킷",
+        "네트워크 패킷"
+      ],
+      "group": "Network Software",
+      "description": "A formatted unit of data carried by a packet-switched network.",
+      "importance": 0.95,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_frame",
+      "canonical_name": "Frame",
+      "korean_name": "프레임",
+      "aliases": [
+        "frame",
+        "frames",
+        "data frame",
+        "link-layer frame",
+        "프레임",
+        "데이터 프레임"
+      ],
+      "group": "Network Software",
+      "description": "A data unit transmitted by the data link layer.",
+      "importance": 0.9,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_segment",
+      "canonical_name": "Segment",
+      "korean_name": "세그먼트",
+      "aliases": [
+        "segment",
+        "segments",
+        "TCP segment",
+        "transport segment",
+        "세그먼트",
+        "TCP 세그먼트"
+      ],
+      "group": "Network Software",
+      "description": "A transport-layer data unit, especially in TCP.",
+      "importance": 0.78,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_datagram",
+      "canonical_name": "Datagram",
+      "korean_name": "데이터그램",
+      "aliases": [
+        "datagram",
+        "datagrams",
+        "IP datagram",
+        "unreliable datagram",
+        "데이터그램",
+        "IP 데이터그램"
+      ],
+      "group": "Network Software",
+      "description": "A self-contained packet delivered independently in a connectionless service.",
+      "importance": 0.82,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_connection_oriented_service",
+      "canonical_name": "Connection-Oriented Service",
+      "korean_name": "연결 지향 서비스",
+      "aliases": [
+        "connection-oriented service",
+        "connection oriented service",
+        "connection-oriented",
+        "connection oriented",
+        "연결 지향",
+        "연결 지향 서비스"
+      ],
+      "group": "Network Software",
+      "description": "A service that establishes a connection before data transfer and releases it afterward.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_connectionless_service",
+      "canonical_name": "Connectionless Service",
+      "korean_name": "비연결형 서비스",
+      "aliases": [
+        "connectionless service",
+        "connectionless",
+        "connection-less service",
+        "비연결형",
+        "비연결형 서비스"
+      ],
+      "group": "Network Software",
+      "description": "A service in which each message is sent independently without establishing a connection.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_reliable_service",
+      "canonical_name": "Reliable Service",
+      "korean_name": "신뢰성 있는 서비스",
+      "aliases": [
+        "reliable service",
+        "reliable communication",
+        "acknowledged service",
+        "신뢰성 있는 서비스",
+        "신뢰성 통신"
+      ],
+      "group": "Network Software",
+      "description": "A service that uses acknowledgements or recovery mechanisms to avoid data loss.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_osi_reference_model",
+      "canonical_name": "OSI Reference Model",
+      "korean_name": "OSI 참조 모델",
+      "aliases": [
+        "OSI reference model",
+        "OSI model",
+        "open systems interconnection",
+        "ISO OSI",
+        "OSI",
+        "OSI 참조 모델",
+        "OSI 모델"
+      ],
+      "group": "Reference Models",
+      "description": "A seven-layer reference model for open systems interconnection.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_tcp_ip_reference_model",
+      "canonical_name": "TCP/IP Reference Model",
+      "korean_name": "TCP/IP 참조 모델",
+      "aliases": [
+        "TCP/IP reference model",
+        "TCP/IP model",
+        "TCP IP model",
+        "internet protocol suite",
+        "TCP/IP",
+        "TCP/IP 모델",
+        "TCP/IP 참조 모델"
+      ],
+      "group": "Reference Models",
+      "description": "A layered model based on the Internet protocol suite.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_five_layer_model",
+      "canonical_name": "Five-Layer Network Model",
+      "korean_name": "5계층 네트워크 모델",
+      "aliases": [
+        "five-layer model",
+        "5-layer model",
+        "hybrid model",
+        "five layer network model",
+        "5계층 모델",
+        "5계층 네트워크 모델"
+      ],
+      "group": "Reference Models",
+      "description": "A practical model with physical, link, network, transport, and application layers.",
+      "importance": 0.78,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_physical_layer",
+      "canonical_name": "Physical Layer",
+      "korean_name": "물리 계층",
+      "aliases": [
+        "physical layer",
+        "layer 1",
+        "L1",
+        "물리 계층",
+        "1계층"
+      ],
+      "group": "Reference Models",
+      "description": "The layer responsible for transmitting raw bits over a physical medium.",
+      "importance": 0.9,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_data_link_layer",
+      "canonical_name": "Data Link Layer",
+      "korean_name": "데이터 링크 계층",
+      "aliases": [
+        "data link layer",
+        "link layer",
+        "layer 2",
+        "L2",
+        "데이터 링크 계층",
+        "링크 계층",
+        "2계층"
+      ],
+      "group": "Reference Models",
+      "description": "The layer that sends frames across a directly connected link with error and flow control mechanisms.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_mac_sublayer",
+      "canonical_name": "Medium Access Control Sublayer",
+      "korean_name": "매체 접근 제어 부계층",
+      "aliases": [
+        "medium access control",
+        "MAC sublayer",
+        "MAC layer",
+        "media access control",
+        "매체 접근 제어",
+        "MAC 부계층",
+        "MAC 계층"
+      ],
+      "group": "Reference Models",
+      "description": "A data link sublayer that controls access to a shared transmission medium.",
+      "importance": 0.88,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_network_layer",
+      "canonical_name": "Network Layer",
+      "korean_name": "네트워크 계층",
+      "aliases": [
+        "network layer",
+        "internet layer",
+        "layer 3",
+        "L3",
+        "네트워크 계층",
+        "인터넷 계층",
+        "3계층"
+      ],
+      "group": "Reference Models",
+      "description": "The layer responsible for routing packets across networks and internetworks.",
+      "importance": 0.95,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_transport_layer",
+      "canonical_name": "Transport Layer",
+      "korean_name": "전송 계층",
+      "aliases": [
+        "transport layer",
+        "layer 4",
+        "L4",
+        "전송 계층",
+        "4계층"
+      ],
+      "group": "Reference Models",
+      "description": "The end-to-end layer that provides transport services such as reliable byte streams or datagrams.",
+      "importance": 0.95,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_application_layer",
+      "canonical_name": "Application Layer",
+      "korean_name": "응용 계층",
+      "aliases": [
+        "application layer",
+        "layer 7",
+        "application protocol layer",
+        "응용 계층",
+        "애플리케이션 계층"
+      ],
+      "group": "Reference Models",
+      "description": "The layer containing protocols used directly by networked applications.",
+      "importance": 0.9,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_session_layer",
+      "canonical_name": "Session Layer",
+      "korean_name": "세션 계층",
+      "aliases": [
+        "session layer",
+        "OSI session layer",
+        "세션 계층"
+      ],
+      "group": "Reference Models",
+      "description": "An OSI layer for establishing, managing, and synchronizing sessions.",
+      "importance": 0.35,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_presentation_layer",
+      "canonical_name": "Presentation Layer",
+      "korean_name": "표현 계층",
+      "aliases": [
+        "presentation layer",
+        "OSI presentation layer",
+        "표현 계층"
+      ],
+      "group": "Reference Models",
+      "description": "An OSI layer concerned with syntax, semantics, and encoding of transmitted information.",
+      "importance": 0.35,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_pan",
+      "canonical_name": "Personal Area Network",
+      "korean_name": "개인 영역 네트워크",
+      "aliases": [
+        "PAN",
+        "personal area network",
+        "personal area networks",
+        "개인 영역 네트워크"
+      ],
+      "group": "Network Types",
+      "description": "A short-range network for devices around one person.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_lan",
+      "canonical_name": "Local Area Network",
+      "korean_name": "근거리 통신망",
+      "aliases": [
+        "LAN",
+        "local area network",
+        "local area networks",
+        "근거리 통신망",
+        "로컬 영역 네트워크"
+      ],
+      "group": "Network Types",
+      "description": "A privately owned network within a limited area such as a building or campus.",
+      "importance": 0.9,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_man",
+      "canonical_name": "Metropolitan Area Network",
+      "korean_name": "도시권 통신망",
+      "aliases": [
+        "MAN",
+        "metropolitan area network",
+        "metropolitan area networks",
+        "도시권 통신망"
+      ],
+      "group": "Network Types",
+      "description": "A network that covers a city-scale area.",
+      "importance": 0.45,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_wan",
+      "canonical_name": "Wide Area Network",
+      "korean_name": "광역 통신망",
+      "aliases": [
+        "WAN",
+        "wide area network",
+        "wide area networks",
+        "광역 통신망"
+      ],
+      "group": "Network Types",
+      "description": "A network spanning a large geographical area such as a country or continent.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_wireless_network",
+      "canonical_name": "Wireless Network",
+      "korean_name": "무선 네트워크",
+      "aliases": [
+        "wireless network",
+        "wireless networks",
+        "wireless communication",
+        "무선 네트워크",
+        "무선 통신"
+      ],
+      "group": "Network Types",
+      "description": "A network that uses radio or other wireless media for communication.",
+      "importance": 0.8,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_mobile_network",
+      "canonical_name": "Mobile Network",
+      "korean_name": "모바일 네트워크",
+      "aliases": [
+        "mobile network",
+        "mobile networks",
+        "cellular network",
+        "cellular networks",
+        "mobile phone network",
+        "모바일 네트워크",
+        "셀룰러 네트워크"
+      ],
+      "group": "Network Types",
+      "description": "A wireless network designed to support mobile users.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_internet",
+      "canonical_name": "Internet",
+      "korean_name": "인터넷",
+      "aliases": [
+        "Internet",
+        "the Internet",
+        "인터넷"
+      ],
+      "group": "Network Types",
+      "description": "The global internetwork that uses TCP/IP protocols to connect many networks.",
+      "importance": 0.95,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_internetwork",
+      "canonical_name": "Internetwork",
+      "korean_name": "인터네트워크",
+      "aliases": [
+        "internetwork",
+        "internetworks",
+        "internet in generic sense",
+        "interconnected networks",
+        "인터네트워크",
+        "상호 연결 네트워크"
+      ],
+      "group": "Network Types",
+      "description": "A collection of interconnected networks, often using routers or gateways.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_subnet",
+      "canonical_name": "Subnet",
+      "korean_name": "서브넷",
+      "aliases": [
+        "subnet",
+        "subnetwork",
+        "communication subnet",
+        "서브넷",
+        "부분망"
+      ],
+      "group": "Network Types",
+      "description": "A network portion or addressing subdivision, depending on context.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_host",
+      "canonical_name": "Host",
+      "korean_name": "호스트",
+      "aliases": [
+        "host",
+        "hosts",
+        "end host",
+        "end system",
+        "호스트",
+        "종단 시스템"
+      ],
+      "group": "Network Hardware",
+      "description": "A computer attached to a network that runs applications and exchanges data.",
+      "importance": 0.8,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_router",
+      "canonical_name": "Router",
+      "korean_name": "라우터",
+      "aliases": [
+        "router",
+        "routers",
+        "routing device",
+        "라우터"
+      ],
+      "group": "Network Hardware",
+      "description": "A network-layer device that forwards packets between networks.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_switch",
+      "canonical_name": "Switch",
+      "korean_name": "스위치",
+      "aliases": [
+        "switch",
+        "switches",
+        "Ethernet switch",
+        "network switch",
+        "스위치",
+        "이더넷 스위치"
+      ],
+      "group": "Network Hardware",
+      "description": "A link-layer device that forwards frames between ports.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_gateway",
+      "canonical_name": "Gateway",
+      "korean_name": "게이트웨이",
+      "aliases": [
+        "gateway",
+        "gateways",
+        "network gateway",
+        "게이트웨이"
+      ],
+      "group": "Network Hardware",
+      "description": "A device that connects networks and may translate between different protocols or layers.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_bridge",
+      "canonical_name": "Bridge",
+      "korean_name": "브리지",
+      "aliases": [
+        "bridge",
+        "bridges",
+        "network bridge",
+        "브리지"
+      ],
+      "group": "Network Hardware",
+      "description": "A link-layer device that connects LAN segments and forwards frames.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_repeater",
+      "canonical_name": "Repeater",
+      "korean_name": "리피터",
+      "aliases": [
+        "repeater",
+        "repeaters",
+        "리피터",
+        "중계기"
+      ],
+      "group": "Network Hardware",
+      "description": "A physical-layer device that regenerates and forwards signals.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_hub",
+      "canonical_name": "Hub",
+      "korean_name": "허브",
+      "aliases": [
+        "hub",
+        "hubs",
+        "network hub",
+        "허브"
+      ],
+      "group": "Network Hardware",
+      "description": "A simple device that broadcasts incoming link-layer signals to all ports.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_access_point",
+      "canonical_name": "Access Point",
+      "korean_name": "액세스 포인트",
+      "aliases": [
+        "access point",
+        "AP",
+        "wireless access point",
+        "base station",
+        "액세스 포인트",
+        "무선 AP",
+        "기지국"
+      ],
+      "group": "Network Hardware",
+      "description": "A device that connects wireless clients to a wired or wireless network.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_isp",
+      "canonical_name": "Internet Service Provider",
+      "korean_name": "인터넷 서비스 제공자",
+      "aliases": [
+        "ISP",
+        "Internet Service Provider",
+        "internet provider",
+        "network service provider",
+        "인터넷 서비스 제공자",
+        "인터넷 사업자"
+      ],
+      "group": "Network Hardware",
+      "description": "An organization that provides Internet connectivity to customers.",
+      "importance": 0.7,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_pop",
+      "canonical_name": "Point of Presence",
+      "korean_name": "접속 지점",
+      "aliases": [
+        "POP",
+        "point of presence",
+        "ISP POP",
+        "접속 지점",
+        "ISP 접속 지점"
+      ],
+      "group": "Network Hardware",
+      "description": "A location where customer traffic enters an ISP network.",
+      "importance": 0.45,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_ixp",
+      "canonical_name": "Internet Exchange Point",
+      "korean_name": "인터넷 교환 지점",
+      "aliases": [
+        "IXP",
+        "Internet Exchange Point",
+        "internet exchange",
+        "인터넷 교환 지점"
+      ],
+      "group": "Network Hardware",
+      "description": "A facility where ISPs connect and exchange traffic.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_backbone",
+      "canonical_name": "Backbone Network",
+      "korean_name": "백본 네트워크",
+      "aliases": [
+        "backbone",
+        "backbone network",
+        "Internet backbone",
+        "ISP backbone",
+        "백본",
+        "백본 네트워크"
+      ],
+      "group": "Network Hardware",
+      "description": "A high-capacity core network that interconnects routers and networks.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_data_center",
+      "canonical_name": "Data Center",
+      "korean_name": "데이터 센터",
+      "aliases": [
+        "data center",
+        "datacenter",
+        "server farm",
+        "데이터 센터",
+        "서버 팜"
+      ],
+      "group": "Network Hardware",
+      "description": "A facility containing many networked servers and supporting infrastructure.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_bandwidth",
+      "canonical_name": "Bandwidth",
+      "korean_name": "대역폭",
+      "aliases": [
+        "bandwidth",
+        "network bandwidth",
+        "channel bandwidth",
+        "대역폭"
+      ],
+      "group": "Physical Layer",
+      "description": "The frequency range or data capacity available for communication.",
+      "importance": 0.9,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_bit_rate",
+      "canonical_name": "Bit Rate",
+      "korean_name": "비트율",
+      "aliases": [
+        "bit rate",
+        "bitrate",
+        "data rate",
+        "line speed",
+        "bps",
+        "비트율",
+        "데이터 전송률"
+      ],
+      "group": "Physical Layer",
+      "description": "The number of bits transmitted per unit time.",
+      "importance": 0.8,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_latency",
+      "canonical_name": "Latency",
+      "korean_name": "지연 시간",
+      "aliases": [
+        "latency",
+        "delay",
+        "network delay",
+        "지연",
+        "지연 시간"
+      ],
+      "group": "Physical Layer",
+      "description": "The time taken for data to travel or be delivered across a network.",
+      "importance": 0.8,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_throughput",
+      "canonical_name": "Throughput",
+      "korean_name": "처리량",
+      "aliases": [
+        "throughput",
+        "network throughput",
+        "처리량",
+        "전송 처리량"
+      ],
+      "group": "Physical Layer",
+      "description": "The effective rate at which data is successfully delivered.",
+      "importance": 0.8,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_jitter",
+      "canonical_name": "Jitter",
+      "korean_name": "지터",
+      "aliases": [
+        "jitter",
+        "delay variation",
+        "지터",
+        "지연 변동"
+      ],
+      "group": "Physical Layer",
+      "description": "Variation in packet delay over time.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_signal_to_noise_ratio",
+      "canonical_name": "Signal-to-Noise Ratio",
+      "korean_name": "신호 대 잡음비",
+      "aliases": [
+        "signal-to-noise ratio",
+        "signal to noise ratio",
+        "SNR",
+        "신호 대 잡음비",
+        "신호잡음비"
+      ],
+      "group": "Physical Layer",
+      "description": "A measure comparing signal power with noise power.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_nyquist_theorem",
+      "canonical_name": "Nyquist Theorem",
+      "korean_name": "나이퀴스트 정리",
+      "aliases": [
+        "Nyquist theorem",
+        "Nyquist limit",
+        "Nyquist rate",
+        "나이퀴스트 정리"
+      ],
+      "group": "Physical Layer",
+      "description": "A theoretical limit on data rate for a noiseless bandwidth-limited channel.",
+      "importance": 0.5,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_shannon_capacity",
+      "canonical_name": "Shannon Capacity",
+      "korean_name": "섀넌 용량",
+      "aliases": [
+        "Shannon capacity",
+        "Shannon limit",
+        "Shannon theorem",
+        "channel capacity",
+        "섀넌 용량",
+        "채널 용량"
+      ],
+      "group": "Physical Layer",
+      "description": "The maximum reliable data rate of a noisy channel.",
+      "importance": 0.55,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "cn_modulation",
+      "canonical_name": "Modulation",
+      "korean_name": "변조",
+      "aliases": [
+        "modulation",
+        "digital modulation",
+        "변조",
+        "디지털 변조"
+      ],
+      "group": "Physical Layer",
+      "description": "The process of encoding digital data onto signals for transmission.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_baseband_transmission",
+      "canonical_name": "Baseband Transmission",
+      "korean_name": "기저대역 전송",
+      "aliases": [
+        "baseband transmission",
+        "baseband",
+        "기저대역 전송",
+        "베이스밴드"
+      ],
+      "group": "Physical Layer",
+      "description": "Transmission using signals directly over a medium without carrier modulation.",
+      "importance": 0.45,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_passband_transmission",
+      "canonical_name": "Passband Transmission",
+      "korean_name": "통과대역 전송",
+      "aliases": [
+        "passband transmission",
+        "passband",
+        "carrier modulation",
+        "통과대역 전송",
+        "패스밴드"
+      ],
+      "group": "Physical Layer",
+      "description": "Transmission by modulating data onto a carrier frequency.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_multiplexing",
+      "canonical_name": "Multiplexing",
+      "korean_name": "다중화",
+      "aliases": [
+        "multiplexing",
+        "multiplex",
+        "다중화"
+      ],
+      "group": "Physical Layer",
+      "description": "The sharing of a communication medium by combining multiple signals or flows.",
+      "importance": 0.78,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_frequency_division_multiplexing",
+      "canonical_name": "Frequency Division Multiplexing",
+      "korean_name": "주파수 분할 다중화",
+      "aliases": [
+        "FDM",
+        "frequency division multiplexing",
+        "frequency-division multiplexing",
+        "주파수 분할 다중화"
+      ],
+      "group": "Physical Layer",
+      "description": "Multiplexing that divides a channel into frequency bands.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_time_division_multiplexing",
+      "canonical_name": "Time Division Multiplexing",
+      "korean_name": "시분할 다중화",
+      "aliases": [
+        "TDM",
+        "time division multiplexing",
+        "time-division multiplexing",
+        "시분할 다중화"
+      ],
+      "group": "Physical Layer",
+      "description": "Multiplexing that divides a channel into time slots.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_code_division_multiplexing",
+      "canonical_name": "Code Division Multiplexing",
+      "korean_name": "코드 분할 다중화",
+      "aliases": [
+        "CDM",
+        "CDMA",
+        "code division multiplexing",
+        "code division multiple access",
+        "코드 분할 다중화",
+        "코드 분할 다중 접속"
+      ],
+      "group": "Physical Layer",
+      "description": "Multiplexing in which users share spectrum using different codes.",
+      "importance": 0.45,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_ofdm",
+      "canonical_name": "Orthogonal Frequency Division Multiplexing",
+      "korean_name": "직교 주파수 분할 다중화",
+      "aliases": [
+        "OFDM",
+        "orthogonal frequency division multiplexing",
+        "직교 주파수 분할 다중화"
+      ],
+      "group": "Physical Layer",
+      "description": "A multicarrier modulation technique widely used in wireless and broadband systems.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_transmission_media",
+      "canonical_name": "Transmission Media",
+      "korean_name": "전송 매체",
+      "aliases": [
+        "transmission media",
+        "transmission medium",
+        "communication medium",
+        "전송 매체",
+        "통신 매체"
+      ],
+      "group": "Physical Layer",
+      "description": "Physical or wireless media used to carry signals.",
+      "importance": 0.7,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_twisted_pair",
+      "canonical_name": "Twisted Pair",
+      "korean_name": "트위스티드 페어",
+      "aliases": [
+        "twisted pair",
+        "twisted pairs",
+        "UTP",
+        "unshielded twisted pair",
+        "트위스티드 페어",
+        "꼬임쌍선"
+      ],
+      "group": "Physical Layer",
+      "description": "A guided transmission medium made of pairs of twisted copper wires.",
+      "importance": 0.5,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_coaxial_cable",
+      "canonical_name": "Coaxial Cable",
+      "korean_name": "동축 케이블",
+      "aliases": [
+        "coaxial cable",
+        "coax",
+        "동축 케이블"
+      ],
+      "group": "Physical Layer",
+      "description": "A guided transmission medium with a central conductor and shielding.",
+      "importance": 0.45,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_fiber_optic",
+      "canonical_name": "Fiber Optic Cable",
+      "korean_name": "광섬유 케이블",
+      "aliases": [
+        "fiber optic",
+        "fiber optics",
+        "optical fiber",
+        "fiber optic cable",
+        "광섬유",
+        "광섬유 케이블"
+      ],
+      "group": "Physical Layer",
+      "description": "A transmission medium that carries signals as light through glass or plastic fiber.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_radio_transmission",
+      "canonical_name": "Radio Transmission",
+      "korean_name": "라디오 전송",
+      "aliases": [
+        "radio transmission",
+        "radio waves",
+        "radio communication",
+        "라디오 전송",
+        "무선 전파"
+      ],
+      "group": "Physical Layer",
+      "description": "Wireless transmission using radio-frequency electromagnetic waves.",
+      "importance": 0.5,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_satellite_network",
+      "canonical_name": "Satellite Network",
+      "korean_name": "위성 네트워크",
+      "aliases": [
+        "satellite network",
+        "satellite communication",
+        "communication satellite",
+        "위성 네트워크",
+        "위성 통신"
+      ],
+      "group": "Physical Layer",
+      "description": "A network that uses satellites to relay communication signals.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_framing",
+      "canonical_name": "Framing",
+      "korean_name": "프레이밍",
+      "aliases": [
+        "framing",
+        "frame delimiting",
+        "frame boundary",
+        "프레이밍",
+        "프레임 구분"
+      ],
+      "group": "Data Link Layer",
+      "description": "The process of dividing a bit stream into frames.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_error_control",
+      "canonical_name": "Error Control",
+      "korean_name": "오류 제어",
+      "aliases": [
+        "error control",
+        "error handling",
+        "오류 제어"
+      ],
+      "group": "Data Link Layer",
+      "description": "Mechanisms that detect or recover from errors in transmitted data.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_error_detection",
+      "canonical_name": "Error Detection",
+      "korean_name": "오류 검출",
+      "aliases": [
+        "error detection",
+        "error-detecting code",
+        "오류 검출",
+        "에러 검출"
+      ],
+      "group": "Data Link Layer",
+      "description": "Techniques for detecting corrupted data.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_error_correction",
+      "canonical_name": "Error Correction",
+      "korean_name": "오류 정정",
+      "aliases": [
+        "error correction",
+        "error-correcting code",
+        "forward error correction",
+        "FEC",
+        "오류 정정",
+        "에러 정정"
+      ],
+      "group": "Data Link Layer",
+      "description": "Techniques for recovering correct data from corrupted transmissions.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_checksum",
+      "canonical_name": "Checksum",
+      "korean_name": "체크섬",
+      "aliases": [
+        "checksum",
+        "checksums",
+        "Internet checksum",
+        "체크섬"
+      ],
+      "group": "Data Link Layer",
+      "description": "A compact value used to detect transmission or storage errors.",
+      "importance": 0.6,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_crc",
+      "canonical_name": "Cyclic Redundancy Check",
+      "korean_name": "순환 중복 검사",
+      "aliases": [
+        "CRC",
+        "cyclic redundancy check",
+        "polynomial code",
+        "순환 중복 검사",
+        "CRC 검사"
+      ],
+      "group": "Data Link Layer",
+      "description": "An error-detecting code based on polynomial division.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_hamming_code",
+      "canonical_name": "Hamming Code",
+      "korean_name": "해밍 코드",
+      "aliases": [
+        "Hamming code",
+        "Hamming codes",
+        "해밍 코드"
+      ],
+      "group": "Data Link Layer",
+      "description": "An error-correcting code that uses parity bits to detect and correct bit errors.",
+      "importance": 0.5,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_flow_control",
+      "canonical_name": "Flow Control",
+      "korean_name": "흐름 제어",
+      "aliases": [
+        "flow control",
+        "receiver flow control",
+        "흐름 제어"
+      ],
+      "group": "Data Link Layer",
+      "description": "Mechanisms that prevent a fast sender from overwhelming a slow receiver.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_acknowledgement",
+      "canonical_name": "Acknowledgement",
+      "korean_name": "확인 응답",
+      "aliases": [
+        "acknowledgement",
+        "acknowledgment",
+        "ACK",
+        "확인 응답"
+      ],
+      "group": "Data Link Layer",
+      "description": "A control message indicating successful receipt of data.",
+      "importance": 0.7,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_timeout",
+      "canonical_name": "Timeout",
+      "korean_name": "타임아웃",
+      "aliases": [
+        "timeout",
+        "timer expiration",
+        "타임아웃",
+        "시간 초과"
+      ],
+      "group": "Data Link Layer",
+      "description": "An event used to trigger retransmission when an expected response is not received in time.",
+      "importance": 0.7,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_retransmission",
+      "canonical_name": "Retransmission",
+      "korean_name": "재전송",
+      "aliases": [
+        "retransmission",
+        "retransmit",
+        "resend",
+        "재전송"
+      ],
+      "group": "Data Link Layer",
+      "description": "Sending data again after loss, corruption, or timeout.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_arq",
+      "canonical_name": "Automatic Repeat reQuest",
+      "korean_name": "자동 반복 요청",
+      "aliases": [
+        "ARQ",
+        "automatic repeat request",
+        "자동 반복 요청"
+      ],
+      "group": "Data Link Layer",
+      "description": "A reliability method that retransmits data when errors or losses are detected.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_stop_and_wait",
+      "canonical_name": "Stop-and-Wait Protocol",
+      "korean_name": "정지-대기 프로토콜",
+      "aliases": [
+        "stop-and-wait",
+        "stop and wait",
+        "stop-and-wait protocol",
+        "정지 대기",
+        "정지-대기 프로토콜"
+      ],
+      "group": "Data Link Layer",
+      "description": "A protocol that sends one frame and waits for its acknowledgement before sending the next.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_sliding_window_protocol",
+      "canonical_name": "Sliding Window Protocol",
+      "korean_name": "슬라이딩 윈도우 프로토콜",
+      "aliases": [
+        "sliding window",
+        "sliding window protocol",
+        "window protocol",
+        "슬라이딩 윈도우",
+        "슬라이딩 윈도우 프로토콜"
+      ],
+      "group": "Data Link Layer",
+      "description": "A protocol family that allows multiple outstanding frames within a moving window.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_go_back_n",
+      "canonical_name": "Go-Back-N",
+      "korean_name": "고백N 프로토콜",
+      "aliases": [
+        "Go-Back-N",
+        "go back n",
+        "GBN",
+        "go-back-n protocol",
+        "고백N",
+        "Go-Back-N 프로토콜"
+      ],
+      "group": "Data Link Layer",
+      "description": "A sliding window protocol that retransmits a lost frame and all subsequent frames.",
+      "importance": 0.7,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_selective_repeat",
+      "canonical_name": "Selective Repeat",
+      "korean_name": "선택적 반복",
+      "aliases": [
+        "Selective Repeat",
+        "selective repeat protocol",
+        "SR protocol",
+        "선택적 반복",
+        "선택 반복"
+      ],
+      "group": "Data Link Layer",
+      "description": "A sliding window protocol that retransmits only missing or corrupted frames.",
+      "importance": 0.7,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_channel_allocation",
+      "canonical_name": "Channel Allocation",
+      "korean_name": "채널 할당",
+      "aliases": [
+        "channel allocation",
+        "medium allocation",
+        "채널 할당",
+        "매체 할당"
+      ],
+      "group": "Medium Access Control",
+      "description": "The problem of deciding which sender may use a shared communication channel.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_aloha",
+      "canonical_name": "ALOHA",
+      "korean_name": "알로하",
+      "aliases": [
+        "ALOHA",
+        "pure ALOHA",
+        "slotted ALOHA",
+        "알로하",
+        "슬롯 알로하"
+      ],
+      "group": "Medium Access Control",
+      "description": "A random access protocol family for shared channels.",
+      "importance": 0.55,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_csma",
+      "canonical_name": "Carrier Sense Multiple Access",
+      "korean_name": "반송파 감지 다중 접속",
+      "aliases": [
+        "CSMA",
+        "carrier sense multiple access",
+        "carrier-sense multiple access",
+        "반송파 감지 다중 접속"
+      ],
+      "group": "Medium Access Control",
+      "description": "A multiple access method in which stations sense the carrier before transmitting.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_csma_cd",
+      "canonical_name": "CSMA/CD",
+      "korean_name": "CSMA/CD",
+      "aliases": [
+        "CSMA/CD",
+        "CSMA CD",
+        "carrier sense multiple access with collision detection",
+        "collision detection",
+        "충돌 검출"
+      ],
+      "group": "Medium Access Control",
+      "description": "An Ethernet MAC method that detects collisions on a shared medium.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_csma_ca",
+      "canonical_name": "CSMA/CA",
+      "korean_name": "CSMA/CA",
+      "aliases": [
+        "CSMA/CA",
+        "CSMA CA",
+        "carrier sense multiple access with collision avoidance",
+        "collision avoidance",
+        "충돌 회피"
+      ],
+      "group": "Medium Access Control",
+      "description": "A wireless MAC method that attempts to avoid collisions.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_collision",
+      "canonical_name": "Collision",
+      "korean_name": "충돌",
+      "aliases": [
+        "collision",
+        "collisions",
+        "packet collision",
+        "충돌",
+        "패킷 충돌"
+      ],
+      "group": "Medium Access Control",
+      "description": "An event where simultaneous transmissions interfere on a shared medium.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_ethernet",
+      "canonical_name": "Ethernet",
+      "korean_name": "이더넷",
+      "aliases": [
+        "Ethernet",
+        "IEEE 802.3",
+        "802.3",
+        "classic Ethernet",
+        "이더넷"
+      ],
+      "group": "Medium Access Control",
+      "description": "A dominant family of wired LAN technologies and link-layer protocols.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_switched_ethernet",
+      "canonical_name": "Switched Ethernet",
+      "korean_name": "스위치드 이더넷",
+      "aliases": [
+        "switched Ethernet",
+        "Ethernet switching",
+        "스위치드 이더넷",
+        "스위칭 이더넷"
+      ],
+      "group": "Medium Access Control",
+      "description": "Ethernet using switches and point-to-point links rather than a shared bus.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_mac_address",
+      "canonical_name": "MAC Address",
+      "korean_name": "MAC 주소",
+      "aliases": [
+        "MAC address",
+        "physical address",
+        "hardware address",
+        "Ethernet address",
+        "MAC 주소",
+        "물리 주소"
+      ],
+      "group": "Medium Access Control",
+      "description": "A link-layer hardware address used to identify interfaces on a LAN.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_learning_bridge",
+      "canonical_name": "Learning Bridge",
+      "korean_name": "학습 브리지",
+      "aliases": [
+        "learning bridge",
+        "learning bridges",
+        "self-learning bridge",
+        "학습 브리지"
+      ],
+      "group": "Medium Access Control",
+      "description": "A bridge or switch that learns which addresses are reachable through which ports.",
+      "importance": 0.5,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_spanning_tree_protocol",
+      "canonical_name": "Spanning Tree Protocol",
+      "korean_name": "스패닝 트리 프로토콜",
+      "aliases": [
+        "spanning tree protocol",
+        "STP",
+        "spanning tree bridge",
+        "스패닝 트리 프로토콜",
+        "스패닝 트리"
+      ],
+      "group": "Medium Access Control",
+      "description": "A protocol that prevents loops in bridged Ethernet networks.",
+      "importance": 0.6,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_vlan",
+      "canonical_name": "Virtual LAN",
+      "korean_name": "가상 LAN",
+      "aliases": [
+        "VLAN",
+        "virtual LAN",
+        "virtual local area network",
+        "802.1Q",
+        "가상 LAN",
+        "가상 근거리 통신망"
+      ],
+      "group": "Medium Access Control",
+      "description": "A logical LAN that partitions a physical LAN into separate broadcast domains.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_wifi",
+      "canonical_name": "Wi-Fi",
+      "korean_name": "와이파이",
+      "aliases": [
+        "Wi-Fi",
+        "WiFi",
+        "wireless LAN",
+        "WLAN",
+        "IEEE 802.11",
+        "802.11",
+        "와이파이",
+        "무선 LAN"
+      ],
+      "group": "Medium Access Control",
+      "description": "A family of wireless LAN technologies based on IEEE 802.11.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_80211_frame",
+      "canonical_name": "802.11 Frame",
+      "korean_name": "802.11 프레임",
+      "aliases": [
+        "802.11 frame",
+        "Wi-Fi frame",
+        "wireless LAN frame",
+        "802.11 프레임",
+        "와이파이 프레임"
+      ],
+      "group": "Medium Access Control",
+      "description": "A frame format used in IEEE 802.11 wireless LANs.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_bluetooth",
+      "canonical_name": "Bluetooth",
+      "korean_name": "블루투스",
+      "aliases": [
+        "Bluetooth",
+        "bluetooth network",
+        "블루투스"
+      ],
+      "group": "Medium Access Control",
+      "description": "A short-range wireless technology often used for personal area networks.",
+      "importance": 0.55,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_rfid",
+      "canonical_name": "RFID",
+      "korean_name": "무선 주파수 식별",
+      "aliases": [
+        "RFID",
+        "radio frequency identification",
+        "RFID tag",
+        "RFID reader",
+        "무선 주파수 식별",
+        "RFID 태그"
+      ],
+      "group": "Medium Access Control",
+      "description": "A technology for identifying objects using radio-frequency tags and readers.",
+      "importance": 0.45,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_packet_switching",
+      "canonical_name": "Packet Switching",
+      "korean_name": "패킷 교환",
+      "aliases": [
+        "packet switching",
+        "packet-switched network",
+        "packet switched network",
+        "패킷 교환",
+        "패킷 교환망"
+      ],
+      "group": "Network Layer",
+      "description": "A switching method that forwards data in packets over shared networks.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_circuit_switching",
+      "canonical_name": "Circuit Switching",
+      "korean_name": "회선 교환",
+      "aliases": [
+        "circuit switching",
+        "circuit-switched network",
+        "회선 교환",
+        "회선 교환망"
+      ],
+      "group": "Network Layer",
+      "description": "A switching method that reserves a dedicated circuit for communication.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_store_and_forward",
+      "canonical_name": "Store-and-Forward Switching",
+      "korean_name": "저장 후 전달 교환",
+      "aliases": [
+        "store-and-forward",
+        "store and forward",
+        "store-and-forward switching",
+        "저장 후 전달",
+        "저장 후 전달 교환"
+      ],
+      "group": "Network Layer",
+      "description": "A switching method in which a node receives a complete packet before forwarding it.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_cut_through_switching",
+      "canonical_name": "Cut-Through Switching",
+      "korean_name": "컷스루 교환",
+      "aliases": [
+        "cut-through switching",
+        "cut through switching",
+        "컷스루 교환",
+        "컷스루 스위칭"
+      ],
+      "group": "Network Layer",
+      "description": "A switching method that begins forwarding before a full packet has been received.",
+      "importance": 0.4,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_virtual_circuit",
+      "canonical_name": "Virtual Circuit",
+      "korean_name": "가상 회선",
+      "aliases": [
+        "virtual circuit",
+        "virtual-circuit network",
+        "VC",
+        "가상 회선"
+      ],
+      "group": "Network Layer",
+      "description": "A connection-oriented network-layer abstraction with a path set up before data transfer.",
+      "importance": 0.65,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_datagram_network",
+      "canonical_name": "Datagram Network",
+      "korean_name": "데이터그램 네트워크",
+      "aliases": [
+        "datagram network",
+        "connectionless network",
+        "데이터그램 네트워크",
+        "비연결형 네트워크"
+      ],
+      "group": "Network Layer",
+      "description": "A network in which each packet is routed independently.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_routing",
+      "canonical_name": "Routing",
+      "korean_name": "라우팅",
+      "aliases": [
+        "routing",
+        "route selection",
+        "path selection",
+        "라우팅",
+        "경로 선택"
+      ],
+      "group": "Network Layer",
+      "description": "The process of determining paths for packets through a network.",
+      "importance": 0.98,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_forwarding",
+      "canonical_name": "Forwarding",
+      "korean_name": "포워딩",
+      "aliases": [
+        "forwarding",
+        "packet forwarding",
+        "forwarding algorithm",
+        "포워딩",
+        "패킷 포워딩"
+      ],
+      "group": "Network Layer",
+      "description": "The local action of sending a packet from an incoming interface to an outgoing interface.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_routing_table",
+      "canonical_name": "Routing Table",
+      "korean_name": "라우팅 테이블",
+      "aliases": [
+        "routing table",
+        "forwarding table",
+        "route table",
+        "라우팅 테이블",
+        "포워딩 테이블"
+      ],
+      "group": "Network Layer",
+      "description": "A table used by routers to decide where to forward packets.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_shortest_path_routing",
+      "canonical_name": "Shortest Path Routing",
+      "korean_name": "최단 경로 라우팅",
+      "aliases": [
+        "shortest path routing",
+        "shortest path algorithm",
+        "shortest path",
+        "최단 경로 라우팅",
+        "최단 경로"
+      ],
+      "group": "Network Layer",
+      "description": "Routing based on paths with minimum cost according to a metric.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_flooding",
+      "canonical_name": "Flooding",
+      "korean_name": "플러딩",
+      "aliases": [
+        "flooding",
+        "packet flooding",
+        "플러딩"
+      ],
+      "group": "Network Layer",
+      "description": "A routing method that sends packets on many or all outgoing links.",
+      "importance": 0.5,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_distance_vector_routing",
+      "canonical_name": "Distance Vector Routing",
+      "korean_name": "거리 벡터 라우팅",
+      "aliases": [
+        "distance vector routing",
+        "distance-vector routing",
+        "distance vector",
+        "거리 벡터 라우팅",
+        "거리 벡터"
+      ],
+      "group": "Network Layer",
+      "description": "A distributed routing algorithm in which routers exchange distance vectors with neighbors.",
+      "importance": 0.8,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_link_state_routing",
+      "canonical_name": "Link State Routing",
+      "korean_name": "링크 상태 라우팅",
+      "aliases": [
+        "link state routing",
+        "link-state routing",
+        "link state",
+        "링크 상태 라우팅",
+        "링크 상태"
+      ],
+      "group": "Network Layer",
+      "description": "A routing algorithm in which routers flood link-state information and compute paths locally.",
+      "importance": 0.8,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_hierarchical_routing",
+      "canonical_name": "Hierarchical Routing",
+      "korean_name": "계층적 라우팅",
+      "aliases": [
+        "hierarchical routing",
+        "routing hierarchy",
+        "계층적 라우팅",
+        "계층 라우팅"
+      ],
+      "group": "Network Layer",
+      "description": "Routing that scales by organizing routers or networks into hierarchy.",
+      "importance": 0.55,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_broadcast_routing",
+      "canonical_name": "Broadcast Routing",
+      "korean_name": "브로드캐스트 라우팅",
+      "aliases": [
+        "broadcast routing",
+        "broadcast delivery",
+        "브로드캐스트 라우팅"
+      ],
+      "group": "Network Layer",
+      "description": "Routing that delivers packets to all destinations in a network.",
+      "importance": 0.5,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_multicast_routing",
+      "canonical_name": "Multicast Routing",
+      "korean_name": "멀티캐스트 라우팅",
+      "aliases": [
+        "multicast routing",
+        "multicast delivery",
+        "IP multicast",
+        "멀티캐스트 라우팅",
+        "IP 멀티캐스트"
+      ],
+      "group": "Network Layer",
+      "description": "Routing that delivers packets to a selected group of receivers.",
+      "importance": 0.6,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_anycast_routing",
+      "canonical_name": "Anycast Routing",
+      "korean_name": "애니캐스트 라우팅",
+      "aliases": [
+        "anycast routing",
+        "anycast",
+        "애니캐스트",
+        "애니캐스트 라우팅"
+      ],
+      "group": "Network Layer",
+      "description": "Routing that delivers packets to one of several equivalent destinations.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_congestion_control",
+      "canonical_name": "Congestion Control",
+      "korean_name": "혼잡 제어",
+      "aliases": [
+        "congestion control",
+        "network congestion control",
+        "congestion",
+        "혼잡 제어",
+        "네트워크 혼잡"
+      ],
+      "group": "Network Layer",
+      "description": "Mechanisms to prevent or respond to overload in a network.",
+      "importance": 0.9,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_quality_of_service",
+      "canonical_name": "Quality of Service",
+      "korean_name": "서비스 품질",
+      "aliases": [
+        "quality of service",
+        "QoS",
+        "QoS mechanisms",
+        "서비스 품질"
+      ],
+      "group": "Network Layer",
+      "description": "Mechanisms that provide service guarantees or differentiation for network traffic.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_traffic_shaping",
+      "canonical_name": "Traffic Shaping",
+      "korean_name": "트래픽 셰이핑",
+      "aliases": [
+        "traffic shaping",
+        "leaky bucket",
+        "token bucket",
+        "트래픽 셰이핑",
+        "트래픽 조절"
+      ],
+      "group": "Network Layer",
+      "description": "Techniques for regulating traffic patterns to meet network constraints.",
+      "importance": 0.55,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_admission_control",
+      "canonical_name": "Admission Control",
+      "korean_name": "수락 제어",
+      "aliases": [
+        "admission control",
+        "connection admission control",
+        "수락 제어"
+      ],
+      "group": "Network Layer",
+      "description": "A mechanism that decides whether new flows may enter the network.",
+      "importance": 0.5,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_tunneling",
+      "canonical_name": "Tunneling",
+      "korean_name": "터널링",
+      "aliases": [
+        "tunneling",
+        "tunnel",
+        "network tunnel",
+        "터널링",
+        "터널"
+      ],
+      "group": "Network Layer",
+      "description": "Encapsulating packets of one protocol inside another to traverse a network.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_fragmentation",
+      "canonical_name": "Fragmentation",
+      "korean_name": "단편화",
+      "aliases": [
+        "fragmentation",
+        "packet fragmentation",
+        "IP fragmentation",
+        "reassembly",
+        "단편화",
+        "IP 단편화",
+        "재조립"
+      ],
+      "group": "Network Layer",
+      "description": "Splitting packets into smaller fragments and reassembling them later.",
+      "importance": 0.75,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_mtu",
+      "canonical_name": "Maximum Transmission Unit",
+      "korean_name": "최대 전송 단위",
+      "aliases": [
+        "MTU",
+        "maximum transmission unit",
+        "path MTU",
+        "최대 전송 단위"
+      ],
+      "group": "Network Layer",
+      "description": "The largest packet or frame size that can be transmitted over a link or path.",
+      "importance": 0.7,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_ipv4",
+      "canonical_name": "IPv4",
+      "korean_name": "IPv4",
+      "aliases": [
+        "IPv4",
+        "IP version 4",
+        "Internet Protocol version 4",
+        "IP 프로토콜 버전 4"
+      ],
+      "group": "Network Layer",
+      "description": "Version 4 of the Internet Protocol, widely used for packet addressing and forwarding.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_ipv6",
+      "canonical_name": "IPv6",
+      "korean_name": "IPv6",
+      "aliases": [
+        "IPv6",
+        "IP version 6",
+        "Internet Protocol version 6",
+        "IP 프로토콜 버전 6"
+      ],
+      "group": "Network Layer",
+      "description": "Version 6 of the Internet Protocol, with a larger address space and extension headers.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_ip_address",
+      "canonical_name": "IP Address",
+      "korean_name": "IP 주소",
+      "aliases": [
+        "IP address",
+        "IP addresses",
+        "internet address",
+        "IPv4 address",
+        "IPv6 address",
+        "IP 주소"
+      ],
+      "group": "Network Layer",
+      "description": "A network-layer address used to identify interfaces or hosts in IP networks.",
+      "importance": 0.95,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_subnetting",
+      "canonical_name": "Subnetting",
+      "korean_name": "서브넷팅",
+      "aliases": [
+        "subnetting",
+        "subnet mask",
+        "network prefix",
+        "서브넷팅",
+        "서브넷 마스크",
+        "네트워크 프리픽스"
+      ],
+      "group": "Network Layer",
+      "description": "Dividing an IP address space into smaller subnetworks.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_cidr",
+      "canonical_name": "CIDR",
+      "korean_name": "CIDR",
+      "aliases": [
+        "CIDR",
+        "classless interdomain routing",
+        "classless inter-domain routing",
+        "slash notation",
+        "CIDR 표기"
+      ],
+      "group": "Network Layer",
+      "description": "Classless Inter-Domain Routing, an IP address allocation and routing method using prefixes.",
+      "importance": 0.85,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_nat",
+      "canonical_name": "Network Address Translation",
+      "korean_name": "네트워크 주소 변환",
+      "aliases": [
+        "NAT",
+        "network address translation",
+        "네트워크 주소 변환",
+        "주소 변환"
+      ],
+      "group": "Network Layer",
+      "description": "A mechanism that maps private addresses to public addresses, often at a gateway.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_arp",
+      "canonical_name": "Address Resolution Protocol",
+      "korean_name": "주소 결정 프로토콜",
+      "aliases": [
+        "ARP",
+        "Address Resolution Protocol",
+        "address resolution",
+        "주소 결정 프로토콜",
+        "주소 해석 프로토콜"
+      ],
+      "group": "Network Layer",
+      "description": "A protocol that maps IP addresses to link-layer addresses on a local network.",
+      "importance": 0.8,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_icmp",
+      "canonical_name": "Internet Control Message Protocol",
+      "korean_name": "인터넷 제어 메시지 프로토콜",
+      "aliases": [
+        "ICMP",
+        "Internet Control Message Protocol",
+        "ICMP message",
+        "인터넷 제어 메시지 프로토콜"
+      ],
+      "group": "Network Layer",
+      "description": "A companion protocol to IP used for control and error messages.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_dhcp",
+      "canonical_name": "Dynamic Host Configuration Protocol",
+      "korean_name": "동적 호스트 구성 프로토콜",
+      "aliases": [
+        "DHCP",
+        "Dynamic Host Configuration Protocol",
+        "dynamic host configuration",
+        "동적 호스트 구성 프로토콜"
+      ],
+      "group": "Network Layer",
+      "description": "A protocol that automatically assigns IP configuration to hosts.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_mpls",
+      "canonical_name": "Multiprotocol Label Switching",
+      "korean_name": "다중 프로토콜 레이블 스위칭",
+      "aliases": [
+        "MPLS",
+        "Multiprotocol Label Switching",
+        "label switching",
+        "다중 프로토콜 레이블 스위칭",
+        "레이블 스위칭"
+      ],
+      "group": "Network Layer",
+      "description": "A packet forwarding technique that uses labels instead of long network-layer lookups.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_ospf",
+      "canonical_name": "Open Shortest Path First",
+      "korean_name": "OSPF",
+      "aliases": [
+        "OSPF",
+        "Open Shortest Path First",
+        "interior gateway protocol",
+        "IGP",
+        "OSPF 라우팅"
+      ],
+      "group": "Network Layer",
+      "description": "A link-state interior gateway routing protocol.",
+      "importance": 0.8,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_bgp",
+      "canonical_name": "Border Gateway Protocol",
+      "korean_name": "BGP",
+      "aliases": [
+        "BGP",
+        "Border Gateway Protocol",
+        "exterior gateway protocol",
+        "EGP",
+        "BGP 라우팅"
+      ],
+      "group": "Network Layer",
+      "description": "The interdomain routing protocol used to exchange reachability between autonomous systems.",
+      "importance": 0.85,
+      "concept_difficulty": 0.6
+    },
+    {
+      "concept_id": "cn_autonomous_system",
+      "canonical_name": "Autonomous System",
+      "korean_name": "자율 시스템",
+      "aliases": [
+        "autonomous system",
+        "AS",
+        "autonomous systems",
+        "자율 시스템"
+      ],
+      "group": "Network Layer",
+      "description": "A collection of IP networks under common administrative control for routing.",
+      "importance": 0.75,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_mobile_ip",
+      "canonical_name": "Mobile IP",
+      "korean_name": "모바일 IP",
+      "aliases": [
+        "Mobile IP",
+        "모바일 IP"
+      ],
+      "group": "Network Layer",
+      "description": "A protocol for supporting host mobility while preserving IP communication.",
+      "importance": 0.4,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_transport_service",
+      "canonical_name": "Transport Service",
+      "korean_name": "전송 서비스",
+      "aliases": [
+        "transport service",
+        "transport services",
+        "전송 서비스"
+      ],
+      "group": "Transport Layer",
+      "description": "The service provided by the transport layer to applications or upper layers.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_socket",
+      "canonical_name": "Socket",
+      "korean_name": "소켓",
+      "aliases": [
+        "socket",
+        "sockets",
+        "Berkeley socket",
+        "socket interface",
+        "소켓",
+        "버클리 소켓"
+      ],
+      "group": "Transport Layer",
+      "description": "An API abstraction used by applications to communicate over the network.",
+      "importance": 0.9,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_port",
+      "canonical_name": "Port",
+      "korean_name": "포트",
+      "aliases": [
+        "port",
+        "ports",
+        "port number",
+        "transport port",
+        "포트",
+        "포트 번호"
+      ],
+      "group": "Transport Layer",
+      "description": "A transport-layer identifier used to distinguish application endpoints.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_multiplexing_demultiplexing",
+      "canonical_name": "Transport Multiplexing",
+      "korean_name": "전송 계층 다중화",
+      "aliases": [
+        "transport multiplexing",
+        "multiplexing and demultiplexing",
+        "demultiplexing",
+        "포트 다중화",
+        "역다중화"
+      ],
+      "group": "Transport Layer",
+      "description": "Using port numbers to combine and separate traffic for multiple applications.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_connection_establishment",
+      "canonical_name": "Connection Establishment",
+      "korean_name": "연결 설정",
+      "aliases": [
+        "connection establishment",
+        "establish connection",
+        "connection setup",
+        "연결 설정"
+      ],
+      "group": "Transport Layer",
+      "description": "The process of creating a transport connection before data transfer.",
+      "importance": 0.8,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_connection_release",
+      "canonical_name": "Connection Release",
+      "korean_name": "연결 해제",
+      "aliases": [
+        "connection release",
+        "connection termination",
+        "close connection",
+        "연결 해제",
+        "연결 종료"
+      ],
+      "group": "Transport Layer",
+      "description": "The process of closing or releasing a transport connection.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_three_way_handshake",
+      "canonical_name": "Three-Way Handshake",
+      "korean_name": "3방향 핸드셰이크",
+      "aliases": [
+        "three-way handshake",
+        "3-way handshake",
+        "TCP handshake",
+        "SYN SYN-ACK ACK",
+        "3방향 핸드셰이크",
+        "TCP 핸드셰이크"
+      ],
+      "group": "Transport Layer",
+      "description": "The TCP procedure for establishing a connection using SYN and ACK messages.",
+      "importance": 0.85,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_tcp",
+      "canonical_name": "Transmission Control Protocol",
+      "korean_name": "전송 제어 프로토콜",
+      "aliases": [
+        "TCP",
+        "Transmission Control Protocol",
+        "TCP protocol",
+        "전송 제어 프로토콜"
+      ],
+      "group": "Transport Layer",
+      "description": "A reliable, connection-oriented transport protocol that provides a byte stream.",
+      "importance": 0.98,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_udp",
+      "canonical_name": "User Datagram Protocol",
+      "korean_name": "사용자 데이터그램 프로토콜",
+      "aliases": [
+        "UDP",
+        "User Datagram Protocol",
+        "UDP protocol",
+        "사용자 데이터그램 프로토콜"
+      ],
+      "group": "Transport Layer",
+      "description": "A connectionless transport protocol that provides lightweight datagram delivery.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_tcp_header",
+      "canonical_name": "TCP Header",
+      "korean_name": "TCP 헤더",
+      "aliases": [
+        "TCP header",
+        "TCP segment header",
+        "TCP 헤더",
+        "TCP 세그먼트 헤더"
+      ],
+      "group": "Transport Layer",
+      "description": "The control fields attached to TCP segments.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_tcp_sliding_window",
+      "canonical_name": "TCP Sliding Window",
+      "korean_name": "TCP 슬라이딩 윈도우",
+      "aliases": [
+        "TCP sliding window",
+        "TCP window",
+        "receive window",
+        "TCP 슬라이딩 윈도우",
+        "TCP 윈도우"
+      ],
+      "group": "Transport Layer",
+      "description": "TCP's window mechanism for flow control and reliable delivery.",
+      "importance": 0.85,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_tcp_congestion_control",
+      "canonical_name": "TCP Congestion Control",
+      "korean_name": "TCP 혼잡 제어",
+      "aliases": [
+        "TCP congestion control",
+        "TCP congestion",
+        "congestion avoidance",
+        "TCP 혼잡 제어"
+      ],
+      "group": "Transport Layer",
+      "description": "TCP mechanisms for adapting sending rate to network congestion.",
+      "importance": 0.9,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_congestion_window",
+      "canonical_name": "Congestion Window",
+      "korean_name": "혼잡 윈도우",
+      "aliases": [
+        "congestion window",
+        "cwnd",
+        "혼잡 윈도우"
+      ],
+      "group": "Transport Layer",
+      "description": "A TCP state variable limiting how much data may be in flight due to congestion control.",
+      "importance": 0.75,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_slow_start",
+      "canonical_name": "Slow Start",
+      "korean_name": "슬로 스타트",
+      "aliases": [
+        "slow start",
+        "TCP slow start",
+        "슬로 스타트",
+        "느린 시작"
+      ],
+      "group": "Transport Layer",
+      "description": "A TCP congestion-control phase that increases the congestion window rapidly from a small value.",
+      "importance": 0.7,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_round_trip_time",
+      "canonical_name": "Round-Trip Time",
+      "korean_name": "왕복 시간",
+      "aliases": [
+        "round-trip time",
+        "round trip time",
+        "RTT",
+        "왕복 시간"
+      ],
+      "group": "Transport Layer",
+      "description": "The time for a packet to travel to a destination and for a response to return.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_tcp_timer",
+      "canonical_name": "TCP Timer Management",
+      "korean_name": "TCP 타이머 관리",
+      "aliases": [
+        "TCP timer",
+        "timer management",
+        "retransmission timer",
+        "TCP 타이머",
+        "재전송 타이머"
+      ],
+      "group": "Transport Layer",
+      "description": "TCP mechanisms for estimating timeouts and managing retransmissions.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_rtp",
+      "canonical_name": "Real-Time Transport Protocol",
+      "korean_name": "실시간 전송 프로토콜",
+      "aliases": [
+        "RTP",
+        "Real-Time Transport Protocol",
+        "real time transport protocol",
+        "실시간 전송 프로토콜"
+      ],
+      "group": "Transport Layer",
+      "description": "A protocol for carrying real-time audio and video streams.",
+      "importance": 0.55,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_rpc",
+      "canonical_name": "Remote Procedure Call",
+      "korean_name": "원격 프로시저 호출",
+      "aliases": [
+        "RPC",
+        "Remote Procedure Call",
+        "원격 프로시저 호출"
+      ],
+      "group": "Transport Layer",
+      "description": "A communication abstraction that lets programs invoke procedures on remote machines.",
+      "importance": 0.55,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_dns",
+      "canonical_name": "Domain Name System",
+      "korean_name": "도메인 이름 시스템",
+      "aliases": [
+        "DNS",
+        "Domain Name System",
+        "도메인 이름 시스템"
+      ],
+      "group": "Application Layer",
+      "description": "A distributed naming system that maps domain names to network information such as IP addresses.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_domain_name",
+      "canonical_name": "Domain Name",
+      "korean_name": "도메인 이름",
+      "aliases": [
+        "domain name",
+        "domain names",
+        "hostname",
+        "host name",
+        "도메인 이름",
+        "호스트 이름"
+      ],
+      "group": "Application Layer",
+      "description": "A human-readable name used to identify hosts or services.",
+      "importance": 0.75,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_resource_record",
+      "canonical_name": "DNS Resource Record",
+      "korean_name": "DNS 자원 레코드",
+      "aliases": [
+        "resource record",
+        "DNS resource record",
+        "RR",
+        "A record",
+        "MX record",
+        "NS record",
+        "DNS 자원 레코드"
+      ],
+      "group": "Application Layer",
+      "description": "A DNS database entry containing name mapping or related information.",
+      "importance": 0.6,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_name_server",
+      "canonical_name": "Name Server",
+      "korean_name": "네임 서버",
+      "aliases": [
+        "name server",
+        "nameserver",
+        "DNS server",
+        "네임 서버",
+        "DNS 서버"
+      ],
+      "group": "Application Layer",
+      "description": "A server that answers DNS queries.",
+      "importance": 0.7,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_http",
+      "canonical_name": "HyperText Transfer Protocol",
+      "korean_name": "하이퍼텍스트 전송 프로토콜",
+      "aliases": [
+        "HTTP",
+        "HyperText Transfer Protocol",
+        "HTTP protocol",
+        "하이퍼텍스트 전송 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "The application protocol used to request and transfer Web resources.",
+      "importance": 0.95,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_https",
+      "canonical_name": "HTTPS",
+      "korean_name": "HTTPS",
+      "aliases": [
+        "HTTPS",
+        "HTTP over TLS",
+        "HTTP over SSL",
+        "secure HTTP",
+        "보안 HTTP"
+      ],
+      "group": "Application Layer",
+      "description": "HTTP protected using TLS or SSL for confidentiality and authentication.",
+      "importance": 0.85,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_url",
+      "canonical_name": "Uniform Resource Locator",
+      "korean_name": "URL",
+      "aliases": [
+        "URL",
+        "Uniform Resource Locator",
+        "web address",
+        "URL 주소"
+      ],
+      "group": "Application Layer",
+      "description": "A string that identifies the location of a resource on the Web.",
+      "importance": 0.75,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_world_wide_web",
+      "canonical_name": "World Wide Web",
+      "korean_name": "월드 와이드 웹",
+      "aliases": [
+        "World Wide Web",
+        "WWW",
+        "Web",
+        "the Web",
+        "월드 와이드 웹",
+        "웹"
+      ],
+      "group": "Application Layer",
+      "description": "A distributed hypertext system using HTTP and related technologies.",
+      "importance": 0.85,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_web_browser",
+      "canonical_name": "Web Browser",
+      "korean_name": "웹 브라우저",
+      "aliases": [
+        "web browser",
+        "browser",
+        "웹 브라우저",
+        "브라우저"
+      ],
+      "group": "Application Layer",
+      "description": "A client application that retrieves and displays Web resources.",
+      "importance": 0.55,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_web_server",
+      "canonical_name": "Web Server",
+      "korean_name": "웹 서버",
+      "aliases": [
+        "web server",
+        "HTTP server",
+        "웹 서버"
+      ],
+      "group": "Application Layer",
+      "description": "A server that responds to HTTP requests.",
+      "importance": 0.55,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_proxy_server",
+      "canonical_name": "Proxy Server",
+      "korean_name": "프록시 서버",
+      "aliases": [
+        "proxy server",
+        "web proxy",
+        "proxy",
+        "프록시 서버",
+        "웹 프록시"
+      ],
+      "group": "Application Layer",
+      "description": "An intermediary server that forwards requests or caches content.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_cookie",
+      "canonical_name": "Cookie",
+      "korean_name": "쿠키",
+      "aliases": [
+        "cookie",
+        "cookies",
+        "HTTP cookie",
+        "web cookie",
+        "쿠키",
+        "HTTP 쿠키"
+      ],
+      "group": "Application Layer",
+      "description": "A small piece of state stored by a browser for Web applications.",
+      "importance": 0.5,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_email",
+      "canonical_name": "Electronic Mail",
+      "korean_name": "전자우편",
+      "aliases": [
+        "email",
+        "e-mail",
+        "electronic mail",
+        "전자우편",
+        "이메일"
+      ],
+      "group": "Application Layer",
+      "description": "An application for exchanging messages between users over networks.",
+      "importance": 0.7,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_smtp",
+      "canonical_name": "Simple Mail Transfer Protocol",
+      "korean_name": "단순 메일 전송 프로토콜",
+      "aliases": [
+        "SMTP",
+        "Simple Mail Transfer Protocol",
+        "mail transfer protocol",
+        "단순 메일 전송 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "A protocol for sending and relaying email messages.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_pop3",
+      "canonical_name": "Post Office Protocol",
+      "korean_name": "우체국 프로토콜",
+      "aliases": [
+        "POP3",
+        "Post Office Protocol",
+        "우체국 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "An email retrieval protocol for downloading messages from a mail server.",
+      "importance": 0.45,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_imap",
+      "canonical_name": "Internet Message Access Protocol",
+      "korean_name": "인터넷 메시지 접근 프로토콜",
+      "aliases": [
+        "IMAP",
+        "Internet Message Access Protocol",
+        "인터넷 메시지 접근 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "An email access protocol that manages messages on a server.",
+      "importance": 0.45,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_mime",
+      "canonical_name": "MIME",
+      "korean_name": "MIME",
+      "aliases": [
+        "MIME",
+        "Multipurpose Internet Mail Extensions",
+        "MIME type",
+        "MIME 형식"
+      ],
+      "group": "Application Layer",
+      "description": "A format extension for carrying non-ASCII and multimedia content in email and HTTP.",
+      "importance": 0.45,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_ftp",
+      "canonical_name": "File Transfer Protocol",
+      "korean_name": "파일 전송 프로토콜",
+      "aliases": [
+        "FTP",
+        "File Transfer Protocol",
+        "파일 전송 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "An application protocol for transferring files between hosts.",
+      "importance": 0.65,
+      "concept_difficulty": 0.3
+    },
+    {
+      "concept_id": "cn_telnet",
+      "canonical_name": "TELNET",
+      "korean_name": "텔넷",
+      "aliases": [
+        "TELNET",
+        "virtual terminal",
+        "텔넷"
+      ],
+      "group": "Application Layer",
+      "description": "An early remote terminal protocol.",
+      "importance": 0.35,
+      "concept_difficulty": 0.25
+    },
+    {
+      "concept_id": "cn_content_delivery_network",
+      "canonical_name": "Content Delivery Network",
+      "korean_name": "콘텐츠 전송 네트워크",
+      "aliases": [
+        "CDN",
+        "Content Delivery Network",
+        "content distribution network",
+        "콘텐츠 전송 네트워크",
+        "콘텐츠 배포 네트워크"
+      ],
+      "group": "Application Layer",
+      "description": "A distributed infrastructure that delivers content from servers close to users.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_streaming_media",
+      "canonical_name": "Streaming Media",
+      "korean_name": "스트리밍 미디어",
+      "aliases": [
+        "streaming media",
+        "media streaming",
+        "streaming audio",
+        "streaming video",
+        "스트리밍",
+        "스트리밍 미디어"
+      ],
+      "group": "Application Layer",
+      "description": "Audio or video delivered continuously over the network for playback.",
+      "importance": 0.55,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_voice_over_ip",
+      "canonical_name": "Voice over IP",
+      "korean_name": "VoIP",
+      "aliases": [
+        "VoIP",
+        "Voice over IP",
+        "IP telephony",
+        "Internet telephony",
+        "인터넷 전화"
+      ],
+      "group": "Application Layer",
+      "description": "Voice communication carried over IP networks.",
+      "importance": 0.55,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_sip",
+      "canonical_name": "Session Initiation Protocol",
+      "korean_name": "세션 시작 프로토콜",
+      "aliases": [
+        "SIP",
+        "Session Initiation Protocol",
+        "세션 시작 프로토콜"
+      ],
+      "group": "Application Layer",
+      "description": "A signaling protocol often used to set up voice and video sessions.",
+      "importance": 0.45,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_bittorrent",
+      "canonical_name": "BitTorrent",
+      "korean_name": "비트토렌트",
+      "aliases": [
+        "BitTorrent",
+        "torrent",
+        "비트토렌트",
+        "토렌트"
+      ],
+      "group": "Application Layer",
+      "description": "A peer-to-peer protocol for distributed file sharing.",
+      "importance": 0.4,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_network_security",
+      "canonical_name": "Network Security",
+      "korean_name": "네트워크 보안",
+      "aliases": [
+        "network security",
+        "communication security",
+        "네트워크 보안",
+        "통신 보안"
+      ],
+      "group": "Network Security",
+      "description": "Techniques and protocols for protecting network communication.",
+      "importance": 0.8,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_cryptography",
+      "canonical_name": "Cryptography",
+      "korean_name": "암호학",
+      "aliases": [
+        "cryptography",
+        "crypto",
+        "cryptographic",
+        "암호학",
+        "암호 기술"
+      ],
+      "group": "Network Security",
+      "description": "The study and use of techniques for secure communication.",
+      "importance": 0.75,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_symmetric_key_cryptography",
+      "canonical_name": "Symmetric-Key Cryptography",
+      "korean_name": "대칭키 암호",
+      "aliases": [
+        "symmetric-key cryptography",
+        "symmetric key",
+        "secret key cryptography",
+        "대칭키 암호",
+        "비밀키 암호"
+      ],
+      "group": "Network Security",
+      "description": "Cryptography in which sender and receiver share the same secret key.",
+      "importance": 0.65,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_public_key_cryptography",
+      "canonical_name": "Public-Key Cryptography",
+      "korean_name": "공개키 암호",
+      "aliases": [
+        "public-key cryptography",
+        "public key cryptography",
+        "asymmetric cryptography",
+        "공개키 암호",
+        "비대칭 암호"
+      ],
+      "group": "Network Security",
+      "description": "Cryptography using mathematically related public and private keys.",
+      "importance": 0.7,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_rsa",
+      "canonical_name": "RSA",
+      "korean_name": "RSA",
+      "aliases": [
+        "RSA",
+        "RSA algorithm",
+        "RSA cryptosystem"
+      ],
+      "group": "Network Security",
+      "description": "A public-key cryptosystem based on the difficulty of factoring large integers.",
+      "importance": 0.55,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_aes",
+      "canonical_name": "Advanced Encryption Standard",
+      "korean_name": "고급 암호화 표준",
+      "aliases": [
+        "AES",
+        "Advanced Encryption Standard",
+        "고급 암호화 표준"
+      ],
+      "group": "Network Security",
+      "description": "A widely used symmetric block cipher standard.",
+      "importance": 0.55,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_des",
+      "canonical_name": "Data Encryption Standard",
+      "korean_name": "데이터 암호화 표준",
+      "aliases": [
+        "DES",
+        "Data Encryption Standard",
+        "데이터 암호화 표준"
+      ],
+      "group": "Network Security",
+      "description": "An older symmetric block cipher standard.",
+      "importance": 0.35,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_hash_function",
+      "canonical_name": "Hash Function",
+      "korean_name": "해시 함수",
+      "aliases": [
+        "hash function",
+        "cryptographic hash",
+        "message digest",
+        "해시 함수",
+        "메시지 다이제스트"
+      ],
+      "group": "Network Security",
+      "description": "A function that maps data to a fixed-size digest, often for integrity checks.",
+      "importance": 0.7,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_digital_signature",
+      "canonical_name": "Digital Signature",
+      "korean_name": "디지털 서명",
+      "aliases": [
+        "digital signature",
+        "digital signatures",
+        "전자 서명",
+        "디지털 서명"
+      ],
+      "group": "Network Security",
+      "description": "A cryptographic mechanism for authenticity and integrity.",
+      "importance": 0.7,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_certificate",
+      "canonical_name": "Certificate",
+      "korean_name": "인증서",
+      "aliases": [
+        "certificate",
+        "digital certificate",
+        "X.509",
+        "인증서",
+        "디지털 인증서"
+      ],
+      "group": "Network Security",
+      "description": "A signed statement binding a public key to an identity.",
+      "importance": 0.65,
+      "concept_difficulty": 0.4
+    },
+    {
+      "concept_id": "cn_pki",
+      "canonical_name": "Public Key Infrastructure",
+      "korean_name": "공개키 기반구조",
+      "aliases": [
+        "PKI",
+        "Public Key Infrastructure",
+        "public-key infrastructure",
+        "공개키 기반구조"
+      ],
+      "group": "Network Security",
+      "description": "The infrastructure for issuing, managing, and validating public-key certificates.",
+      "importance": 0.55,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_authentication",
+      "canonical_name": "Authentication",
+      "korean_name": "인증",
+      "aliases": [
+        "authentication",
+        "authenticate",
+        "인증"
+      ],
+      "group": "Network Security",
+      "description": "The process of verifying an entity's identity.",
+      "importance": 0.8,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_confidentiality",
+      "canonical_name": "Confidentiality",
+      "korean_name": "기밀성",
+      "aliases": [
+        "confidentiality",
+        "secrecy",
+        "privacy of communication",
+        "기밀성"
+      ],
+      "group": "Network Security",
+      "description": "The security property that prevents unauthorized disclosure of information.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_integrity",
+      "canonical_name": "Integrity",
+      "korean_name": "무결성",
+      "aliases": [
+        "integrity",
+        "message integrity",
+        "data integrity",
+        "무결성",
+        "메시지 무결성"
+      ],
+      "group": "Network Security",
+      "description": "The security property that prevents undetected modification of data.",
+      "importance": 0.65,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_ipsec",
+      "canonical_name": "IPsec",
+      "korean_name": "IPsec",
+      "aliases": [
+        "IPsec",
+        "IP security",
+        "Internet Protocol Security",
+        "IP 보안"
+      ],
+      "group": "Network Security",
+      "description": "A suite of protocols for securing IP packets.",
+      "importance": 0.65,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_ssl_tls",
+      "canonical_name": "SSL/TLS",
+      "korean_name": "SSL/TLS",
+      "aliases": [
+        "SSL",
+        "TLS",
+        "SSL/TLS",
+        "Secure Sockets Layer",
+        "Transport Layer Security",
+        "전송 계층 보안"
+      ],
+      "group": "Network Security",
+      "description": "Protocols for securing transport connections, especially HTTPS.",
+      "importance": 0.8,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_firewall",
+      "canonical_name": "Firewall",
+      "korean_name": "방화벽",
+      "aliases": [
+        "firewall",
+        "firewalls",
+        "packet filter",
+        "방화벽",
+        "패킷 필터"
+      ],
+      "group": "Network Security",
+      "description": "A security system that filters or controls network traffic.",
+      "importance": 0.75,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_vpn",
+      "canonical_name": "Virtual Private Network",
+      "korean_name": "가상 사설망",
+      "aliases": [
+        "VPN",
+        "Virtual Private Network",
+        "가상 사설망"
+      ],
+      "group": "Network Security",
+      "description": "A private network abstraction built over a shared network, often using tunneling and encryption.",
+      "importance": 0.85,
+      "concept_difficulty": 0.35
+    },
+    {
+      "concept_id": "cn_kerberos",
+      "canonical_name": "Kerberos",
+      "korean_name": "커버로스",
+      "aliases": [
+        "Kerberos",
+        "Kerberos authentication",
+        "커버로스"
+      ],
+      "group": "Network Security",
+      "description": "An authentication system based on a trusted key distribution center.",
+      "importance": 0.45,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_diffie_hellman",
+      "canonical_name": "Diffie-Hellman Key Exchange",
+      "korean_name": "디피-헬먼 키 교환",
+      "aliases": [
+        "Diffie-Hellman",
+        "Diffie-Hellman key exchange",
+        "DH key exchange",
+        "디피 헬먼",
+        "디피-헬먼 키 교환"
+      ],
+      "group": "Network Security",
+      "description": "A protocol for establishing a shared secret over an insecure channel.",
+      "importance": 0.5,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_http2",
+      "canonical_name": "HTTP/2",
+      "korean_name": "HTTP/2",
+      "aliases": [
+        "HTTP/2",
+        "HTTP2",
+        "HTTP version 2",
+        "HTTP 2"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A modern version of HTTP with multiplexed streams over a single connection.",
+      "importance": 0.35,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_http3",
+      "canonical_name": "HTTP/3",
+      "korean_name": "HTTP/3",
+      "aliases": [
+        "HTTP/3",
+        "HTTP3",
+        "HTTP version 3",
+        "HTTP 3"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A modern version of HTTP that runs over QUIC.",
+      "importance": 0.35,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_quic",
+      "canonical_name": "QUIC",
+      "korean_name": "QUIC",
+      "aliases": [
+        "QUIC",
+        "quick UDP internet connections",
+        "QUIC protocol"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A UDP-based transport protocol used by HTTP/3.",
+      "importance": 0.4,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_software_defined_networking",
+      "canonical_name": "Software-Defined Networking",
+      "korean_name": "소프트웨어 정의 네트워킹",
+      "aliases": [
+        "SDN",
+        "software-defined networking",
+        "software defined networking",
+        "소프트웨어 정의 네트워킹"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A networking architecture that separates the control plane from the data plane.",
+      "importance": 0.35,
+      "concept_difficulty": 0.55
+    },
+    {
+      "concept_id": "cn_control_plane",
+      "canonical_name": "Control Plane",
+      "korean_name": "제어 평면",
+      "aliases": [
+        "control plane",
+        "routing control plane",
+        "제어 평면"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "The part of a network responsible for computing and distributing control decisions.",
+      "importance": 0.35,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_data_plane",
+      "canonical_name": "Data Plane",
+      "korean_name": "데이터 평면",
+      "aliases": [
+        "data plane",
+        "forwarding plane",
+        "데이터 평면",
+        "포워딩 평면"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "The part of a network that forwards packets according to control-plane decisions.",
+      "importance": 0.35,
+      "concept_difficulty": 0.5
+    },
+    {
+      "concept_id": "cn_5g_network",
+      "canonical_name": "5G Network",
+      "korean_name": "5G 네트워크",
+      "aliases": [
+        "5G",
+        "5G network",
+        "fifth generation mobile network",
+        "5G 네트워크",
+        "5세대 이동통신"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A modern cellular network generation that provides enhanced mobile broadband and low-latency services.",
+      "importance": 0.35,
+      "concept_difficulty": 0.45
+    },
+    {
+      "concept_id": "cn_tls13",
+      "canonical_name": "TLS 1.3",
+      "korean_name": "TLS 1.3",
+      "aliases": [
+        "TLS 1.3",
+        "TLS version 1.3",
+        "Transport Layer Security 1.3"
+      ],
+      "group": "Modern Networking Supplement",
+      "description": "A modern version of TLS with improved security and handshake performance.",
+      "importance": 0.35,
+      "concept_difficulty": 0.5
+    }
+  ]
+}

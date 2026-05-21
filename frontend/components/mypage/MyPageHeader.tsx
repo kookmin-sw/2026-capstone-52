@@ -1,0 +1,49 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
+interface MyPageHeaderProps {
+  onOpenEdit: () => void;
+  profileEditDisabled?: boolean;
+}
+
+export default function MyPageHeader({ onOpenEdit, profileEditDisabled = false }: MyPageHeaderProps) {
+  const router = useRouter();
+
+  return (
+    <header className="h-[76px] border-b border-[#ebe9f5] bg-white">
+      <div className="flex h-full w-full items-center justify-between px-10">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="inline-flex items-center gap-2 text-[0.9rem] font-bold text-[#62607c] transition hover:text-[#817cf2]"
+          >
+            ← 돌아가기
+          </button>
+          <span className="text-[#aaa6c0]">·</span>
+          <h1 className="text-[1.02rem] font-black text-[#24213d]">마이페이지</h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenEdit}
+            disabled={profileEditDisabled}
+            className="inline-flex h-10 items-center justify-center rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#ebe9f5] disabled:hover:text-[#24213d]"
+          >
+            <span className="translate-y-[1px]">프로필 수정</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#ebe9f5] bg-white px-5 text-[0.86rem] font-black text-[#24213d] shadow-[0_8px_22px_rgba(42,38,73,0.04)] transition hover:border-[#d8d3ff] hover:text-[#817cf2]"
+          >
+            <img src="/icons/mypage/logout.svg" alt="" aria-hidden="true" className="h-4 w-4" />
+            <span className="translate-y-[1px]">로그아웃</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
