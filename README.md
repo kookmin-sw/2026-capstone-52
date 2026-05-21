@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-  <a href="http://eeum-study.kr/"><img src="https://img.shields.io/badge/Service Page-이음 시작하기-7c3aed?style=for-the-badge" /></a>
+  <a href="http://eeum-study.kr/"><img src="https://img.shields.io/badge/Service Page-이음 시작하기-8B7FF0?style=for-the-badge" /></a>
   <a href="https://kookmin-sw.github.io/2026-capstone-52/"><img src="https://img.shields.io/badge/TEAM-GITPAGE-000000?style=for-the-badge" /></a>
 </p>
 
