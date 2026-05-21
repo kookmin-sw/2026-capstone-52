@@ -12,27 +12,23 @@
 </div>
 
 <p align="center">
-  <a href="http://eeum-study.kr/">
-    <img src="https://img.shields.io/badge/Service%20Page-이음%20시작하기-8B7FF0?style=for-the-badge" alt="서비스 바로가기" />
-  </a>
-  <a href="https://kookmin-sw.github.io/2026-capstone-52/">
-    <img src="https://img.shields.io/badge/📄_GitHub_Pages-프로젝트_소개-6366f1?style=for-the-badge" alt="소개 페이지" />
-  </a>
+  <a href="http://eeum-study.kr/"><img src="https://img.shields.io/badge/Service Page-이음 시작하기-7c3aed?style=for-the-badge" /></a>
+  <a href="https://kookmin-sw.github.io/2026-capstone-52/"><img src="https://img.shields.io/badge/TEAM-GITPAGE-000000?style=for-the-badge" /></a>
 </p>
 
 ---
 
 ## 목차
 
-- :one: 📌 [프로젝트 소개](#프로젝트-소개)
-- :two: ✨ [주요 기능](#주요-기능)
-- :three: 🎬 [소개 영상](#소개-영상)
-- :four: 🏗️ [시스템 구조](#시스템-구조)
-- :five: 👥 [팀원 소개](#팀원-소개)
-- :six: 🛠️ [기술 스택](#기술-스택)
-- :seven: 📁 [폴더 구조](#폴더-구조)
-- :eight: 🚀 [실행 방법](#실행-방법)
-- :nine: 📚 [참고 자료](#참고-자료)
+:one: 📌 [프로젝트 소개](#프로젝트-소개)
+:two: ✨ [주요 기능](#주요-기능)
+:three: 🎬 [소개 영상](#소개-영상)
+:four: 🏗️ [시스템 구조](#시스템-구조)
+:five: 👥 [팀원 소개](#팀원-소개)
+:six: 🛠️ [기술 스택](#기술-스택)
+:seven: 📁 [폴더 구조](#폴더-구조)
+:eight: 🚀 [실행 방법](#실행-방법)
+:nine: 📚 [참고 자료](#참고-자료)
 
 ---
 
