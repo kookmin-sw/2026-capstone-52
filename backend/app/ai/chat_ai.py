@@ -56,13 +56,15 @@ def process_chat(
         raise ChatValidationError(f"Unsupported chat_mode: {chat_mode}")
 
     response_language = detect_user_response_language(validated_message)
+    # 대화 이력은 JSON 안에 묻지 않고 실제 멀티턴 메시지로 LLM에 전달한다(역할 분리).
+    # 이력을 JSON 컨텍스트에 같이 넣으면 중복 전송되어 echo가 악화되므로 여기서만 사용한다.
+    conversation_history = _compact_conversation_context(conversation_context)
     compact_context = _compact_chat_context(
         message=validated_message,
         target_concept=target_concept,
         graph_context=graph_context,
         user_state=user_state,
         recent_diagnosis=recent_diagnosis,
-        conversation_context=conversation_context,
         allowed_concepts=allowed_concepts,
         uploaded_context=uploaded_context,
         backbone_context=backbone_context,
@@ -74,10 +76,11 @@ def process_chat(
     system_prompt = (
         "You are a personalized CS learning assistant. "
         f"{response_language_instruction(response_language)} "
-        "You must answer ONLY the learner's latest message, given in context.current_message. "
-        "context.conversation_context is PAST history for reference only — never copy or repeat a previous "
-        "assistant turn verbatim, and do not re-answer an earlier question unless the current message explicitly asks for it. "
-        "If the current message is short, vague, or an emotional reaction (e.g. 'too hard', 'I don't get it'), "
+        "The earlier user/assistant turns in this conversation are PAST history for reference only. "
+        "The final user message is a JSON object; you must answer ONLY its context.current_message. "
+        "Never copy or repeat a previous assistant turn verbatim, and do not re-answer an earlier question "
+        "unless context.current_message explicitly asks for it. "
+        "If context.current_message is short, vague, or an emotional reaction (e.g. 'too hard', 'I don't get it'), "
         "do NOT restate your previous explanation; instead respond to that reaction directly — acknowledge it and "
         "offer a simpler explanation, an analogy, or a clarifying question about what specifically is unclear. "
         "Answer using the provided context in this priority order: "
@@ -136,6 +139,7 @@ def process_chat(
             task_name="chat_ai_process_chat",
             temperature=0.3,
             max_tokens=2200,
+            history=conversation_history,
         )
     except LLMClientError as error:
         raise ChatGenerationError(f"Chat generation failed: {error}") from error
@@ -175,7 +179,6 @@ def _compact_chat_context(
     graph_context: dict | None,
     user_state: dict | None,
     recent_diagnosis: list[dict] | None,
-    conversation_context: list[dict] | None,
     allowed_concepts: list[dict] | None,
     uploaded_context: str | None,
     backbone_context: str | None,
@@ -191,7 +194,6 @@ def _compact_chat_context(
         "graph_context": _compact_graph_context(graph_context),
         "user_state": user_state if isinstance(user_state, dict) else {},
         "recent_diagnosis": _compact_recent_diagnosis(recent_diagnosis),
-        "conversation_context": _compact_conversation_context(conversation_context),
         "allowed_concepts": _compact_allowed_concepts(allowed_concepts),
         "uploaded_context": uploaded_context or "",
         "backbone_context": backbone_context or "",

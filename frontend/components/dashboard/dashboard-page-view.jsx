@@ -1868,6 +1868,7 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
   const [miniQuizFloatDockSide, setMiniQuizFloatDockSide] = useState("right");
   const [isMiniQuizFloatDragging, setIsMiniQuizFloatDragging] = useState(false);
   const [openingMiniQuizMessageId, setOpeningMiniQuizMessageId] = useState(null);
+  const [deferringMiniQuizMessageId, setDeferringMiniQuizMessageId] = useState(null);
   const chatStageRef = useRef(null);
   const miniQuizFloatWrapRef = useRef(null);
   const miniQuizFloatDragRef = useRef(null);
@@ -3479,6 +3480,101 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
     }
   }
 
+  async function deferMiniQuizFromTriggers(messageId, triggers) {
+    const safeTriggers = Array.isArray(triggers) ? triggers : [];
+    if (!safeTriggers.length || openingMiniQuizMessageId || deferringMiniQuizMessageId) {
+      return;
+    }
+
+    setDeferringMiniQuizMessageId(messageId);
+    try {
+      const shouldUseMockDeferred = safeTriggers.some((target) => target.useMockMiniQuiz);
+
+      if (isMiniQuizBackendApiEnabled && selectedProjectId && !shouldUseMockDeferred) {
+        // 백엔드 ground truth — defer가 실패한 항목은 로컬에도 추가하지 않는다.
+        // 실패 시 trigger 버튼도 그대로 유지해 재시도할 수 있도록 한다.
+        const results = await Promise.all(
+          safeTriggers.map((target) =>
+            deferApiMiniQuizQuestion(selectedProjectId, target.nodeId, target.group?.questionIds)
+              .then((response) => ({ target, response, error: null }))
+              .catch((error) => ({ target, response: null, error }))
+          )
+        );
+
+        const successResults = results.filter((entry) => !entry.error && entry.response);
+        const failedTargets = results
+          .filter((entry) => entry.error || !entry.response)
+          .map((entry) => entry.target);
+
+        if (successResults.length) {
+          updateDeferredMiniQuizzes((current) => {
+            const existingKeys = new Set(
+              current.map((item) => getDeferredMiniQuizDedupeKey(item)).filter(Boolean)
+            );
+            const additions = successResults
+              .map(({ target, response }) => {
+                const group = {
+                  ...(response.group || {}),
+                  node_id: response.group?.node_id || target.nodeId,
+                  node_name: response.group?.node_name || target.name,
+                  questions: response.questions,
+                  deferred_at: Date.now(),
+                };
+                return normalizeDeferredMiniQuizGroup(group, selectedProjectId);
+              })
+              .filter((item) => {
+                if (!item) return false;
+                const key = getDeferredMiniQuizDedupeKey(item) || (item.nodeId ? `node:${item.nodeId}` : null);
+                if (!key) return false;
+                if (existingKeys.has(key)) return false;
+                existingKeys.add(key);
+                return true;
+              });
+            return [...current, ...additions];
+          });
+        }
+
+        if (failedTargets.length) {
+          // 실패한 노드는 trigger에 남겨 사용자가 재시도하도록 한다.
+          updateMiniQuizReadyByMessage((current) => ({
+            ...current,
+            [messageId]: failedTargets,
+          }));
+        } else {
+          updateMiniQuizReadyByMessage((current) => ({
+            ...current,
+            [messageId]: [],
+          }));
+        }
+        return;
+      }
+
+      // mock 모드: 백엔드 의존이 없으므로 로컬에 그대로 적재.
+      updateDeferredMiniQuizzes((current) => {
+        const existingNodeIds = new Set(current.map((item) => item.nodeId));
+        const additions = safeTriggers
+          .map((target) => ({
+            id: `${messageId}-${target.nodeId}`,
+            deferredId: null,
+            nodeId: target.nodeId,
+            name: target.name,
+            projectId: selectedProjectId,
+            deferredAt: Date.now(),
+            presetQuestion: null,
+            useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
+          }))
+          .filter((item) => !existingNodeIds.has(item.nodeId));
+        return [...current, ...additions];
+      });
+      updateMiniQuizReadyByMessage((current) => ({
+        ...current,
+        [messageId]: [],
+      }));
+    } finally {
+      setDeferringMiniQuizMessageId((current) => (current === messageId ? null : current));
+    }
+  }
+
   function buildMiniQuizResultMessages(results, targetChatId) {
     if (!targetChatId || !Array.isArray(results)) {
       return [];
@@ -3740,6 +3836,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                               overridden !== undefined ? overridden : message.miniQuizReady || null;
                             if (!triggers || triggers.length === 0) return null;
                             const isOpeningThisMiniQuiz = openingMiniQuizMessageId === message.id;
+                            const isDeferringThisMiniQuiz = deferringMiniQuizMessageId === message.id;
+                            const isMiniQuizActionBusy = Boolean(openingMiniQuizMessageId || deferringMiniQuizMessageId);
                             return (
                               <div className="workspace-message-mini-quiz">
                                 <div className="workspace-message-mini-quiz-label">
@@ -3750,108 +3848,38 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                                       : `${triggers[0].name} 미니 퀴즈를 풀어볼까요?`}
                                   </span>
                                 </div>
-                                <div className="workspace-message-mini-quiz-actions">
-                                  <button
-                                    type="button"
-                                    className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-primary"
-                                    onClick={() => openMiniQuizFromTriggers(message.id, triggers)}
-                                    disabled={Boolean(openingMiniQuizMessageId)}
+                                {isDeferringThisMiniQuiz ? (
+                                  <div
+                                    className="workspace-message-mini-quiz-loading"
+                                    role="status"
+                                    aria-label="미니퀴즈를 나중에 풀도록 저장하는 중"
                                   >
-                                    {isOpeningThisMiniQuiz ? "준비 중..." : "퀴즈 풀기"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
-                                    disabled={Boolean(openingMiniQuizMessageId)}
-                                    onClick={async () => {
-                                      const messageId = message.id;
-                                      const shouldUseMockDeferred = triggers.some((target) => target.useMockMiniQuiz);
-
-                                      if (isMiniQuizBackendApiEnabled && selectedProjectId && !shouldUseMockDeferred) {
-                                        // 백엔드 ground truth — defer가 실패한 항목은 로컬에도 추가하지 않는다.
-                                        // 실패 시 trigger 버튼도 그대로 유지해 재시도할 수 있도록 한다.
-                                        const results = await Promise.all(
-                                          triggers.map((target) =>
-                                            deferApiMiniQuizQuestion(selectedProjectId, target.nodeId, target.group?.questionIds)
-                                              .then((response) => ({ target, response, error: null }))
-                                              .catch((error) => ({ target, response: null, error }))
-                                          )
-                                        );
-
-                                        const successResults = results.filter((entry) => !entry.error && entry.response);
-                                        const failedTargets = results
-                                          .filter((entry) => entry.error || !entry.response)
-                                          .map((entry) => entry.target);
-
-                                        if (successResults.length) {
-                                          updateDeferredMiniQuizzes((current) => {
-                                            const existingKeys = new Set(
-                                              current.map((item) => getDeferredMiniQuizDedupeKey(item)).filter(Boolean)
-                                            );
-                                            const additions = successResults
-                                              .map(({ target, response }) => {
-                                                const group = {
-                                                  ...(response.group || {}),
-                                                  node_id: response.group?.node_id || target.nodeId,
-                                                  node_name: response.group?.node_name || target.name,
-                                                  questions: response.questions,
-                                                  deferred_at: Date.now(),
-                                                };
-                                                return normalizeDeferredMiniQuizGroup(group, selectedProjectId);
-                                              })
-                                              .filter((item) => {
-                                                if (!item) return false;
-                                                const key =
-                                                  getDeferredMiniQuizDedupeKey(item) || (item.nodeId ? `node:${item.nodeId}` : null);
-                                                if (!key) return false;
-                                                if (existingKeys.has(key)) return false;
-                                                existingKeys.add(key);
-                                                return true;
-                                              });
-                                            return [...current, ...additions];
-                                          });
-                                        }
-
-                                        if (failedTargets.length) {
-                                          // 실패한 노드는 trigger에 남겨 사용자가 재시도하도록 한다.
-                                          updateMiniQuizReadyByMessage((current) => ({
-                                            ...current,
-                                            [messageId]: failedTargets,
-                                          }));
-                                        } else {
-                                          updateMiniQuizReadyByMessage((current) => ({
-                                            ...current,
-                                            [messageId]: [],
-                                          }));
-                                        }
-                                      } else {
-                                        // mock 모드: 백엔드 의존이 없으므로 로컬에 그대로 적재.
-                                        updateDeferredMiniQuizzes((current) => {
-                                          const existingNodeIds = new Set(current.map((item) => item.nodeId));
-                                          const additions = triggers
-                                            .map((target) => ({
-                                              id: `${messageId}-${target.nodeId}`,
-                                              deferredId: null,
-                                              nodeId: target.nodeId,
-                                              name: target.name,
-                                              projectId: selectedProjectId,
-                                              deferredAt: Date.now(),
-                                              presetQuestion: null,
-                                              useMockMiniQuiz: Boolean(target.useMockMiniQuiz),
-                                            }))
-                                            .filter((item) => !existingNodeIds.has(item.nodeId));
-                                          return [...current, ...additions];
-                                        });
-                                        updateMiniQuizReadyByMessage((current) => ({
-                                          ...current,
-                                          [messageId]: [],
-                                        }));
-                                      }
-                                    }}
-                                  >
-                                    나중에 보기
-                                  </button>
-                                </div>
+                                    <div className="workspace-message-loading-dots" aria-hidden="true">
+                                      <span />
+                                      <span />
+                                      <span />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="workspace-message-mini-quiz-actions">
+                                    <button
+                                      type="button"
+                                      className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-primary"
+                                      onClick={() => openMiniQuizFromTriggers(message.id, triggers)}
+                                      disabled={isMiniQuizActionBusy}
+                                    >
+                                      {isOpeningThisMiniQuiz ? "준비 중..." : "퀴즈 풀기"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="workspace-message-mini-quiz-action workspace-message-mini-quiz-action-secondary"
+                                      disabled={isMiniQuizActionBusy}
+                                      onClick={() => deferMiniQuizFromTriggers(message.id, triggers)}
+                                    >
+                                      나중에 풀기
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}

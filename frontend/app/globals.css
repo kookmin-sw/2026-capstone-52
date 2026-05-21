@@ -6187,6 +6187,16 @@ a {
   gap: 0.5rem;
 }
 
+.workspace-message-mini-quiz-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.45rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(216, 211, 249, 0.78);
+}
+
 .workspace-message-mini-quiz-action {
   flex: 1;
   padding: 0.55rem 0.9rem;
