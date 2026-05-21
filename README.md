@@ -45,7 +45,7 @@
 
 ---
 
-## :one:프로젝트 소개
+## :one: 프로젝트 소개
 <p align="center">
   <img src="./docs/assets/images/capstone_52_poster.png" alt="EEUM 캡스톤 포스터" width="720" />
 </p>
@@ -67,7 +67,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 
-## :two:주요 기능
+## :two: 주요 기능
 
 ### 1. PDF 업로드 및 분석
 
@@ -112,16 +112,16 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 
 ---
-## :three:소개 영상
+## :three: 소개 영상
 >시연 영상 추가예정
 ---
 
-## :four:시스템 구조
+## :four: 시스템 구조
 
 <img width="1536" alt="서비스 시스템 아키텍처" src="./docs/assets/images/eeum_service_architecture.png" />
 
 ---
-## :five:팀원 소개
+## :five: 팀원 소개
 
 <table>
   <tr>
@@ -176,7 +176,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 
-## :six:기술 스택
+## :six: 기술 스택
 
 **Frontend**
 
@@ -220,7 +220,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   <img src="https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="RDS" />
 </p>
 
-## :seven:폴더 구조
+## :seven: 폴더 구조
 
 ```text
   2026-capstone-52/
@@ -323,7 +323,7 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 ```
 
 
-## :eight:실행 방법
+## :eight: 실행 방법
 
 ### 📖 사용법 (개발 환경 설정)
 
@@ -499,7 +499,7 @@ http://localhost:3000
 
 
 
-## :nine:참고 자료
+## :nine: 참고 자료
 
 | 번호 | 종류 | 제목 | 출처 | 발행년도 | 저자 | 기타 |
 | --- | --- | --- | --- | --- | --- | --- |
