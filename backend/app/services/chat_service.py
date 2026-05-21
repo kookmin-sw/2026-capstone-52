@@ -1,5 +1,6 @@
 import json
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.chat import Chat, ChatSession
@@ -232,7 +233,13 @@ def _build_conversation_context(
 ) -> list[dict]:
     recent_chats = (
         db.query(Chat)
-        .filter(Chat.project_id == project_id, Chat.session_id == session_id)
+        .filter(
+            Chat.project_id == project_id,
+            Chat.session_id == session_id,
+            # 수준진단 리포트 행은 실제 대화가 아니므로 LLM 이력에서 제외한다.
+            # (제외하지 않으면 모델이 사용자 질문 대신 리포트를 요약/반복함)
+            or_(Chat.response_type.is_(None), ~Chat.response_type.startswith("diagnosis_report")),
+        )
         .order_by(Chat.created_at.desc())
         .limit(limit)
         .all()
