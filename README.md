@@ -113,8 +113,12 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 ## :three: 소개 영상
->시연 영상 추가예정
----
+
+<p align="center">
+  <a href="https://youtu.be/bpBDZLran9M">
+    <img src="https://img.youtube.com/vi/bpBDZLran9M/0.jpg" alt="EEUM 시연 영상" width="700">
+  </a>
+</p>
 
 ## :four: 시스템 구조
 
