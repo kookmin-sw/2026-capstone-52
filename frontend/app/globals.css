@@ -6193,8 +6193,8 @@ a {
   justify-content: center;
   min-height: 2.45rem;
   border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(216, 211, 249, 0.78);
+  background: transparent;
+  border: 1px solid transparent;
 }
 
 .workspace-message-mini-quiz-action {
