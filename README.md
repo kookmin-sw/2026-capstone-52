@@ -33,17 +33,19 @@
 
 ## 목차
 
-:one: 📌 [프로젝트 소개](#1️⃣-프로젝트-소개)<br />
-:two: ✨ [주요 기능](#2️⃣-주요-기능)<br />
-:three: 🎬 [소개 영상](#3️⃣-소개-영상)<br />
-:four: 🏗️ [시스템 구조](#4️⃣-시스템-구조)<br />
-:five: 👥 [팀원 소개](#5️⃣-팀원-소개)<br />
-:six: 🛠️ [기술 스택](#6️⃣-기술-스택)<br />
-:seven: 📁 [폴더 구조](#7️⃣-폴더-구조)<br />
-:eight: 🚀 [실행 방법](#8️⃣-실행-방법)<br />
-:nine: 📚 [참고 자료](#9️⃣-참고-자료)
+:one: 📌 [프로젝트 소개](#project-introduction)<br />
+:two: ✨ [주요 기능](#main-features)<br />
+:three: 🎬 [소개 영상](#demo-video)<br />
+:four: 🏗️ [시스템 구조](#system-architecture)<br />
+:five: 👥 [팀원 소개](#team-members)<br />
+:six: 🛠️ [기술 스택](#tech-stack)<br />
+:seven: 📁 [폴더 구조](#folder-structure)<br />
+:eight: 🚀 [실행 방법](#getting-started)<br />
+:nine: 📚 [참고 자료](#references)
 
 ---
+
+<a id="project-introduction"></a>
 
 ## :one: 프로젝트 소개
 <p align="center">
@@ -66,6 +68,8 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 - N-term 간 집중 학습 개념에 대한 미니 퀴즈
 
 ---
+
+<a id="main-features"></a>
 
 ## :two: 주요 기능
 
@@ -112,6 +116,8 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 
 ---
+<a id="demo-video"></a>
+
 ## :three: 소개 영상
 
 <p align="center">
@@ -120,11 +126,15 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   </a>
 </p>
 
+<a id="system-architecture"></a>
+
 ## :four: 시스템 구조
 
 <img width="1536" alt="서비스 시스템 아키텍처" src="./docs/assets/images/eeum_service_architecture.png" />
 
 ---
+<a id="team-members"></a>
+
 ## :five: 팀원 소개
 
 <table>
@@ -180,6 +190,8 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
 
 ---
 
+<a id="tech-stack"></a>
+
 ## :six: 기술 스택
 
 **Frontend**
@@ -223,6 +235,8 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
   <img src="https://img.shields.io/badge/S3-569A31?style=flat-square&logo=amazons3&logoColor=white" alt="S3" />
   <img src="https://img.shields.io/badge/RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="RDS" />
 </p>
+
+<a id="folder-structure"></a>
 
 ## :seven: 폴더 구조
 
@@ -326,6 +340,8 @@ EEUM은 사용자의 학습 자료와 수준 진단 결과를 기반으로,
     └── package-lock.json                # 루트 npm lock 파일
 ```
 
+
+<a id="getting-started"></a>
 
 ## :eight: 실행 방법
 
@@ -502,6 +518,8 @@ http://localhost:3000
 ```
 
 
+
+<a id="references"></a>
 
 ## :nine: 참고 자료
 
