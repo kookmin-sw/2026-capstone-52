@@ -3866,6 +3866,33 @@ a {
   font: inherit;
 }
 
+.workspace-graph-stage-legend-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0.1rem 0;
+}
+
+.workspace-graph-stage-legend-edge {
+  display: inline-block;
+  width: 1.4rem;
+  height: 0.22rem;
+  border-radius: 999px;
+}
+
+.workspace-graph-stage-legend-edge-dashed {
+  display: inline-block;
+  width: 1.4rem;
+  height: 0.22rem;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(245, 211, 138, 0.75) 0px,
+    rgba(245, 211, 138, 0.75) 4px,
+    transparent 4px,
+    transparent 7px
+  );
+  border-radius: 999px;
+}
+
 .workspace-graph-canvas::before {
   content: "";
   position: absolute;

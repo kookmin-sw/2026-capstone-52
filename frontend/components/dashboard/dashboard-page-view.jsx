@@ -4122,6 +4122,23 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                             <strong>{label}</strong>
                           </div>
                         ))}
+                        <div className="workspace-graph-stage-legend-divider" />
+                        <div className="workspace-graph-stage-legend-item">
+                          <span
+                            className="workspace-graph-stage-legend-edge"
+                            style={{
+                              background: "linear-gradient(90deg, rgba(251,146,60,0.18) 0%, rgba(251,146,60,0.82) 50%, rgba(251,146,60,0.18) 100%)",
+                              boxShadow: "0 0 4px 1px rgba(251,146,60,0.5)",
+                            }}
+                          />
+                          <b>-</b>
+                          <strong>선수 개념</strong>
+                        </div>
+                        <div className="workspace-graph-stage-legend-item">
+                          <span className="workspace-graph-stage-legend-edge-dashed" />
+                          <b>-</b>
+                          <strong>하위 개념</strong>
+                        </div>
                       </div>
 
                       {isGraphSearchOpen ? (
