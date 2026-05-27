@@ -3841,7 +3841,7 @@ a {
 
 .workspace-graph-stage-legend-item {
   display: grid;
-  grid-template-columns: auto auto auto;
+  grid-template-columns: 1rem auto auto;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.72rem;
@@ -3855,6 +3855,7 @@ a {
   height: 0.55rem;
   border-radius: 999px;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+  justify-self: center;
 }
 
 .workspace-graph-stage-legend-item b {
@@ -3873,24 +3874,26 @@ a {
 }
 
 .workspace-graph-stage-legend-edge {
-  display: inline-block;
-  width: 1.4rem;
-  height: 0.22rem;
+  display: block;
+  width: 1rem;
+  height: 0.13rem;
   border-radius: 999px;
+  justify-self: center;
 }
 
 .workspace-graph-stage-legend-edge-dashed {
-  display: inline-block;
-  width: 1.4rem;
-  height: 0.22rem;
+  display: block;
+  width: 1rem;
+  height: 0.13rem;
   background: repeating-linear-gradient(
     90deg,
-    rgba(245, 211, 138, 0.75) 0px,
-    rgba(245, 211, 138, 0.75) 4px,
-    transparent 4px,
-    transparent 7px
+    rgba(245, 211, 138, 0.9) 0px,
+    rgba(245, 211, 138, 0.9) 3px,
+    transparent 3px,
+    transparent 5px
   );
   border-radius: 999px;
+  justify-self: center;
 }
 
 .workspace-graph-canvas::before {
