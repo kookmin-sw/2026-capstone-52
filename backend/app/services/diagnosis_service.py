@@ -718,7 +718,26 @@ def _ensure_prerequisite_followup_question_generated(
 
     nodes = db.query(ConceptNode).filter(ConceptNode.project_id == project_id).all()
     graph_context = _build_graph_context(project_id, nodes)
+
+    # 핵심 개념으로 이미 선택된 노드 ID — 답변 전이더라도 concept_check 문제가 이미 예정되어 있으므로
+    # 추가 prerequisite_check 문제를 생성할 필요 없음
+    diagnosed_file_ids = {
+        row.file_id
+        for row in db.query(File.file_id)
+        .filter(File.project_id == project_id, File.diagnosis_status == "DIAGNOSED")
+        .all()
+        if row.file_id
+    }
+    undiagnosed_nodes = [
+        n for n in nodes
+        if n.node_source != "root" and n.file_id not in diagnosed_file_ids
+    ]
+    core_node_ids = {node.node_id for node in _get_core_candidate_nodes_per_file(undiagnosed_nodes)}
+
     for target_node in _build_candidate_nodes(nodes, prerequisite_candidates=prerequisite_candidates):
+        # 핵심 개념 노드는 이미 concept_check 문제가 예정/완료 → 추가 문제 생성 스킵
+        if target_node.node_id in core_node_ids:
+            continue
         if _has_session_question_for_node(
             target_node.node_id,
             session_id,
