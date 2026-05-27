@@ -4127,8 +4127,8 @@ export default function DashboardPageView({ initialProjectId = null, initialChat
                           <span
                             className="workspace-graph-stage-legend-edge"
                             style={{
-                              background: "linear-gradient(90deg, rgba(251,146,60,0.18) 0%, rgba(251,146,60,0.82) 50%, rgba(251,146,60,0.18) 100%)",
-                              boxShadow: "0 0 4px 1px rgba(251,146,60,0.5)",
+                              background: "linear-gradient(90deg, rgba(251,146,60,0.3) 0%, rgba(251,146,60,1) 50%, rgba(251,146,60,0.3) 100%)",
+                              boxShadow: "0 0 5px 2px rgba(251,146,60,0.7)",
                             }}
                           />
                           <b>-</b>
