@@ -328,17 +328,32 @@ export default function KnowledgeGraphScene({
       const isPartOf = relationType === "part_of";
       const isPrerequisite = relationType === "prerequisite";
 
+      // 선택된 노드가 이 엣지의 source인지 target인지 판별
+      const selectedIsSource = activeSelectedNodeId === sourceId;
+      const selectedIsTarget = activeSelectedNodeId === targetId;
+
+      // prerequisite (source → target): source가 target의 선수 개념
+      //   target 클릭 → 선수 관계 glow / source 클릭 → 하위 관계 dashed
+      // part_of (source → target): source가 target의 하위 개념
+      //   source 클릭 → 선수 관계 glow / target 클릭 → 하위 관계 dashed
+      const showAsGlow =
+        (isPrerequisite && selectedIsTarget) ||
+        (isPartOf && selectedIsSource);
+      const showAsDashed =
+        (isPrerequisite && selectedIsSource) ||
+        (isPartOf && selectedIsTarget);
+
       ctx.save();
       ctx.globalAlpha = isDimmed ? 0.12 : 1;
 
       // 기본 상태: 모두 회색
       // 노드 선택 시: 엣지 타입별 구분
       if (isSelectedLink && !isProjectLink) {
-        if (isPrerequisite) {
-          // 선수 개념: 글로우 띠 효과
-          ctx.shadowColor = isLight ? "rgba(251,146,60,0.9)" : "rgba(251,146,60,0.9)";
+        if (showAsGlow) {
+          // 선수 개념 방향: 글로우 띠 효과
+          ctx.shadowColor = "rgba(251,146,60,0.9)";
           ctx.shadowBlur = 7 / globalScale;
-          ctx.strokeStyle = isLight ? "rgba(251,146,60,0.82)" : "rgba(251,146,60,0.82)";
+          ctx.strokeStyle = "rgba(251,146,60,0.82)";
           ctx.lineWidth = 1.8 / globalScale;
           ctx.setLineDash([]);
           ctx.beginPath();
@@ -347,14 +362,14 @@ export default function KnowledgeGraphScene({
           ctx.stroke();
           // 글로우 띠 (더 넓고 투명한 레이어)
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = isLight ? "rgba(251,146,60,0.18)" : "rgba(251,146,60,0.18)";
+          ctx.strokeStyle = "rgba(251,146,60,0.18)";
           ctx.lineWidth = 7 / globalScale;
           ctx.beginPath();
           ctx.moveTo(source!.x!, source!.y!);
           ctx.lineTo(target!.x!, target!.y!);
           ctx.stroke();
-        } else if (isPartOf) {
-          // 하위 개념: 점선 + 기존 갈색/노란색
+        } else if (showAsDashed) {
+          // 하위 개념 방향: 점선
           ctx.strokeStyle = isLight ? "rgba(201,154,62,0.68)" : "rgba(245,211,138,0.68)";
           ctx.lineWidth = 1.55 / globalScale;
           ctx.setLineDash([4 / globalScale, 3 / globalScale]);
