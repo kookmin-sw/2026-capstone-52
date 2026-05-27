@@ -35,6 +35,7 @@ export type ProjectKnowledgeGraphNode = {
 export type ProjectKnowledgeGraphEdge = {
   source: string;
   target: string;
+  relation_type?: string;
 };
 
 export type ProjectKnowledgeGraphData = {
@@ -62,6 +63,7 @@ type BackendGraphNode = {
 type BackendGraphEdge = {
   source_node_id: string;
   target_node_id: string;
+  relation_type?: string;
 };
 
 type BackendGraphData = {
@@ -2346,6 +2348,7 @@ export function buildBackendKnowledgeGraph(
         .map((edge) => ({
           source: edge.source_node_id,
           target: edge.target_node_id,
+          relation_type: edge.relation_type,
         })),
       ]
     ),

@@ -20,6 +20,7 @@ export type KnowledgeGraphNode = {
 export type KnowledgeGraphEdge = {
   source: string;
   target: string;
+  relation_type?: string;
 };
 
 type KnowledgeGraphSceneProps = {
@@ -323,25 +324,70 @@ export default function KnowledgeGraphScene({
         dimmedNodeIdSet.has(targetId) ||
         (Boolean(activeSelectedNodeId) && !isSelectedLink);
       const isProjectLink = Boolean(source?.isProjectRoot || target?.isProjectRoot);
+      const relationType = (link as KnowledgeGraphEdge & { id: string }).relation_type;
+      const isPartOf = relationType === "part_of";
+      const isPrerequisite = relationType === "prerequisite";
 
       ctx.save();
       ctx.globalAlpha = isDimmed ? 0.12 : 1;
-      ctx.strokeStyle = isSelectedLink
-        ? isProjectLink
-          ? isLight
-            ? "rgba(201,154,62,0.58)"
-            : "rgba(245,211,138,0.58)"
-          : isLight
-            ? "rgba(129,124,242,0.68)"
-            : "rgba(160,196,255,0.56)"
-        : isLight
-          ? "rgba(116,112,139,0.24)"
-          : "rgba(160,196,255,0.18)";
-      ctx.lineWidth = (isSelectedLink ? 1.55 : compact ? 0.58 : 0.86) / globalScale;
-      ctx.beginPath();
-      ctx.moveTo(source!.x!, source!.y!);
-      ctx.lineTo(target!.x!, target!.y!);
-      ctx.stroke();
+
+      // 기본 상태: 모두 회색
+      // 노드 선택 시: 엣지 타입별 구분
+      if (isSelectedLink && !isProjectLink) {
+        if (isPrerequisite) {
+          // 선수 개념: 글로우 띠 효과
+          ctx.shadowColor = isLight ? "rgba(251,146,60,0.9)" : "rgba(251,146,60,0.9)";
+          ctx.shadowBlur = 7 / globalScale;
+          ctx.strokeStyle = isLight ? "rgba(251,146,60,0.82)" : "rgba(251,146,60,0.82)";
+          ctx.lineWidth = 1.8 / globalScale;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(source!.x!, source!.y!);
+          ctx.lineTo(target!.x!, target!.y!);
+          ctx.stroke();
+          // 글로우 띠 (더 넓고 투명한 레이어)
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = isLight ? "rgba(251,146,60,0.18)" : "rgba(251,146,60,0.18)";
+          ctx.lineWidth = 7 / globalScale;
+          ctx.beginPath();
+          ctx.moveTo(source!.x!, source!.y!);
+          ctx.lineTo(target!.x!, target!.y!);
+          ctx.stroke();
+        } else if (isPartOf) {
+          // 하위 개념: 점선 + 기존 갈색/노란색
+          ctx.strokeStyle = isLight ? "rgba(201,154,62,0.68)" : "rgba(245,211,138,0.68)";
+          ctx.lineWidth = 1.55 / globalScale;
+          ctx.setLineDash([4 / globalScale, 3 / globalScale]);
+          ctx.beginPath();
+          ctx.moveTo(source!.x!, source!.y!);
+          ctx.lineTo(target!.x!, target!.y!);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          // 기타: 기존 갈색/노란색
+          ctx.strokeStyle = isLight ? "rgba(201,154,62,0.58)" : "rgba(245,211,138,0.58)";
+          ctx.lineWidth = 1.55 / globalScale;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(source!.x!, source!.y!);
+          ctx.lineTo(target!.x!, target!.y!);
+          ctx.stroke();
+        }
+      } else {
+        // 기본 상태 또는 프로젝트 루트 링크: 회색
+        ctx.strokeStyle = isSelectedLink && isProjectLink
+          ? isLight ? "rgba(201,154,62,0.58)" : "rgba(245,211,138,0.58)"
+          : isLight ? "rgba(116,112,139,0.24)" : "rgba(160,196,255,0.18)";
+        ctx.lineWidth = (isSelectedLink ? 1.55 : compact ? 0.58 : 0.86) / globalScale;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(source!.x!, source!.y!);
+        ctx.lineTo(target!.x!, target!.y!);
+        ctx.stroke();
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.setLineDash([]);
       ctx.restore();
     },
     [activeSelectedNodeId, compact, dimmedNodeIdSet, isLight]
